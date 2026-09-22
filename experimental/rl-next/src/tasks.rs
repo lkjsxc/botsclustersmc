@@ -105,6 +105,9 @@ pub struct Evidence {
     /// Real inventory plus cursor; excludes predicted crafting output slots.
     pub stock:[u32;ITEM_COUNT],
     pub counters:Counters,
+    /// Current goal-material quantity in the designated container, read back
+    /// after the actual transfer; not a historical deposit event count.
+    pub target_stock:u32,
     /// Read back actual occupied target cells, not historical place-event count.
     pub occupied_targets:u8,
     /// Motor tasks require a continuous hold established using elapsed ticks,
@@ -112,31 +115,38 @@ pub struct Evidence {
     pub motor_hold_ticks:u32,
 }
 #[derive(Clone,Debug)]
-pub struct ProgressGate {session:Session,task:Task,baseline:Counters,last:Counters,last_tick:u64}
+pub struct ProgressGate {
+    session:Session,task:Task,baseline:Counters,last:Counters,last_tick:u64,
+    initial_stock:[u32;ITEM_COUNT],initial_target_stock:u32,
+}
 impl ProgressGate {
     pub fn new(task:Task,baseline:&Evidence)->Result<Self>{
-        if baseline.session.actor>=32 || baseline.stock.iter().any(|x|*x>5760){return Err("invalid evidence baseline");}
-        Ok(Self{session:baseline.session,task,baseline:baseline.counters,last:baseline.counters,last_tick:baseline.tick})
+        if baseline.session.actor>=32 || baseline.stock.iter().any(|x|*x>5760) || baseline.target_stock>5760 {
+            return Err("invalid evidence baseline");
+        }
+        Ok(Self{session:baseline.session,task,baseline:baseline.counters,last:baseline.counters,last_tick:baseline.tick,
+            initial_stock:baseline.stock,initial_target_stock:baseline.target_stock})
     }
     /// Trust only the authenticated, region-safe bridge adapter to construct
     /// evidence. This validates context and temporal consistency, not network auth.
     pub fn observe(&mut self,e:&Evidence)->Result<bool>{
         if e.session!=self.session {return Err("foreign or stale task session");}
         if e.tick<=self.last_tick {return Err("nonmonotonic evidence tick");}
-        if e.stock.iter().any(|x|*x>5760) || !e.counters.ge(self.last){return Err("invalid evidence counters");}
+        if e.stock.iter().any(|x|*x>5760) || e.target_stock>5760 || !e.counters.ge(self.last){return Err("invalid evidence counters");}
         let d=e.counters.delta(self.baseline);
-        let have=|item:Item,n:u32|e.stock[item as usize]>=n;
+        // Reset-supplied output stock cannot stand in for newly acquired output.
+        let acquired=|item:Item,n:u32|self.initial_stock[item as usize].checked_add(n).is_some_and(|required|e.stock[item as usize]>=required);
         let ok=match self.task {
             Task::ForwardStop|Task::TurnStop|Task::AimHold|Task::NavigateStop|Task::StepOver=>e.motor_hold_ticks>=20,
             Task::BreakLog=>d.broken>=1,
-            Task::CollectLog=>d.broken>=1 && d.picked_up>=1 && have(Item::Log,1),
+            Task::CollectLog=>d.broken>=1 && d.picked_up>=1 && acquired(Item::Log,1),
             Task::PlaceBlock=>d.placed>=1 && e.occupied_targets&1==1,
-            Task::MineCobblestone=>d.broken>=1 && d.picked_up>=1 && have(Item::Cobblestone,1),
-            Task::SmeltIron=>d.smelted>=1 && have(Item::IronIngot,1),
-            Task::SupplyChest=>d.deposited>=1,
+            Task::MineCobblestone=>d.broken>=1 && d.picked_up>=1 && acquired(Item::Cobblestone,1),
+            Task::SmeltIron=>d.smelted>=1 && acquired(Item::IronIngot,1),
+            Task::SupplyChest=>d.deposited>=1 && e.target_stock>self.initial_target_stock,
             Task::BuildPlatform=>d.placed>=3 && e.occupied_targets&7==7,
-            Task::LogToWorkbench=>d.broken>=1 && d.picked_up>=1 && d.crafted>=1 && have(Item::Workbench,1),
-            task=>{let (item,n)=task.craft_output().ok_or("task has no success rule")?;d.crafted>=n && have(item,n)}
+            Task::LogToWorkbench=>d.broken>=1 && d.picked_up>=1 && d.crafted>=1 && acquired(Item::Workbench,1),
+            task=>{let (item,n)=task.craft_output().ok_or("task has no success rule")?;d.crafted>=n && acquired(item,n)}
         };
         self.last=e.counters;self.last_tick=e.tick;Ok(ok)
     }
@@ -145,7 +155,7 @@ impl ProgressGate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn e()->Evidence{Evidence{session:Session{run:1,actor:0,generation:1,lesson:1},tick:0,stock:[0;ITEM_COUNT],counters:Counters::default(),occupied_targets:0,motor_hold_ticks:0}}
+    fn e()->Evidence{Evidence{session:Session{run:1,actor:0,generation:1,lesson:1},tick:0,stock:[0;ITEM_COUNT],counters:Counters::default(),target_stock:0,occupied_targets:0,motor_hold_ticks:0}}
     #[test] fn all_tasks_have_bounded_specs_and_valid_masks(){
         for (i,task) in TASKS.iter().enumerate(){let s=task.spec();assert_eq!(Task::from_index(i).unwrap(),*task);assert!(!s.name.is_empty());assert!(s.limit_ticks>=600 && s.limit_ticks<=3000);
             let m=task.mask();assert_eq!(m.len(),HEADS.len());for (h,head) in m.iter().enumerate(){assert_eq!(head.len(),HEADS[h]);assert!(head.iter().any(|x|*x));}}
@@ -155,7 +165,8 @@ mod tests {
         for task in [Task::CraftPlanks,Task::CraftSticks,Task::CraftWorkbench,Task::CraftWoodPick,Task::CraftStonePick]{
             let mut base=e();let (item,n)=task.craft_output().unwrap();base.stock[item as usize]=n;
             let mut gate=ProgressGate::new(task,&base).unwrap();let mut next=base.clone();next.tick=4;assert!(!gate.observe(&next).unwrap());
-            next.tick=8;next.counters.crafted=n;assert!(gate.observe(&next).unwrap());
+            next.tick=8;next.counters.crafted=n;assert!(!gate.observe(&next).unwrap());
+            next.tick=12;next.stock[item as usize]+=n;assert!(gate.observe(&next).unwrap());
         }
     }
     #[test] fn crafted_stat_without_actual_acquisition_is_not_success(){
@@ -196,4 +207,14 @@ mod tests {
     }
     #[test] fn motor_hold_needs_full_interval(){let mut x=e();let mut g=ProgressGate::new(Task::ForwardStop,&x).unwrap();
         x.tick=4;x.motor_hold_ticks=19;assert!(!g.observe(&x).unwrap());x.tick=8;x.motor_hold_ticks=20;assert!(g.observe(&x).unwrap());}
+    #[test] fn withdrawn_or_reset_seeded_deposits_do_not_pass(){
+        let mut x=e();x.target_stock=3;let mut g=ProgressGate::new(Task::SupplyChest,&x).unwrap();
+        x.tick=4;x.counters.deposited=1;assert!(!g.observe(&x).unwrap());
+        x.tick=8;x.target_stock=4;assert!(g.observe(&x).unwrap());
+        x.tick=12;x.target_stock=3;assert!(!g.observe(&x).unwrap());
+    }
+    #[test] fn impossible_container_stock_is_rejected_without_advancing_time(){
+        let mut x=e();let mut g=ProgressGate::new(Task::SupplyChest,&x).unwrap();
+        x.tick=4;x.target_stock=5761;assert!(g.observe(&x).is_err());assert_eq!(g.last_tick,0);
+    }
 }
