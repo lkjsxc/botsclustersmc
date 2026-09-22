@@ -29,6 +29,7 @@ pub struct ActorProgress {
     pub samples: usize,
     pub next_sequence: u64,
     pub sealed: bool,
+    pub at_episode_boundary: bool,
 }
 
 #[derive(Debug)]
@@ -76,6 +77,7 @@ impl<T> Cohort<T> {
 
     /// Validate BEFORE mutating. The caller must validate payload dimensions,
     /// finiteness, behaviour log-probabilities and transition chronology too.
+    /// The packet's ends_episode flag must match its final transition boundary.
     /// Any returned error must be surfaced; this API never silently drops it.
     pub fn push(&mut self, p: Packet<T>, validate: impl FnOnce(&[T]) -> Result<()>) -> Result<()> {
         if self.taken { return Err("batch already taken; policy publication required"); }
@@ -84,7 +86,12 @@ impl<T> Cohort<T> {
         let a = self.actors.get(p.actor).ok_or("unknown actor")?;
         if a.sealed { return Err("actor already sealed"); }
         if p.sequence != a.next_sequence { return Err("missing, duplicated or reordered fragment"); }
-        if p.samples.is_empty() && !p.seal { return Err("empty non-sealing fragment"); }
+        if p.samples.is_empty() && (!p.seal || !a.at_episode_boundary) {
+            return Err("empty seal cannot invent an unobserved episode terminal");
+        }
+        if !p.samples.is_empty() && a.at_episode_boundary && a.samples >= self.quota {
+            return Err("actor started another episode instead of waiting at the cohort barrier");
+        }
         let count = a.samples.checked_add(p.samples.len()).ok_or("sample count overflow")?;
         if count > self.max_per_actor { return Err("actor exceeded bounded episode capacity"); }
         if p.seal && (!p.ends_episode || count < self.quota) {
@@ -94,7 +101,8 @@ impl<T> Cohort<T> {
         let fragments = self.fragments.checked_add(1).ok_or("fragment counter exhausted")?;
         validate(&p.samples)?;
         self.data[p.actor].extend(p.samples);
-        self.actors[p.actor] = ActorProgress { samples: count, next_sequence: sequence, sealed: p.seal };
+        self.actors[p.actor] = ActorProgress { samples: count, next_sequence: sequence,
+            sealed: p.seal, at_episode_boundary: p.ends_episode };
         self.fragments = fragments;
         Ok(())
     }
@@ -175,8 +183,23 @@ mod tests {
         let mut p = packet(0, 0, 4, true); p.ends_episode = false;
         assert!(c.push(p, |_| Ok(())).is_err());
         assert!(c.push(packet(0, 0, 3, true), |_| Ok(())).is_err());
+        let mut ended = packet(0, 0, 4, false); ended.ends_episode = true;
+        c.push(ended, |_| Ok(())).unwrap(); assert!(!c.ready());
+        c.push(packet(0, 1, 0, true), |_| Ok(())).unwrap(); assert!(c.ready());
+    }
+    #[test] fn empty_seal_cannot_invent_a_terminal_reward_transition() {
+        let mut c = Cohort::new(r(), 1, 4, 20).unwrap();
         c.push(packet(0, 0, 4, false), |_| Ok(())).unwrap();
-        assert!(!c.ready()); c.push(packet(0, 1, 0, true), |_| Ok(())).unwrap(); assert!(c.ready());
+        assert!(c.push(packet(0, 1, 0, true), |_| Ok(())).is_err());
+        assert_eq!(c.len(), 4); assert_eq!(c.progress()[0].next_sequence, 1);
+        c.push(packet(0, 1, 1, true), |_| Ok(())).unwrap(); assert!(c.ready());
+    }
+    #[test] fn completed_quota_requires_a_barrier_before_another_episode() {
+        let mut c = Cohort::new(r(), 1, 4, 20).unwrap();
+        let mut ended = packet(0, 0, 4, false); ended.ends_episode = true;
+        c.push(ended, |_| Ok(())).unwrap();
+        assert!(c.push(packet(0, 1, 1, false), |_| Ok(())).is_err());
+        c.push(packet(0, 1, 0, true), |_| Ok(())).unwrap(); assert!(c.ready());
     }
     #[test] fn duplicate_gap_payload_and_capacity_errors_are_atomic() {
         let mut c = Cohort::new(r(), 1, 4, 20).unwrap();
