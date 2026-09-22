@@ -3,6 +3,8 @@
 The actual Minecraft runtime is committed to `main`, not only RL-next components.
 The complete measured record, source identity, settings, failed CI attempt and
 limits are in [verification/20260922-source-runtime.md](verification/20260922-source-runtime.md).
+The final clean-checkout CI and normal-batch resume acceptance are recorded in
+[verification/20260922-clean-checkout.md](verification/20260922-clean-checkout.md).
 
 ## Completed evidence
 
@@ -15,7 +17,8 @@ passed (19 / 8 / 24). Pure Java fixture checks also passed.
 Real local Folia ran 32 bots through two bounded smoke rounds: 16 PPO updates,
 clean checkpoint/world save, exact state restoration, then 17 further updates.
 A separate new Academy created through the normal `start.sh` entrypoint with
-normal learning settings completed four PPO updates and a clean shutdown.
+normal learning settings completed four PPO updates and a clean shutdown, then
+restored the exact checkpoint and completed four further updates after restart.
 Local execution reused verified dependency caches; independent first-download
 behavior was checked separately in CI. Neither is being mislabeled as the other.
 
