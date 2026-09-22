@@ -1,0 +1,63 @@
+name: RL-next component verification
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/rl-next-components.yml'
+      - 'experimental/rl-next/VERIFY'
+permissions:
+  contents: read
+concurrency:
+  group: rl-next-components-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fixed Rust compiler
+        run: rustup toolchain install nightly-2026-02-04 --profile minimal
+      - name: Test pure learning components
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p component-evidence
+          rustup run nightly-2026-02-04 rustc --version --verbose > component-evidence/compiler.txt
+          git rev-parse HEAD > component-evidence/source-commit.txt
+          rustup run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --release --all-targets -- --test-threads=1 2>&1 | tee component-evidence/unit-tests.log
+      - name: Run five-seed synthetic reward-only benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup run nightly-2026-02-04 cargo build --manifest-path experimental/rl-next/Cargo.toml --release
+          experimental/rl-next/target/release/bcmc-rl-check benchmark > component-evidence/bandit.json
+          experimental/rl-next/target/release/bcmc-rl-check stages > component-evidence/task-contracts.txt
+          cat > component-evidence/scope.json <<'EOF'
+          {"scope":"experimental-components","minecraft_runtime_integration":false,"minecraft_live_validation":false,"advanced_stages_playable":false,"v031_performance_comparison":false,"operator_data_included":false}
+          EOF
+      - name: Package components, not a Minecraft runtime release
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=botsclustersmc-rl-next-components
+          mkdir -p "$root/bin" "$root/evidence"
+          cp experimental/rl-next/target/release/bcmc-rl-check "$root/bin/"
+          cp -r experimental/rl-next/src "$root/"
+          cp experimental/rl-next/Cargo.toml experimental/rl-next/Cargo.lock experimental/rl-next/README.md experimental/rl-next/INTEGRATION.md "$root/"
+          cp LICENSE "$root/"
+          cp component-evidence/* "$root/evidence/"
+          printf '%s\n' 'EXPERIMENTAL COMPONENTS ONLY. This does not replace or modify your Minecraft bots.' > "$root/NOT-A-RUNTIME-UPDATE.txt"
+          zip -qr botsclustersmc-rl-next-components-linux-x86_64.zip "$root"
+          ls -lh botsclustersmc-rl-next-components-linux-x86_64.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rl-next-component-evidence
+          path: component-evidence
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rl-next-components-linux-x86_64
+          path: botsclustersmc-rl-next-components-linux-x86_64.zip
+          retention-days: 30
