@@ -1,0 +1,20 @@
+[package]
+name = "bcmc-rl-next"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Experimental, independently tested RL components; not an integrated Minecraft runtime"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "bcmc-rl-check"
+path = "src/main.rs"
+
+[dependencies]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
