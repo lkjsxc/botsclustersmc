@@ -1,0 +1,10 @@
+name: botsclustersmc
+version: '0.3.1'
+main: org.botsclustersmc.lab.BotsClustersMCLab
+api-version: '1.21.11'
+folia-supported: true
+description: Bounded training environment only; no bot policies.
+commands:
+  academy:
+    description: Observe a training cell
+    usage: /academy watch <0..31>

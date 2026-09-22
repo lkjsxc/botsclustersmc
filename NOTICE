@@ -1,0 +1,14 @@
+botsclustersmc is an independent experiment, not an official Minecraft, Mojang,
+Microsoft, PaperMC, Folia or Azalea product, and is not endorsed by them.
+
+The repository's original Apache-2.0 LICENSE is preserved. Source recovered from
+the earlier VoxelKin v0.2.0 distribution retains its MIT notice in
+licenses/VoxelKin-MIT.txt. Keep that notice when redistributing the derived source.
+Downloaded dependencies retain their own licenses. Server binaries, toolchains,
+operator secrets, worlds and trained weights are not part of the source release.
+The server operator must independently accept the applicable Minecraft EULA.
+
+The host helper downloads Maven artifact com.google.code.gson:gson:2.13.2
+from Maven Central. Its Apache-2.0 notice is in licenses/Gson-Apache-2.0.txt;
+the downloaded jar retains embedded POM/license metadata. No third-party jar,
+prebuilt native executable or accepted EULA is distributed in this Git tree.

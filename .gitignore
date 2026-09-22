@@ -1,0 +1,16 @@
+.env
+.build/
+bin/
+runtime/
+server/
+state/
+logs/
+.runtime/
+diagnostics/
+diagnostics-*.tar.gz
+__pycache__/
+experiments/
+
+/academy/
+/.botsclustersmc-academy-v1
+*.class
