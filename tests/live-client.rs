@@ -52,7 +52,11 @@ fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
         Op::Park=>{if !cursor.is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;*op=Op::AwaitCount(0);return Ok(false);}},
         Op::Align(g)=>{if !aim(f,g,true,a){return Ok(false);}},
         Op::Use=>a[4]=2,
-        Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting{..}),2=>matches!(menu,Menu::Furnace{..}),3=>matches!(menu,Menu::Generic9x3{..}),_=>false};if !ok{return Ok(false);}},
+        Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting{..}),2=>matches!(menu,Menu::Furnace{..}),3=>matches!(menu,Menu::Generic9x3{..}),_=>false};if !ok{
+            // Retry a literal click, not forced block interaction. A screen open
+            // is acknowledged by the actual menu, never a fixed delay alone.
+            if f.tick%16<4{a[4]=2;}return Ok(false);
+        }},
         Op::Output(slot,kind)=>{
             if slots.get(slot).is_none_or(|i|i.is_empty()||i.kind()!=kind){return Ok(false);}
             if !cursor.is_empty(){return Err("diagnostic output click has a nonempty cursor".into());}
@@ -86,7 +90,15 @@ impl Check{
         if root().join("state/training.bcmc").exists(){return Err("diagnostic refuses to run in a learned-model directory".into());}
         if self.lesson.is_none(){self.begin()?;act::stop(bot);return Ok(());}
         let l=self.lesson.as_ref().unwrap().clone();
-        if self.started.elapsed()>Duration::from_secs(200){return Err(format!("fixture {} timed out; pending operation {:?}",self.stage,self.ops.front()));}
+        if self.started.elapsed()>Duration::from_secs(200){
+            let raw=fs::read_to_string(root().join(format!(".runtime/lab/frame-{}.txt",self.actor))).unwrap_or_default();
+            return Err(format!("fixture {} timed out; actor={} pending={:?} episode_started={} token={} raw={raw:?} menu={:?} cursor={:?}",self.stage,self.actor,self.ops.front(),self.episode.is_some(),l.token(),bot.menu(),carried(bot)));
+        }
+        if self.stage>=5&&self.ticks%100==0{
+            let pos=azalea::core::position::BlockPos::new(l.goal[0].floor() as i32,l.goal[1].floor() as i32,l.goal[2].floor() as i32);
+            let block={let world=bot.world();let w=world.read();w.get_block_state(pos)};
+            eprintln!("DIAGNOSTIC STATE actor={} stage={} episode={} op={:?} client={:?} target={:?} block={block:?} hit={:?} held={:?} selected={} cursor={:?}",self.actor,self.stage,self.episode.is_some(),self.ops.front(),bot.position(),pos,bot.hit_result(),bot.get_held_item(),bot.selected_hotbar_slot(),carried(bot));
+        }
         let Some(f)=read_frame(&l)? else{return Ok(());};
         if let Some(e)=&self.episode{if f.tick<=e.previous.tick{return Ok(());}}
         if self.episode.is_none(){
@@ -187,7 +199,12 @@ fn main()->Result<(),Box<dyn std::error::Error>>{
     let executor=tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build()?;
     executor.block_on(async{
         let local=tokio::task::LocalSet::new();local.run_until(async{
-            let mut builder=SwarmBuilder::new_without_plugins().add_plugins((DefaultPlugins,DefaultBotPlugins.build().disable::<azalea::pathfinder::PathfinderPlugin>().disable::<azalea::accept_resource_packs::AcceptResourcePacksPlugin>(),DefaultSwarmPlugins)).set_handler(handler).reconnect_after(None).join_delay(Duration::from_millis(400));
+            // The pinned Azalea physics does not implement spectator flight. This
+            // observer-only probe sends no gameplay movement; retain real server
+            // teleports/packets instead of applying survival gravity to its camera.
+            // The 18 gameplay fixture clients still use the full physics plugin.
+            let defaults=if observer{DefaultPlugins.build().disable::<azalea::physics::PhysicsPlugin>()}else{DefaultPlugins.build()};
+            let mut builder=SwarmBuilder::new_without_plugins().add_plugins((defaults,DefaultBotPlugins.build().disable::<azalea::pathfinder::PathfinderPlugin>().disable::<azalea::accept_resource_packs::AcceptResourcePacksPlugin>(),DefaultSwarmPlugins)).set_handler(handler).reconnect_after(None).join_delay(Duration::from_millis(400));
             for actor in 0..if observer{1}else{18}{
                 let name=if observer{"bcmcObserver".to_string()}else{format!("bcmc{actor:02}")};
                 let check=Check{actor,stage:actor,..Check::new(observer)};
