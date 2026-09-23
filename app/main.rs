@@ -19,7 +19,7 @@ fn main()->Result<(),Box<dyn std::error::Error>>{
                     .disable::<azalea::pathfinder::PathfinderPlugin>()
                     .disable::<azalea::accept_resource_packs::AcceptResourcePacksPlugin>(),DefaultSwarmPlugins))
                 .set_handler(agent::handler)
-                .join_delay(Duration::from_millis(1500))
+                .join_delay(Duration::from_millis(rt.cfg.join_delay_ms))
                 .reconnect_after(Some(Duration::from_secs(20)));
             for id in 0..rt.cfg.bots{let name=format!("{}{:02}",rt.cfg.prefix,id);builder=builder.add_account_with_state(Account::offline(&name),agent::State::new(id,name,rt.cfg.seed));}
             let server=rt.cfg.server.clone();let run=builder.start(server.as_str());

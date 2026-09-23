@@ -10,7 +10,7 @@ impl Mode{pub fn parse(s:&str)->Result<Self,String>{match s{"train"=>Ok(Self::Tr
 struct Clock{episode:Option<u64>,tick:u64,closed:bool}
 pub struct Coordinator{
     pub policy:Arc<Model>,pub course:Curriculum,pub actor_rngs:Vec<u64>,pub mode:Mode,
-    cohort:Cohort<Transition>,clocks:Vec<Clock>,quota:usize,optimizing:bool,
+    identity:PolicyId,cohort:Cohort<Transition>,clocks:Vec<Clock>,quota:usize,optimizing:bool,
     pub local_samples:Vec<usize>,pub pending_actions:Vec<bool>,
 }
 pub struct Update{pub rollouts:Vec<Rollout>,pub policy:PolicyId,pub generation:u64,pub samples:usize}
@@ -20,10 +20,11 @@ impl Coordinator{
         if b.actor_rngs.len()!=b.curriculum.bots(){return Err("actor RNG population mismatch".into());}
         let n=b.curriculum.bots();let round=Round{policy_version:b.checkpoint.model.version,generation:b.curriculum.generation()};
         let cohort=Cohort::new(round,n,quota,3100).map_err(str::to_string)?;
-        Ok(Self{policy:Arc::new(b.checkpoint.model),course:b.curriculum,actor_rngs:b.actor_rngs,mode,cohort,
+        let identity=policy_id(&b.checkpoint);
+        Ok(Self{identity,policy:Arc::new(b.checkpoint.model),course:b.curriculum,actor_rngs:b.actor_rngs,mode,cohort,
             clocks:vec![Clock::default();n],quota,optimizing:false,local_samples:vec![0;n],pending_actions:vec![false;n]})
     }
-    pub fn id(&self)->PolicyId{PolicyId{version:self.policy.version,signature:self.policy.fingerprint()}}
+    pub fn id(&self)->PolicyId{self.identity}
     pub fn examining(&self)->bool{matches!(self.course.phase(),Phase::Exam{..})}
     pub fn optimizing(&self)->bool{self.optimizing}
     pub fn buffered(&self)->usize{self.cohort.len()}
@@ -101,7 +102,7 @@ impl Coordinator{
         if b.curriculum.bots()!=self.course.bots(){return Err("population changed during publication".into());}
         let round=Round{policy_version:b.checkpoint.model.version,generation:b.curriculum.generation()};
         let cohort=Cohort::new(round,self.course.bots(),self.quota,3100).map_err(str::to_string)?;
-        self.policy=Arc::new(b.checkpoint.model.clone());self.course=b.curriculum.clone();self.cohort=cohort;
+        self.identity=policy_id(&b.checkpoint);self.policy=Arc::new(b.checkpoint.model.clone());self.course=b.curriculum.clone();self.cohort=cohort;
         self.clocks.fill(Clock::default());self.local_samples.fill(0);self.pending_actions.fill(false);self.optimizing=false;Ok(())
     }
     pub fn snapshot(&self,cp:&Checkpoint)->Result<Bundle,String>{

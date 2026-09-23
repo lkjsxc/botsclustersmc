@@ -99,7 +99,7 @@ pub fn observe(bot:&Client,id:usize,name:&str,previous:&[f32],last_action:&[usiz
         .filter(|(d,_)|*d<=32.0*32.0).collect::<Vec<_>>();
     nearby.sort_by(|a,b|a.0.total_cmp(&b.0));
     for i in 0..4{if let Some((_,other))=nearby.get(i){
-        f.extend([1.0,((other.position[0]-p.x)/32.0) as f32,((other.position[1]-p.y)/32.0) as f32,((other.position[2]-p.z)/32.0) as f32,other.health/20.0,other.id as f32/31.0]);
+        f.extend([1.0,((other.position[0]-p.x)/32.0) as f32,((other.position[1]-p.y)/32.0) as f32,((other.position[2]-p.z)/32.0) as f32,other.health/20.0,other.id as f32/63.0]);
     }else{f.extend([0.0;6]);}}
     assert!(f.len()<=FRAME);f.resize(FRAME,0.0);
     for v in &mut f{if !v.is_finite(){*v=0.0;}*v=v.clamp(-1.0,1.0);}
@@ -141,7 +141,7 @@ mod tests {
 
 /// The prior sensor occupies exactly 617 values; curriculum uses its 23 padded
 /// values. The frame stack and recorded behavior distribution include the goal.
-pub fn academy_features(o:&mut Observation,features:&[f32;23]) {
-    o.frame[617..640].copy_from_slice(features);
+pub fn academy_features(o:&mut Observation,features:&[f32;87]) {
+    o.frame[617..704].copy_from_slice(features);
     o.obs[..FRAME].copy_from_slice(&o.frame);
 }
