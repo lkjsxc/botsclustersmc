@@ -2,31 +2,10 @@ name: Source runtime verification
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '.github/workflows/source-runtime.yml'
-      - 'app/**'
-      - 'launcher/**'
-      - 'learning/**'
-      - 'bridge/**'
-      - 'pins/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - '*.sh'
-      - '.env.example'
-      - 'VERSION'
+    branches: [main]
+    paths: ['.github/workflows/source-runtime.yml','app/**','launcher/**','learning/**','bridge/**','pins/**','scripts/**','tests/**','*.sh','.env.example','VERSION']
   pull_request:
-    paths:
-      - '.github/workflows/source-runtime.yml'
-      - 'app/**'
-      - 'launcher/**'
-      - 'learning/**'
-      - 'bridge/**'
-      - 'pins/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - '*.sh'
-      - '.env.example'
-      - 'VERSION'
+    paths: ['.github/workflows/source-runtime.yml','app/**','launcher/**','learning/**','bridge/**','pins/**','scripts/**','tests/**','*.sh','.env.example','VERSION']
 permissions:
   contents: read
 concurrency:
@@ -42,35 +21,33 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Verify clean checkout and host prerequisite handling
+      - name: Verify clean checkout and host prerequisites
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/evidence"
           git rev-parse HEAD > "$RUNNER_TEMP/evidence/source-commit.txt"
-          for path in bin runtime .build academy server state .env; do
-            test ! -e "$path" || { echo "Unexpected runtime data in checkout: $path"; exit 1; }
-          done
+          for path in bin runtime .build academy academy-v2 server state .env; do test ! -e "$path"; done
           ./scripts/preflight.sh
           ./scripts/build-host-tools.sh 2>&1 | tee "$RUNNER_TEMP/evidence/host-tools.log"
           python3 tests/package_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/package.log"
           python3 tests/bootstrap_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/bootstrap.log"
           python3 tests/recovery_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/recovery.log"
           ./scripts/test-bridge.sh 2>&1 | tee "$RUNNER_TEMP/evidence/bridge-unit.log"
-      - name: Build and test pinned native application without dependency cache
+      - name: Build and test pinned native application
         shell: bash
         run: |
           set -euo pipefail
           ./scripts/build.sh 2>&1 | tee "$RUNNER_TEMP/evidence/native-build.log"
           cp bin/build-manifest.txt "$RUNNER_TEMP/evidence/"
-      - name: Download pinned Folia and compile actual API bridge
+      - name: Download Folia and compile its actual API bridge
         shell: bash
         run: |
           set -euo pipefail
-          trap 'rm -f .botsclustersmc-academy-v1' EXIT
+          trap 'rm -f .botsclustersmc-academy-v1 .botsclustersmc-academy-v2' EXIT
           printf 'botsclustersmc-academy-v1\nbots=32\ncampus=8x16\n' > .botsclustersmc-academy-v1
           BCMC_ROOT="$PWD" bin/botsclustersmc-run check-bridge 2>&1 | tee "$RUNNER_TEMP/evidence/folia-api.log"
-          printf '%s\n' 'Fresh checkout, source builds, regression suites, dependency downloads and real Folia API compilation. No live Minecraft server, EULA acceptance, or gameplay/learning-performance claim.' > "$RUNNER_TEMP/evidence/scope.txt"
+          printf '%s\n' 'Fresh source tests, builds and actual Folia API compilation. No live Minecraft server or skill-performance claim.' > "$RUNNER_TEMP/evidence/scope.txt"
           git diff --exit-code
       - uses: actions/upload-artifact@v4
         if: always()
