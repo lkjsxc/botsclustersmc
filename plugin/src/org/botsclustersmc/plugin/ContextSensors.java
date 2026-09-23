@@ -46,7 +46,9 @@ public final class ContextSensors {
         double angle=Math.toRadians(yaw);
         for(int distance=1;distance<=12;distance++) {
             Location q=origin.clone().add(-Math.sin(angle)*distance,1,Math.cos(angle)*distance);
-            if(q.getBlockY()<q.getWorld().getMinHeight()+2||q.getBlockY()>=q.getWorld().getMaxHeight()||!WorldActions.owned(q)) {f[offset]=0;return;}
+            if(!WorldActions.owned(q)||q.getBlockY()<q.getWorld().getMinHeight()+2) {
+                Arrays.fill(f,offset,offset+8,0);return;
+            }
             Block block=q.getBlock();f[offset]=1;f[offset+1]=distance/12f;
             f[offset+2]=Stack.kind(block.getType().name())/20f;f[offset+3]=block.isPassable()?0:1;
             f[offset+4]=block.isLiquid()?1:0;f[offset+5]=hazard(block.getType())?1:0;

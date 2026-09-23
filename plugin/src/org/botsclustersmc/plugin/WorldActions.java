@@ -15,7 +15,14 @@ import java.util.*;
 public final class WorldActions {
     private WorldActions(){}
     public record Hit(Block block,Block previous){}
-    public static boolean owned(Location p){return p.getWorld()!=null&&p.getWorld().isChunkLoaded(p.getBlockX()>>4,p.getBlockZ()>>4)&&Bukkit.isOwnedByCurrentRegion(p);}
+    /** Ownership must be established before any world/chunk/block query. */
+    public static boolean owned(Location p) {
+        World world=p.getWorld();
+        if(world==null||!Bukkit.isOwnedByCurrentRegion(p))return false;
+        int y=p.getBlockY();
+        return y>=world.getMinHeight()&&y<world.getMaxHeight()
+            &&world.isChunkLoaded(p.getBlockX()>>4,p.getBlockZ()>>4);
+    }
     public static Hit trace(Npc npc){
         Location eye=npc.entity.getEyeLocation();Vector direction=eye.getDirection();Block last=null;
         int bx=Integer.MIN_VALUE,by=0,bz=0;
@@ -29,20 +36,22 @@ public final class WorldActions {
     }
     public static void tick(Npc npc,int[] action,boolean justApplied){
         Mob mob=npc.entity;Location p=mob.getLocation();
-        float yaw=(p.getYaw()+new int[]{-8,-2,0,2,8}[action[1]])%360;
-        float pitch=Math.max(-89,Math.min(89,p.getPitch()+new int[]{-4,-1,0,1,4}[action[2]]));mob.setRotation(yaw,pitch);
+        boolean focused=MenuFocus.active(npc.pocket.menu()!=Pocket.Menu.CLOSED,action[6]);
+        float yaw=(p.getYaw()+(focused?0:new int[]{-8,-2,0,2,8}[action[1]]))%360;
+        float pitch=Math.max(-89,Math.min(89,p.getPitch()+(focused?0:new int[]{-4,-1,0,1,4}[action[2]])));mob.setRotation(yaw,pitch);
         double forward=switch(action[0]){case 1,5,6->1;case 2,7,8->-1;default->0;};
         double side=switch(action[0]){case 3,5,7->-1;case 4,6,8->1;default->0;};
+        if(focused){forward=0;side=0;}
         double norm=Math.max(1,Math.hypot(forward,side)),speed=action[3]==2?.07:.18,angle=Math.toRadians(yaw);
-        Vector velocity=mob.getVelocity();double vy=velocity.getY();if(action[3]==1&&justApplied&&mob.isOnGround())vy=.42;
+        Vector velocity=mob.getVelocity();double vy=velocity.getY();if(!focused&&action[3]==1&&justApplied&&mob.isOnGround())vy=.42;
         mob.setVelocity(new Vector((-Math.sin(angle)*forward+Math.cos(angle)*side)*speed/norm,vy,(Math.cos(angle)*forward+Math.sin(angle)*side)*speed/norm));
         if(justApplied){
-            npc.pocket.select(action[5]);
+            if(!focused)npc.pocket.select(action[5]);
             if(action[6]!=0){npc.pocket.click(action[6],action[7],ExternalInventory.locate(npc));if(npc.pocket.menu()==Pocket.Menu.CLOSED)npc.container=null;}
-            if(action[4]==2)use(npc);else if(action[4]==3)drop(npc);
+            if(!focused){if(action[4]==2)use(npc);else if(action[4]==3)drop(npc);}
             ItemStack held=ExternalInventory.to(npc.pocket.held());npc.entity.getEquipment().setItemInMainHand(held);
         }
-        if(action[4]==1)mine(npc);else{npc.mining=null;npc.miningTicks=0;}
+        if(!focused&&action[4]==1)mine(npc);else{npc.mining=null;npc.miningTicks=0;}
         if(npc.tick%4==0)pickup(npc);
     }
     private static boolean mayChange(Npc npc,Block b,Material next){

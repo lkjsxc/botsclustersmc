@@ -66,7 +66,7 @@ public final class FrozenPolicyExam extends RuntimePlugin {
     }
     @Override public boolean greedy(Npc npc){return false;}
     @Override public boolean canPickup(Npc npc,String token){return npc.token().equals(token);}
-    @Override public boolean pickupEnabled(Npc npc){int task=npc.goal.task().ordinal();return task==6||task==12||task==17;}
+    @Override public boolean pickupEnabled(Npc npc){return true;}
     @Override public boolean canChange(Npc npc,Block block){
         TrainingEnvironment.Session session=sessions.get(npc.id);
         return session!=null&&block.getWorld()==npc.anchor.getWorld()&&block.getY()>=65&&block.getY()<70

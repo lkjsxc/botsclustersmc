@@ -8,3 +8,4 @@ academy/
 hs_err_pid*
 __pycache__/
 *.pyc
+.acceptance/
