@@ -48,16 +48,45 @@ public final class CoreTest {
         Adam adam=new Adam();Adam.Update updated=adam.update(p,gradient,1,.0003);check(updated.policy().updates()==1&&updated.optimizer().step()==1,"Adam identity");check(adam.step()==0&&p.updates()==0,"immutable transaction");
         gradient[0]=Float.NaN;fails(()->adam.update(p,gradient,1,.0003),"invalid optimizer gradient");check(adam.step()==0,"failed optimizer unchanged");
         TrainingState state=new TrainingState(updated.policy(),updated.optimizer(),new byte[]{1,2,3});TrainingState restored=TrainingState.decode(state.encode());check(Arrays.equals(state.policy().copyWeights(),restored.policy().copyWeights()),"training weights roundtrip");check(Arrays.equals(state.optimizer().second(),restored.optimizer().second()),"Adam exact resume");
-        pool(p,obs[0]);learner(p,obs[0]);
+        pool(p,obs[0]);poolCompletionBarrier(p,obs[0]);learner(p,obs[0]);
         System.out.println("PASS core checks="+checks+" parameters="+Policy.PARAMETERS);
     }
     static double loss(float[] logits,boolean[] mask,int[] action){double[] p=new double[Schema.LOGITS];Distribution.probabilities(logits,mask,p);return -.7*Distribution.logProbability(p,action)-.031*Distribution.entropy(p);}
     static double linear(Policy p,float[] x,boolean[] mask,float[] d){Policy.Workspace w=new Policy.Workspace();p.forward(x,mask,w);double sum=0;for(int i=0;i<d.length;i++)sum+=d[i]*w.logits[i];return sum;}
     static void pool(Policy p,float[] obs)throws Exception {
         int n=1000;CountDownLatch done=new CountDownLatch(n);AtomicInteger failures=new AtomicInteger();InferencePool pool=new InferencePool(3,1000);
-        for(int i=0;i<n;i++)check(pool.offer(new InferencePool.Request(i,p,obs,Schema.unrestrictedMask(),i,false,r->{Schema.checkAction(r.actions());done.countDown();},e->{failures.incrementAndGet();done.countDown();},System.nanoTime())),"admission");
-        check(done.await(20,TimeUnit.SECONDS),"1000 inferences completed");check(failures.get()==0,"no inference failure");check(pool.completed.sum()==n,"exact inference accounting");pool.close();check(pool.awaitTermination(2000),"pool shutdown");
+        try {
+            for(int i=0;i<n;i++)check(pool.offer(new InferencePool.Request(i,p,obs,Schema.unrestrictedMask(),i,false,r->{Schema.checkAction(r.actions());done.countDown();},e->{failures.incrementAndGet();done.countDown();},System.nanoTime())),"admission");
+            check(done.await(20,TimeUnit.SECONDS),"1000 inference callbacks reached");
+        } finally {
+            pool.close();
+            check(pool.awaitTermination(2000),"pool shutdown");
+        }
+        // The latch is released inside deliver(). Accounting follows its return.
+        // Joining workers, not the callback latch alone, is the completion barrier.
+        check(failures.get()==0,"no inference failure");check(pool.completed.sum()==n,"exact inference accounting");
         check(!pool.offer(new InferencePool.Request(0,p,obs,Schema.unrestrictedMask(),0,false,r->{},e->{},0)),"closed rejects");
+    }
+    static void poolCompletionBarrier(Policy p,float[] obs)throws Exception {
+        CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1),returning=new CountDownLatch(1);
+        AtomicReference<Throwable> failure=new AtomicReference<>();InferencePool pool=new InferencePool(1,1);
+        try {
+            check(pool.offer(new InferencePool.Request(0,p,obs,Schema.unrestrictedMask(),0,false,r->{
+                entered.countDown();
+                try {
+                    if(!release.await(10,TimeUnit.SECONDS))throw new IllegalStateException("test callback release timed out");
+                } catch(InterruptedException e){Thread.currentThread().interrupt();throw new IllegalStateException(e);}
+                returning.countDown();
+            },e->{failure.set(e);returning.countDown();},System.nanoTime())),"blocked callback admitted");
+            check(entered.await(10,TimeUnit.SECONDS),"callback entered");
+            check(pool.completed.sum()==0,"callback entry is not successful callback completion");
+            release.countDown();
+            check(returning.await(10,TimeUnit.SECONDS),"callback ready to return");
+        } finally {
+            release.countDown();pool.close();check(pool.awaitTermination(2000),"blocked callback worker joined");
+        }
+        check(failure.get()==null,"blocked callback did not fail: "+failure.get());
+        check(pool.completed.sum()==1&&pool.failed.sum()==0,"joined callback accounted exactly once");
     }
     static void learner(Policy p,float[] obs)throws Exception{
         AtomicReference<Throwable> fatal=new AtomicReference<>();Learner l=new Learner(p,new Adam(),2,64,64,32,x->{},fatal::set);
