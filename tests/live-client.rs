@@ -110,8 +110,8 @@ impl Check{
             220=>{if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer next/wrap position: {p:?}"));}bot.chat("/academy prev");},
             280=>{if(p.x-120.).abs()>1.||(p.z-120.).abs()>1.{return Err("observer previous/wrap failed".into());}bot.chat("/academy overview");},
             340=>{if(p.x-64.).abs()>1.||(p.z-64.).abs()>1.||(p.y-185.).abs()>1.{return Err(format!("observer overview position: {p:?}"));}bot.chat("/academy");},
-            400=>{if !matches!(bot.menu(),Menu::Generic9x6{..}){return Err(format!("observer menu did not open: {:?}",bot.menu()));}bot.get_inventory().left_click(53);},
-            440=>{let menu=bot.menu();let slots=menu.slots();if !matches!(menu,Menu::Generic9x6{..})||slots[18].is_empty()||!slots[19].is_empty(){return Err("observer page2 does not contain exactly the last 19 bots".into());}bot.get_inventory().left_click(18);},
+            400=>{if !matches!(bot.menu(),Menu::Generic9x6{..}){return Err(format!("observer menu did not open: {:?}",bot.menu()));}bot.get_inventory().left_click(53usize);},
+            440=>{let menu=bot.menu();let slots=menu.slots();if !matches!(menu,Menu::Generic9x6{..})||slots[18].is_empty()||!slots[19].is_empty(){return Err("observer page2 does not contain exactly the last 19 bots".into());}bot.get_inventory().left_click(18usize);},
             500=>{if(p.x-120.).abs()>1.||(p.z-120.).abs()>1.{return Err("observer menu click did not select bot63".into());}bot.chat("/academy view 16");},
             560=>{if !self.view12||!self.view16{return Err(format!("observer did not receive requested view radius packets: 12={} 16={}",self.view12,self.view16));}bot.chat("/academy tour");},
             840=>{if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer automatic tour did not advance: {p:?}"));}bot.chat("/academy tour");eprintln!("PASS: real observer menu, page2, click, watch63, next/previous wrap, overview, tour and 12/16-chunk radius packets");DONE.store(true,Ordering::Relaxed);},
@@ -120,6 +120,7 @@ impl Check{
     }
 }
 #[derive(Component,Clone)]struct State(Arc<Mutex<Check>>);
+impl Default for State{fn default()->Self{Self(Arc::new(Mutex::new(Check::new(false))))}}
 async fn handler(bot:Client,event:Event,state:State)->anyhow::Result<()>{
     let result=(||->Result<(),String>{let mut s=state.0.lock().unwrap();match event{
         Event::Spawn=>{bot.set_client_information(azalea::ClientInformation{view_distance:if s.observer{16}else{3},..Default::default()});s.ready=true;s.ticks=0;},
