@@ -70,7 +70,9 @@ public final class TrainingPlugin extends RuntimePlugin {
     }
     @Override public boolean observed(Npc npc,Npc.Applied previous,Frame next){
         TrainingEnvironment.Session s=(TrainingEnvironment.Session)npc.context;if(s.lesson==null)throw new IllegalStateException("missing lesson");
-        int ticks=Math.toIntExact(next.tick()-previous.frame().tick());boolean success=TrainingEnvironment.success(npc,s,previous,next);
+        int ticks=Math.toIntExact(next.tick()-previous.frame().tick());
+        course.recordEffort(npc.id,s.lesson.serial(),ticks);
+        boolean success=TrainingEnvironment.success(npc,s,previous,next);
         boolean terminal=success||next.tick()-npc.episodeStart>=npc.goal.horizon()||!s.arena.contains(next.x(),next.y(),next.z());
         double potential=TrainingEnvironment.potential(npc,s);float reward=(float)((success?3:terminal?-.3:0)-.0005*ticks/4.0+VTrace.discount(ticks,terminal)*(terminal?0:potential)-s.potential);s.potential=potential;
         if(npc.goal.task()==Task.AIM_HOLD){
@@ -125,6 +127,12 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("exam_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examSuccesses).toArray()));
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
         s.put("learner_offered_samples",learner.offered.sum());s.put("learner_rejected_samples",learner.rejected.sum());s.put("learner_stale_samples",learner.stale.sum());s.put("actor_buffered_samples",buffered.sum());s.put("exam_transitions",examTransitions.sum());
+        Course.Effort effort=course.effort();
+        s.put("review_allocation","observed-ticks");
+        s.put("foundation_ticks_this_process",effort.foundationTicks());
+        s.put("frontier_ticks_this_process",effort.frontierTicks());
+        s.put("review_ticks_this_process",effort.reviewTicks());
+        s.put("exam_ticks_this_process",effort.examTicks());
         s.put("task_balance","bounded-batch-loss");
         s.put("learned_task_samples_this_process",Arrays.toString(learner.taskSamples()));
         TaskBalance last=learner.updateBalance();

@@ -10,12 +10,27 @@ public final class Course {
     public record Lesson(long serial,Task task,double difficulty,long seed,Kind kind){}
     private static final int TASKS=18;
     private static final class Agent {
+        final ReviewEffort effort=new ReviewEffort();
         final RandomSource rng;final int[] episodes=new int[TASKS],probes=new int[TASKS],examSuccess=new int[TASKS];
         final double[] ema=new double[TASKS],probeEma=new double[TASKS];final long[] certified=new long[TASKS];
         int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam;long examVersion=-1;Lesson current;
         Agent(long seed){rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
     }
     private final Agent[] agents;private long serial,episodes,successes,exams,passed,abandoned,regressions;
+    // Process-local scheduling telemetry, not optimizer samples or skill certificates.
+    private long foundationTicks,frontierTicks,reviewTicks,examTicks;
+    public record Effort(long foundationTicks,long frontierTicks,long reviewTicks,long examTicks) {}
+    public synchronized Effort effort(){return new Effort(foundationTicks,frontierTicks,reviewTicks,examTicks);}
+    public synchronized void recordEffort(long actor,long lessonSerial,int ticks){
+        Agent a=agent(actor);Lesson lesson=a.current;
+        if(lesson==null||lesson.serial()!=lessonSerial)throw new IllegalStateException("lesson identity mismatch");
+        if(ticks<=0)throw new IllegalArgumentException("elapsed ticks");
+        if(lesson.kind()==Kind.EXAM){examTicks=Math.addExact(examTicks,ticks);return;}
+        int task=lesson.task().ordinal();a.effort.record(a.stage,task,ticks);
+        if(a.stage==0)foundationTicks=Math.addExact(foundationTicks,ticks);
+        else if(task==a.stage)frontierTicks=Math.addExact(frontierTicks,ticks);
+        else reviewTicks=Math.addExact(reviewTicks,ticks);
+    }
     public Course(int actors,long seed){if(actors<1||actors>10000)throw new IllegalArgumentException("actor count");agents=new Agent[actors];for(int i=0;i<actors;i++)agents[i]=new Agent(seed+i*7919L);}
     private Agent agent(long id){if(id<0||id>=agents.length)throw new IllegalArgumentException("actor identity");return agents[(int)id];}
     private boolean eligible(Agent a){return !a.exam&&a.episodes[a.stage]>=40&&a.probes[a.stage]>=8&&a.probeEma[a.stage]>=.7&&a.sinceExam>=(a.complete?256:20)&&a.probesSinceExam>=4;}
@@ -25,7 +40,12 @@ public final class Course {
         Agent a=agent(actor);if(a.current!=null)throw new IllegalStateException("actor already has a lesson");if(eligible(a))return null;
         int selected=a.stage;Kind kind;double difficulty;
         if(a.exam){kind=Kind.EXAM;selected=a.examIndex<16?a.stage:(a.examIndex-16)/4;difficulty=1;}
-        else{a.draws++;if(a.stage>0&&a.rng.nextInt(5)==0)selected=a.rng.nextInt(a.stage);kind=a.draws%5==1?Kind.PROBE:Kind.PRACTICE;difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));}
+        else{
+            a.draws++;selected=a.effort.select(a.stage,a.rng);
+            // Per-task cadence cannot alias with a frontier/review scheduling cycle.
+            kind=a.episodes[selected]%5==0?Kind.PROBE:Kind.PRACTICE;
+            difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));
+        }
         a.current=new Lesson(++serial,Task.at(selected),difficulty,a.rng.nextLong(),kind);return a.current;
     }
     public synchronized void finish(long actor,long lessonSerial,boolean success){
@@ -35,14 +55,14 @@ public final class Course {
             if(success)a.examSuccess[task]++;a.examIndex++;
             if(a.examIndex==16+a.stage*4){
                 boolean pass=a.examSuccess[a.stage]>=14;for(int i=0;i<a.stage;i++)pass&=a.examSuccess[i]>=3;
-                if(pass){for(int i=0;i<=a.stage;i++)a.certified[i]=a.examVersion;passed++;if(a.stage==TASKS-1)a.complete=true;else a.stage++;}
+                if(pass){for(int i=0;i<=a.stage;i++)a.certified[i]=a.examVersion;passed++;if(a.stage==TASKS-1)a.complete=true;else{a.stage++;a.effort.reset();}}
                 a.exam=false;a.examVersion=-1;a.sinceExam=0;a.probesSinceExam=0;
             }
         }else{
             a.episodes[task]++;a.sinceExam++;a.ema[task]=.95*a.ema[task]+.05*(success?1:0);
             if(lesson.kind()==Kind.PROBE){a.probes[task]++;a.probeEma[task]=.9*a.probeEma[task]+.1*(success?1:0);if(task==a.stage)a.probesSinceExam++;
                 // A real regression returns THIS actor to the forgotten skill, not every actor.
-                if(task<a.stage&&a.probes[task]>=8&&a.probeEma[task]<.45){a.stage=task;a.complete=false;a.sinceExam=0;a.probesSinceExam=0;regressions++;}
+                if(task<a.stage&&a.probes[task]>=8&&a.probeEma[task]<.45){a.stage=task;a.effort.reset();a.complete=false;a.sinceExam=0;a.probesSinceExam=0;regressions++;}
             }
         }
     }
@@ -84,6 +104,8 @@ public final class Course {
     public synchronized int completedAgents(){int n=0;for(Agent a:agents)if(a.complete)n++;return n;}
     public synchronized boolean completed(){return completedAgents()==agents.length;}
     public synchronized long episodes(){return episodes;}public synchronized long successes(){return successes;}public synchronized long exams(){return exams;}public synchronized long passedExams(){return passed;}public synchronized long abandoned(){return abandoned;}public synchronized long regressions(){return regressions;}
+    // Like in-flight episodes, effort debt is deliberately transient. Restart starts
+    // a new allocation interval; weights, Adam, RNG and earned certificates persist.
     public synchronized byte[] encode()throws IOException{
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(DataOutputStream out=new DataOutputStream(bytes)){
             out.writeUTF("BCMC-INDEPENDENT-COURSE");out.writeInt(agents.length);for(long x:new long[]{serial,episodes,successes,exams,passed,abandoned,regressions})out.writeLong(x);
