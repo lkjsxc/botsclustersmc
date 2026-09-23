@@ -149,7 +149,7 @@ public final class Host {
     }
     static double metric(String json,String key,double fallback){Matcher m=Pattern.compile("\""+Pattern.quote(key)+"\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9Ee+\\-]+)?)").matcher(json);return m.find()?Double.parseDouble(m.group(1)):fallback;}
     void evaluate(String[] options)throws Exception {
-        if(Arrays.asList(options).contains("--help")){System.out.println("evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600]");return;}
+        if(Arrays.asList(options).contains("--help")){System.out.println("evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600] [--export FILE.zip]");return;}
         if(!bool("EULA",false))throw new IOException("Read and accept the Minecraft EULA before setting EULA=true");
         Path marker=academy().resolve(".botsclustersmc-academy"),checkpoint=academy().resolve("server/plugins/BotsClustersMC/training.bcmc");safe(marker);safe(checkpoint);
         if(!Files.isRegularFile(marker)||!Files.readString(marker).equals("botsclustersmc-owned-training\n")||!Files.isRegularFile(checkpoint))throw new IOException("Evaluation requires an owned Academy with a complete checkpoint");

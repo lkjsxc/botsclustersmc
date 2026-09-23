@@ -10,10 +10,10 @@ import org.botsclustersmc.training.*;
 
 /** Operator-facing fixed-policy evaluation. It never changes the live Academy. */
 public final class Evaluate {
-    static final String HELP="evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600]\nDefault tasks cover every reached stage. A completed test is not a guarantee of mastery.";
-    record Options(List<Integer> tasks,int cases,long seed,boolean fixedSeed,int heap,int port,boolean watch,int interval) {
+    static final String HELP="evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600] [--export FILE.zip]\nDefault tasks cover every reached stage. A completed test is not a guarantee of mastery.";
+    record Options(List<Integer> tasks,int cases,long seed,boolean fixedSeed,int heap,int port,boolean watch,int interval,Path export) {
         static Options parse(String[] args) {
-            List<Integer> tasks=List.of();int cases=32,heap=2,port=0,interval=600;long seed=0;boolean fixed=false,watch=false;
+            List<Integer> tasks=List.of();int cases=32,heap=2,port=0,interval=600;long seed=0;boolean fixed=false,watch=false;Path export=null;
             Set<String> seen=new HashSet<>();
             for(int i=0;i<args.length;i++) {
                 String key=args[i];if(!seen.add(key))throw new IllegalArgumentException("Duplicate option: "+key);
@@ -26,12 +26,14 @@ public final class Evaluate {
                     case "--port"->port=Integer.parseInt(value);
                     case "--interval"->interval=Integer.parseInt(value);
                     case "--seed"->{seed=Long.parseLong(value);fixed=true;}
+                    case "--export"->export=Path.of(value);
                     default->throw new IllegalArgumentException("Unknown option: "+key);
                 }
             }
             if(cases<1||cases>64||heap<1||heap>8||interval<60||interval>86400||(port!=0&&(port<1024||port>65535||port==25565)))throw new IllegalArgumentException("Options exceed the documented bounds");
             if(!watch&&seen.contains("--interval"))throw new IllegalArgumentException("--interval requires --watch");
-            return new Options(tasks,cases,seed,fixed,heap,port,watch,interval);
+            if(export!=null&&watch)throw new IllegalArgumentException("--export is a one-shot immutable artifact; omit --watch");
+            return new Options(tasks,cases,seed,fixed,heap,port,watch,interval,export);
         }
     }
     private final Host host;private final Options options;private final Path tools,folder;
@@ -93,6 +95,10 @@ public final class Evaluate {
             report.addProperty("exam_jar_sha256",Host.hash(experiment.server.resolve("plugins/exam.jar")));
             report.addProperty("server_version",host.pin.getProperty("version"));report.addProperty("server_build",host.pin.getProperty("build"));
             report.addProperty("scope","Fixed policy in full-difficulty Academy rooms; not open-world survival or a certificate for later policies.");
+            if(options.export()!=null) {
+                EvaluatedBundle.write(options.export(),host.academy(),policyBytes,Files.readAllBytes(experiment.inference),report);
+                System.out.println("Tested policy and matching inference build: "+options.export().toAbsolutePath().normalize());
+            }
             publish(report);
             status("completed","The frozen-policy test completed. Read the measured success counts, not only this state.");
             for(JsonElement task:report.getAsJsonArray("tasks"))System.out.println(task);
@@ -116,7 +122,9 @@ public final class Evaluate {
         JsonObject summary=report.deepCopy();summary.remove("trials");
         Host.text(folder.resolve("evaluation.json"),summary+"\n");
         System.out.println("Measured results: "+folder.resolve("evaluation.json"));
-        System.out.println("To deploy this exact policy, evaluate while training is stopped, then export before resuming.");
+        System.out.println(options.export()==null
+            ?"To retain exact tested weights during live learning, use a one-shot --export FILE.zip."
+            :"The exported ZIP contains this tested snapshot, not the continually updated live weights. Read all success counts.");
     }
     private static String identity(Policy policy)throws Exception {
         float[] weights=policy.copyWeights();java.nio.ByteBuffer bytes=java.nio.ByteBuffer.allocate(weights.length*4);
@@ -132,7 +140,7 @@ public final class Evaluate {
         }catch(Exception failure){System.err.println("Evaluation shutdown: "+failure.getMessage());}
     }
     private void run()throws Exception {
-        checkOwned();Path lockPath=host.academy().resolve("evaluation.lock");Host.safe(lockPath);
+        checkOwned();if(options.export()!=null)EvaluatedBundle.checkTarget(options.export(),host.academy());Path lockPath=host.academy().resolve("evaluation.lock");Host.safe(lockPath);
         try(FileChannel channel=FileChannel.open(lockPath,StandardOpenOption.CREATE,StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);FileLock lock=channel.tryLock()) {
             if(lock==null)throw new IOException("An evaluation already owns this Academy");
             Thread hook=new Thread(this::shutdown,"bcmc-evaluation-stop");Runtime.getRuntime().addShutdownHook(hook);

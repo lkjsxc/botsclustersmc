@@ -10,7 +10,7 @@ public final class EvaluationTest {
     private static final Policy POLICY=new Policy(new float[Policy.PARAMETERS],7,64);
     private static final List<Integer> TASKS=List.of(0,1);
     private static void check(boolean condition){checks++;if(!condition)throw new AssertionError("check "+checks);}
-    private static JsonObject valid(long seed) {
+    static JsonObject valid(long seed) {
         JsonObject report=new JsonObject();report.addProperty("complete",true);report.addProperty("stochastic",true);
         report.addProperty("schema",Schema.ID);report.addProperty("policy_updates",7);report.addProperty("policy_trained_samples",64);
         report.addProperty("new_training_samples",0);report.addProperty("cases_per_task",2);report.addProperty("seed",seed);
@@ -30,6 +30,7 @@ public final class EvaluationTest {
         try{EvaluationChecks.validate(report.toString(),POLICY,TASKS,2,23,1);throw new AssertionError("Invalid report accepted");}catch(IOException expected){checks++;}
     }
     public static void main(String[] args)throws Exception {
+        EvaluatedBundleTest.main(args);
         for(long seed:new long[]{0,23,Long.MAX_VALUE,Long.MIN_VALUE}) {
             JsonObject accepted=EvaluationChecks.validate(valid(seed).toString(),POLICY,TASKS,2,seed,1);
             check(accepted.getAsJsonArray("trials").size()==4);

@@ -13,6 +13,7 @@ From the same checkout and Academy configuration:
 ./evaluate.sh
 ./evaluate.sh --tasks 0,1,2,3,4,5,6 --cases 32
 ./evaluate.sh --watch --interval 600
+./evaluate.sh --tasks 0,1,2,3,4,5,6,7,8,9,10 --export dist/evaluated.zip
 ```
 
 Windows uses `evaluate.cmd`. The evaluation command requires an already accepted
@@ -84,6 +85,44 @@ A completed experiment can legitimately report 0/N. That is a failed skill,
 not a failed experiment. Results are for that exact frozen policy in full-difficulty
 Academy rooms, not all future policies, open-world generalization or cooperation.
 The command does not automatically promote actors, select models or deploy them.
-For an export of the same tested weights, first stop training cleanly, evaluate,
-then export before resuming; a continually updated live checkpoint may no longer
-contain an earlier evaluated snapshot.
+To keep a particular tested snapshot while learning continues, use the explicit
+one-shot `--export` option below. The ordinary `export.sh` still exports the stopped
+canonical training checkpoint, which can differ from an earlier evaluated policy.
+
+
+## Retain the exact evaluated policy
+
+`./evaluate.sh --export dist/evaluated.zip` tests one canonical snapshot, then
+packages the weights actually tested together with the inference JAR from the
+same immutable build, the complete trial report, a summary and deployment notes.
+The live learner may keep changing its own checkpoint throughout. No model is
+reread from that changing checkpoint when the artifact is produced.
+
+The destination must be a new `.zip` file outside the Academy. Existing files,
+symlinked paths and destinations inside the Academy are rejected. `--export`
+cannot be combined with `--watch`: a repeating evaluation must not silently
+replace a deliberately retained snapshot. A failed or cancelled test creates no
+export. A completed test with failed trials CAN export; the ZIP is not a mastery
+certificate or an automatic deployment.
+
+Every trial is validated again before packaging, and the exact policy and JAR
+bytes must match the identities in the completed report. The ZIP has only:
+
+```text
+README.txt
+evaluation.json
+evaluation-details.json
+plugins/botsclustersmc.jar
+plugins/BotsClustersMC/policy.bcmc
+```
+
+No optimizer, training checkpoint, world, Minecraft server JAR or private control
+credentials are included. Extract the ZIP, inspect the scores and scope, then
+copy the two `plugins/` files to a stopped compatible server. Installing the JAR
+does not turn Academy task performance into general survival or cooperation.
+
+The completed temporary ZIP is flushed, then atomically published using a
+same-filesystem hard link. Even a target created concurrently is not replaced.
+A filesystem without this operation fails closed and cleans the temporary file;
+choose a local filesystem supporting hard links instead of a network/FAT volume.
+The private monitor does not serve the ZIP or expose a download/command endpoint.

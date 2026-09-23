@@ -2,6 +2,7 @@
 
 [Aiming practice and unchanged full-condition exams](AIMING.md).
 [Resource practice and real-contact diagnostics](HARVESTING.md).
+[Goal-independent menu affordances](MENU_INPUTS.md).
 
 ## Observations and primitive actions
 

@@ -37,6 +37,37 @@ public final class Pocket {
     }
     private boolean accepts(int slot,Stack stack,External external){if(slot<36)return true;if(slot==resultSlot())return false;if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH)return true;return slot-36<external.size()&&external.accepts(slot-36,stack);}
     private void set(int slot,Stack s,External external){if(slot<36)storage[slot]=s;else if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH)grid[gridIndex(slot)]=s;else external.set(slot-36,s);}
+    /** Pure mechanical affordance, independent of the goal and any preferred recipe. */
+    public boolean wouldChange(int operation,int slot,External external) {
+        if(operation==4)return menu==Menu.CLOSED;
+        if(operation==5)return menu!=Menu.CLOSED;
+        if(operation<1||operation>3||menu==Menu.CLOSED||slot<0||slot>=slots())return false;
+        Stack item=get(slot,external);
+        if(slot==resultSlot()) {
+            if(item.empty())return false;
+            if(operation==3)return capacity(item)>=item.count();
+            return cursor.empty()||cursor.item().equals(item.item())&&cursor.count()+item.count()<=item.maximum();
+        }
+        if(operation==3) {
+            if(item.empty())return false;
+            if(slot>=36)return capacity(item)>0;
+            if(menu==Menu.CHEST||menu==Menu.FURNACE) {
+                for(int i=0;i<external.size();i++)
+                    if(external.accepts(i,item)&&room(external.get(i),item))return true;
+            } else {
+                int from=slot<9?9:0,to=slot<9?36:9;
+                for(int i=from;i<to;i++)if(room(storage[i],item))return true;
+            }
+            return false;
+        }
+        if(cursor.empty())return !item.empty();
+        if(!accepts(slot,cursor,external))return false;
+        if(item.empty()||item.item().equals(cursor.item()))return room(item,cursor);
+        return operation==1;
+    }
+    private static boolean room(Stack destination,Stack item) {
+        return (destination.empty()||destination.item().equals(item.item()))&&destination.count()<item.maximum();
+    }
     public void click(int operation,int slot,External external){
         if(operation==0)return;if(operation==4){if(menu==Menu.CLOSED)open(Menu.INVENTORY);return;}if(operation==5){close();return;}
         if(operation<1||operation>3||slot<0||slot>=slots()||menu==Menu.CLOSED)return;
