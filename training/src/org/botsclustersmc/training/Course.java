@@ -10,6 +10,7 @@ public final class Course {
     public record Lesson(long serial,Task task,double difficulty,long seed,Kind kind){}
     private static final int TASKS=18;
     private static final class Agent {
+        final ReviewBudget review=new ReviewBudget();
         final RandomSource rng;final int[] episodes=new int[TASKS],probes=new int[TASKS],examSuccess=new int[TASKS];
         final double[] ema=new double[TASKS],probeEma=new double[TASKS];final long[] certified=new long[TASKS];
         int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam;long examVersion=-1;Lesson current;
@@ -25,7 +26,13 @@ public final class Course {
         Agent a=agent(actor);if(a.current!=null)throw new IllegalStateException("actor already has a lesson");if(eligible(a))return null;
         int selected=a.stage;Kind kind;double difficulty;
         if(a.exam){kind=Kind.EXAM;selected=a.examIndex<16?a.stage:(a.examIndex-16)/4;difficulty=1;}
-        else{a.draws++;if(a.stage>0&&a.rng.nextInt(5)==0)selected=a.rng.nextInt(a.stage);kind=a.draws%5==1?Kind.PROBE:Kind.PRACTICE;difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));}
+        else {
+            a.draws++;
+            if(a.stage>0&&a.review.shouldReview())selected=a.rng.nextInt(a.stage);
+            // Per-task cadence cannot alias with long/short review scheduling cycles.
+            kind=a.episodes[selected]%5==0?Kind.PROBE:Kind.PRACTICE;
+            difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));
+        }
         a.current=new Lesson(++serial,Task.at(selected),difficulty,a.rng.nextLong(),kind);return a.current;
     }
     public synchronized void finish(long actor,long lessonSerial,boolean success){
@@ -72,6 +79,22 @@ public final class Course {
         for(int i=0;i<TASKS;i++)result[i]=new StageMetrics(population[i],episodes[i],probes[i],
             population[i]==0?-1:training[i]/population[i],population[i]==0?-1:probe[i]/population[i],certificates[i]);
         return result;
+    }
+    /** Charge observed decision intervals, including unfinished episodes, never exams. */
+    public synchronized void recordWork(long actor,long lessonSerial,int ticks) {
+        if(ticks<1)throw new IllegalArgumentException("Training work must contain real ticks");
+        Agent a=agent(actor);Lesson lesson=a.current;
+        if(lesson==null||lesson.serial()!=lessonSerial||lesson.kind()==Kind.EXAM)
+            throw new IllegalStateException("Only the current non-exam lesson can accrue training work");
+        if(a.stage>0)a.review.record(lesson.task().ordinal()==a.stage,ticks);
+    }
+    public record ReviewMetrics(long currentTicks,long olderTicks,double debtTicks) {
+        public double fraction(){return currentTicks+olderTicks==0?0:olderTicks/(double)(currentTicks+olderTicks);}
+    }
+    public synchronized ReviewMetrics reviewMetrics() {
+        long current=0,older=0;double debt=0;
+        for(Agent a:agents){current+=a.review.currentTicks();older+=a.review.olderTicks();debt+=a.review.debt();}
+        return new ReviewMetrics(current,older,debt);
     }
     public synchronized int stage(long actor){return agent(actor).stage;}
     public synchronized boolean completed(long actor){return agent(actor).complete;}

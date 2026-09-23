@@ -79,6 +79,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         }
         if(HarvestPractice.applies(npc.goal.task()))reward+=(float)TrainingEnvironment.harvestReward(npc,s,next,ticks);
         if(s.lesson.kind()!=Course.Kind.EXAM){
+            course.recordWork(npc.id,s.lesson.serial(),ticks);
             s.fragment.add(new Transition(previous.frame().observation(),previous.frame().mask(),previous.result().actions(),previous.result().logProbability(),previous.result().policyVersion(),reward,ticks,next.observation(),next.mask(),terminal));buffered.increment();
             if(s.fragment.size()>=32||terminal)flush(npc,s);
         }else{
@@ -110,6 +111,10 @@ public final class TrainingPlugin extends RuntimePlugin {
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
         Course.Metrics m=course.metrics();s.put("practice_success_ema",m.practiceMean());s.put("probe_success_ema",m.probeMean());s.put("best_probe_success_ema",m.bestProbe());s.put("exam_ready_agents",m.ready());s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
+        Course.ReviewMetrics review=course.reviewMetrics();
+        s.put("review_schedule","elapsed-training-ticks");s.put("review_target_fraction",ReviewBudget.FRACTION);
+        s.put("review_current_ticks_this_process",review.currentTicks());s.put("review_older_ticks_this_process",review.olderTicks());
+        s.put("review_fraction_this_process",review.fraction());s.put("review_debt_ticks",review.debtTicks());
         Course.StageMetrics[] stages=course.stageMetrics();
         s.put("cohort_training_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::trainingEma).toArray()));
         s.put("cohort_probe_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::probeEma).toArray()));

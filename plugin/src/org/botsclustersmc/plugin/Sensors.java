@@ -41,6 +41,7 @@ public final class Sensors {
         ContextSensors.capture(npc,p,f);
         for(int i=0;i<16;i++)f[346+i]=npc.previousKinematics[i];System.arraycopy(f,0,npc.previousKinematics,0,16);
         boolean[] mask=goal.task().mask(npc.pocket.slots(),npc.pocket.menu()!=Pocket.Menu.CLOSED);
+        MenuInputs.restrict(npc.pocket,external,mask);
         npc.plugin.sensorNanos.add(System.nanoTime()-begin);
         return new Frame(f,mask,npc.tick,p.getX(),p.getY(),p.getZ(),p.getYaw(),p.getPitch(),velocity.getX(),velocity.getY(),velocity.getZ(),npc.entity.isOnGround(),distance,yawError,pitchError);
     }

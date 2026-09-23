@@ -18,6 +18,7 @@ public final class CourseTest {
         check(count==16+stage*4,"complete fixed exam denominator");
     }
     public static void main(String[] args)throws Exception{
+        ReviewBudgetTest.main(args);
         LessonOutcomes outcomes=new LessonOutcomes();
         outcomes.record(Task.BREAK_LOG,Course.Kind.PRACTICE,false);outcomes.record(Task.BREAK_LOG,Course.Kind.PROBE,true);
         outcomes.record(Task.BREAK_LOG,Course.Kind.EXAM,true);LessonOutcomes.Totals result=outcomes.snapshot()[5];

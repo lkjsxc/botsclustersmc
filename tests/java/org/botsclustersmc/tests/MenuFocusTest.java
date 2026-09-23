@@ -8,6 +8,7 @@ public final class MenuFocusTest {
         checks++;if(!ok)throw new AssertionError(message);
     }
     public static void main(String[] args) {
+        MenuInputsTest.main(args);
         for(int operation=0;operation<6;operation++) {
             check(MenuFocus.active(true,operation),"an existing menu owns all inputs");
             check(MenuFocus.active(false,operation)==(operation==4),"opening the inventory takes focus immediately");

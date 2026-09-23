@@ -2,6 +2,8 @@ package org.botsclustersmc.diagnostic;
 
 import org.botsclustersmc.core.Pocket;
 import org.botsclustersmc.core.Schema;
+import org.botsclustersmc.core.Task;
+import org.botsclustersmc.plugin.Sensors;
 import org.botsclustersmc.core.Stack;
 import org.botsclustersmc.plugin.Npc;
 import org.botsclustersmc.plugin.WorldActions;
@@ -19,6 +21,11 @@ final class InputChecks {
                 int[] action=Schema.IDLE.clone();action[0]=1;action[1]=4;action[2]=4;action[3]=1;
                 action[4]=phase==1?2:3;action[5]=phase==1?2:5;action[6]=phase==0?4:phase==2?5:0;
                 WorldActions.tick(npc,action,true);
+                if(phase<2) {
+                    boolean[] mask=Sensors.capture(npc).mask();int slots=Task.offset(7),operations=Task.offset(6);
+                    if(!mask[slots+5]||mask[slots+35]||mask[slots+40]||mask[operations+4])
+                        throw new IllegalStateException("Real sensor pipeline lost menu affordances");
+                }
                 var actual=npc.entity.getLocation();var speed=npc.entity.getVelocity();
                 if(npc.pocket.storage(5).count()!=8||npc.pocket.selected()!=5)
                     throw new IllegalStateException("Menu focus lost items or changed the selected hotbar");
