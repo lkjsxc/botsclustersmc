@@ -21,7 +21,9 @@ public final class Learner implements AutoCloseable {
     private volatile String state="collecting";
     private volatile boolean updating;
     public final LongAdder offered=new LongAdder(),rejected=new LongAdder(),stale=new LongAdder(),computeNanos=new LongAdder(),updates=new LongAdder();
-    public volatile double gradientNorm,valueLoss,entropy,importance;
+    public volatile double gradientNorm,valueLoss,entropy,importance,meanPolicyKl,maxPolicyKl,learningRate;
+    public volatile int updateSamples;
+    public final LongAdder guardBacktracks=new LongAdder(),guardRejectedSamples=new LongAdder(),batchWaitNanos=new LongAdder();
     public Learner(Policy policy,Adam optimizer,int threads,int capacity,int batchSamples,int maxLag,Consumer<Policy> publish,Consumer<Throwable> fatal) {
         if(threads<1||threads>128||capacity<1||capacity>16384||batchSamples<1||batchSamples>65536||maxLag<1||maxLag>10000)
             throw new IllegalArgumentException("learner bounds");
@@ -52,7 +54,7 @@ public final class Learner implements AutoCloseable {
                 Trajectory first;
                 synchronized(closing){first=queue.poll();if(first!=null)updating=true;}
                 if(first==null){state=paused.get()?"paused":"collecting";Thread.sleep(20);continue;}
-                state="updating";long started=System.nanoTime();Policy target=policy;
+                state="collecting-batch";long waiting=System.nanoTime(),deadline=waiting+100_000_000L;Policy target=policy;
                 List<Trajectory> batch=new ArrayList<>();int count=0;
                 Trajectory t=first;
                 do {
@@ -60,8 +62,10 @@ public final class Learner implements AutoCloseable {
                     for(Transition s:t.steps()) if(s.behaviorVersion()>target.updates()||target.updates()-s.behaviorVersion()>maxLag){valid=false;break;}
                     if(valid){batch.add(t);count+=t.steps().size();}else stale.add(t.steps().size());
                     if(count>=batchSamples)break;
-                    t=queue.poll();
+                    long remaining=deadline-System.nanoTime();
+                    t=remaining>0&&!closing.get()?queue.poll(remaining,TimeUnit.NANOSECONDS):queue.poll();
                 }while(t!=null);
+                batchWaitNanos.add(System.nanoTime()-waiting);state="updating";long started=System.nanoTime();
                 if(!batch.isEmpty()) {
                     int workers=Math.min(parallelism,batch.size());List<List<Trajectory>> groups=new ArrayList<>();
                     for(int i=0;i<workers;i++)groups.add(new ArrayList<>());
@@ -70,10 +74,15 @@ public final class Learner implements AutoCloseable {
                     for(List<Trajectory> group:groups)futures.add(kernels.submit(()->Gradient.compute(target,group)));
                     float[] gradient=new float[Policy.PARAMETERS];int actual=0;double loss=0,ent=0,imp=0;
                     for(Future<Gradient.Result> f:futures){Gradient.Result g=f.get();actual+=g.samples();loss+=g.valueLoss();ent+=g.entropy();imp+=g.importance();for(int i=0;i<gradient.length;i++)gradient[i]+=g.weights()[i];}
-                    Adam.Update update=optimizer.update(target,gradient,actual,.0003);
-                    synchronized(this){optimizer=update.optimizer();policy=update.policy();}
-                    gradientNorm=update.gradientNorm();valueLoss=loss/actual;entropy=ent/actual;importance=imp/actual;
-                    publish.accept(policy);updates.increment();
+                    UpdateGuard.Result checked=UpdateGuard.update(target,optimizer,gradient,actual,batch);
+                    guardBacktracks.add(checked.backtracks());updateSamples=actual;
+                    if(checked.update()!=null){
+                        Adam.Update update=checked.update();
+                        synchronized(this){optimizer=update.optimizer();policy=update.policy();}
+                        gradientNorm=update.gradientNorm();meanPolicyKl=checked.change().mean();maxPolicyKl=checked.change().maximum();learningRate=checked.learningRate();
+                        publish.accept(policy);updates.increment();
+                    }else{guardRejectedSamples.add(actual);learningRate=0;}
+                    valueLoss=loss/actual;entropy=ent/actual;importance=imp/actual;
                 }
                 computeNanos.add(System.nanoTime()-started);updating=false;
             }

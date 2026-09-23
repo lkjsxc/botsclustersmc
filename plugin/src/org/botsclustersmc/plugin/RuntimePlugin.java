@@ -20,12 +20,12 @@ import java.util.concurrent.atomic.*;
 public abstract class RuntimePlugin extends JavaPlugin implements Listener,CommandExecutor {
     public final ConcurrentHashMap<Long,Npc> npcs=new ConcurrentHashMap<>();
     public final AtomicReference<Throwable> failed=new AtomicReference<>();public final AtomicBoolean paused=new AtomicBoolean();
-    public final LongAdder transitions=new LongAdder(),abandoned=new LongAdder(),retired=new LongAdder(),sensorNanos=new LongAdder(),inferenceRejected=new LongAdder(),ambientCombustions=new LongAdder();
+    public final LongAdder transitions=new LongAdder(),abandoned=new LongAdder(),retired=new LongAdder(),sensorNanos=new LongAdder(),inferenceRejected=new LongAdder();
     public final String run=UUID.randomUUID().toString();public long seed;public NamespacedKey provenance;public InferencePool inference;
     private final Map<Long,Long> lastDecisions=new HashMap<>();private long lastStatusNanos,lastSamples,lastTransitions,lastCpu;
     protected volatile Policy policy;protected ScheduledExecutorService io;protected int maximum;protected final AtomicLong nextId=new AtomicLong();
     protected final AtomicInteger pendingSpawns=new AtomicInteger();protected final ConcurrentLinkedQueue<Spawn> spawnQueue=new ConcurrentLinkedQueue<>();
-    public ChunkLeases leases;protected int maxChunks;
+    public ChunkLeases leases;protected int maxChunks;private Observatory observatory;
     private final AtomicInteger admitted=new AtomicInteger();private final Set<Long> issued=ConcurrentHashMap.newKeySet();
     protected record Spawn(long id,Location at,Goal goal){}
     protected abstract Policy initialPolicy()throws Exception;
@@ -41,12 +41,17 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
             int threads=bounded("inference-threads",budget.inferenceThreads(),1,128);
             policy=initialPolicy();inference=new InferencePool(threads,maximum);
             io=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"bcmc-io");t.setDaemon(true);return t;});
-            getServer().getPluginManager().registerEvents(this,this);Objects.requireNonNull(getCommand("bots")).setExecutor(this);
+            getServer().getPluginManager().registerEvents(this,this);observatory=new Observatory(this);getServer().getPluginManager().registerEvents(observatory,this);Objects.requireNonNull(getCommand("bots")).setExecutor(observatory);getCommand("bots").setTabCompleter(observatory);
             Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->admit(),1,1);
             io.scheduleAtFixedRate(()->{try{writeStatus();}catch(Throwable e){fail(e);}},1,5,TimeUnit.SECONDS);
             initialize();getLogger().info("Ready: in-JVM NPC inference, capacity="+maximum+", inferenceThreads="+threads+", schema="+Schema.ID);
         }catch(Throwable e){fail(e);getServer().getPluginManager().disablePlugin(this);}
     }
+    public String observerStatus(){return "BotsClustersMC "+(training()?"training":"inference")+" | agents="+npcs.size()+" | updates="+policy.updates()+" | samples="+policy.samples()+" | "+(failed.get()!=null?"FAILED":paused.get()?"PAUSED":"running")+" | /bots progress | watch | tour | overview | inspect <id>";}
+    public String observerProgress(){return "No training curriculum is packaged in this inference plugin.";}
+    public String observerAgent(long id){Npc n=npcs.get(id);return n==null?"unavailable":n.status+(n.snapshot==null?"":" | "+n.snapshot.task());}
+    public String observerHud(long id){return observerAgent(id);}
+    public double observerRank(long id){return 0;}
     public int bounded(String key,int fallback,int min,int max){int n=getConfig().getInt(key,fallback);if(n<min||n>max)throw new IllegalArgumentException(key+" must be "+min+".."+max);return n;}
     public Policy policyFor(Npc npc){return policy;}
     public boolean greedy(Npc npc){return getConfig().getBoolean("greedy",false);}
@@ -74,28 +79,14 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         for(int i=0;i<8&&pendingSpawns.get()<16;i++){
             Spawn spawn=spawnQueue.poll();if(spawn==null)return;pendingSpawns.incrementAndGet();Location at=spawn.at();
             LoadedChunks.use(this,at,chunk->{try{
-                    if(at.getWorld().getDifficulty()==Difficulty.PEACEFUL)throw new IllegalStateException("NPC bodies require a non-peaceful world; the plugin never changes your world difficulty.");
                     if(!issued.contains(spawn.id()))return;
                     leases.follow(spawn.id(),at);
-                    Zombie zombie=at.getWorld().spawn(at,Zombie.class,CreatureSpawnEvent.SpawnReason.CUSTOM,false,z->{
-                        z.setAdult();z.setPersistent(false);z.setRemoveWhenFarAway(false);z.setSilent(true);z.setInvulnerable(training());
-                        z.setShouldBurnInDay(false);z.setCanBreakDoors(false);z.setCanPickupItems(false);z.setCollidable(false);z.setAI(true);z.setAware(false);
-                        Bukkit.getMobGoals().removeAllGoals(z);z.setTarget(null);z.customName(Component.text("bcmc"+spawn.id()));z.setCustomNameVisible(false);
-                        z.getPersistentDataContainer().set(provenance,PersistentDataType.STRING,run);
-                    });
-                    Npc npc=new Npc(this,spawn.id(),zombie,spawn.goal());npcs.put(spawn.id(),npc);
+                    Mob body=NpcBody.spawn(this,at,spawn.id());
+                    Npc npc=new Npc(this,spawn.id(),body,spawn.goal());npcs.put(spawn.id(),npc);
                     // Spawn registration finishes before the first owning-entity callback.
-                    zombie.getScheduler().run(this,first->{try{if(!issued.contains(npc.id)){npcs.remove(npc.id);zombie.remove();released(npc.id);return;}if(!zombie.isValid())throw new IllegalStateException("NPC spawn was cancelled: "+npc.id);spawned(npc);startNpc(npc);}catch(Throwable e){fail(e);}},()->fail(new IllegalStateException("NPC retired before initialization: "+npc.id)));
+                    body.getScheduler().run(this,first->{try{if(!issued.contains(npc.id)){npcs.remove(npc.id);body.remove();released(npc.id);return;}if(!body.isValid())throw new IllegalStateException("NPC spawn was cancelled: "+npc.id);spawned(npc);startNpc(npc);}catch(Throwable e){fail(e);}},()->fail(new IllegalStateException("NPC retired before initialization: "+npc.id)));
                 }catch(Throwable e){released(spawn.id());fail(e);}finally{pendingSpawns.decrementAndGet();}
             },failure->{pendingSpawns.decrementAndGet();released(spawn.id());fail(failure);});
-        }
-    }
-    /** Some server builds ignore Zombie.shouldBurnInDay in their daylight tag path.
-     * Cancel only unattributed combustion for our bodies; block/entity fire remains real. */
-    @EventHandler(ignoreCancelled=true) public void ambientCombustion(EntityCombustEvent e){
-        if(e.getClass()==EntityCombustEvent.class&&e.getEntity() instanceof Zombie
-                &&run.equals(e.getEntity().getPersistentDataContainer().get(provenance,PersistentDataType.STRING))){
-            e.setCancelled(true);ambientCombustions.increment();
         }
     }
     @EventHandler(ignoreCancelled=true) public void merging(ItemMergeEvent e){
@@ -111,15 +102,23 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         long now=System.nanoTime(),min=Long.MAX_VALUE,max=0,minDelta=Long.MAX_VALUE;int live=0,waiting=0,resetting=0,progressed=0,moved=0;double oldest=0,travel=0;
         for(Npc n:npcs.values()){if(n.horizontalTravel>.5)moved++;travel+=n.horizontalTravel;long delta=n.decisions-lastDecisions.getOrDefault(n.id,n.decisions);lastDecisions.put(n.id,n.decisions);minDelta=Math.min(minDelta,delta);if(delta>0)progressed++;if(n.lastStepNanos>0){double age=(now-n.lastStepNanos)/1e9;oldest=Math.max(oldest,age);if(age<2)live++;}if(n.status.equals("inference-wait"))waiting++;if(n.resetting)resetting++;min=Math.min(min,n.decisions);max=Math.max(max,n.decisions);}
         lastDecisions.keySet().retainAll(npcs.keySet());status.put("progressed_agents_since_status",progressed);status.put("min_decisions_since_status",npcs.isEmpty()?0:minDelta);double interval=lastStatusNanos==0?0:(now-lastStatusNanos)/1e9;status.put("status_interval_seconds",interval);status.put("learner_samples_per_second",interval==0?0:(p.samples()-lastSamples)/interval);status.put("decisions_per_second",interval==0?0:(transitions.sum()-lastTransitions)/interval);lastStatusNanos=now;lastSamples=p.samples();lastTransitions=transitions.sum();
+        int burning=0,sunSensitive=0,bodySamples=0;
+        for(Npc n:npcs.values()){AgentSnapshot a=n.snapshot;if(a!=null&&(now-a.capturedNanos())<2_000_000_000L){bodySamples++;if(a.fireTicks()>0)burning++;if(a.burnsInSunlight())sunSensitive++;}}
+        status.put("body_samples",bodySamples);status.put("burning_agents",burning);status.put("sun_sensitive_agents",sunSensitive);
         status.put("moved_agents",moved);status.put("horizontal_blocks_total",travel);
         status.put("ticking_agents",live);status.put("inference_wait_agents",waiting);status.put("resetting_agents",resetting);status.put("oldest_tick_age_seconds",oldest);status.put("min_agent_decisions",npcs.isEmpty()?0:min);status.put("max_agent_decisions",max);
         status.put("retired_agents",retired.sum());status.put("decision_transitions",transitions.sum());status.put("inference_completed",inference.completed.sum());status.put("inference_queue",inference.queued());
         status.put("inference_rejected",inferenceRejected.sum());status.put("inference_failed",inference.failed.sum());status.put("inference_compute_ns",inference.computeNanos.sum());status.put("inference_queue_ns",inference.queueNanos.sum());
-        status.put("suppressed_ambient_combustions",ambientCombustions.sum());status.put("sensor_ns",sensorNanos.sum());status.put("abandoned_actions",abandoned.sum());status.put("leased_chunks",leases.size());
+        status.put("sensor_ns",sensorNanos.sum());status.put("abandoned_actions",abandoned.sum());status.put("leased_chunks",leases.size());
         var os=java.lang.management.ManagementFactory.getOperatingSystemMXBean();status.put("available_processors",Runtime.getRuntime().availableProcessors());
         if(os instanceof com.sun.management.OperatingSystemMXBean o){long cpu=o.getProcessCpuTime();status.put("process_cpu_ns",cpu);double cores=interval==0?0:Math.max(0,(cpu-lastCpu)/interval/1e9);status.put("process_cpu_cores",cores);lastCpu=cpu;status.put("process_cpu_fraction",cores/Runtime.getRuntime().availableProcessors());}
         Runtime runtime=Runtime.getRuntime();status.put("heap_used_mib",(runtime.totalMemory()-runtime.freeMemory())/(1024L*1024));status.put("java_threads",java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount());status.put("epoch_millis",System.currentTimeMillis());status.putAll(extraStatus());
-        PolicyFile.atomicWrite(getDataFolder().toPath().resolve("status.json"),json(status).getBytes(StandardCharsets.UTF_8));
+        String encoded=json(status);Path folder=getDataFolder().toPath();
+        PolicyFile.atomicWrite(folder.resolve("status.json"),encoded.getBytes(StandardCharsets.UTF_8));
+        Path history=folder.resolve("history.jsonl"),previous=folder.resolve("history.previous.jsonl");
+        if(Files.isSymbolicLink(history)||Files.isSymbolicLink(previous))throw new java.io.IOException("Refusing symlinked metric history");
+        if(Files.exists(history)&&Files.size(history)>8*1024*1024)Files.move(history,previous,StandardCopyOption.REPLACE_EXISTING);
+        Files.writeString(history,encoded.replace("\n","")+"\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.APPEND);
     }
     private static String json(Map<String,Object> map){StringJoiner s=new StringJoiner(",\n","{\n","\n}\n");map.forEach((k,v)->{String value=v instanceof Number||v instanceof Boolean?v.toString():"\""+v.toString().replace("\\","\\\\").replace("\"","\\\"").replace("\n","\\n")+"\"";s.add("  \""+k+"\": "+value);});return s.toString();}
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
@@ -143,7 +142,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         }catch(Exception e){sender.sendMessage("Rejected: "+e.getMessage());}return true;
     }
     @Override public final void onDisable(){
-        paused.set(true);if(inference!=null)inference.close();
+        paused.set(true);if(observatory!=null)observatory.close();if(inference!=null)inference.close();
         try{closing();}catch(Throwable e){getLogger().log(java.util.logging.Level.SEVERE,"Final save failed; do not overwrite the checkpoint",e);}
         if(io!=null)io.shutdownNow();getLogger().info("Stopped. NPC bodies are ephemeral; training state is separate from Minecraft world persistence.");
     }

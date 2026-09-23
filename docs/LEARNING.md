@@ -1,8 +1,10 @@
 # Learning contract
 
+[Aiming practice and unchanged full-condition exams](AIMING.md).
+
 ## Observations and primitive actions
 
-A shared immutable 384→64→64 tanh MLP has35,690 parameters and eight categorical
+A shared immutable 512→96→96 tanh MLP has 68,842 parameters and eight categorical
 heads: movement9, yaw5, pitch5, posture3, interaction4, hotbar9, GUI operation6 and
 GUI slot64. The output also includes a scalar critic. GUI slot probability is
 active only for click operations; sampling, likelihood, entropy and gradients
@@ -16,22 +18,57 @@ or raw client inputs. Four actual body ticks are the nominal decision interval;
 queue/region delays extend a held action and are recorded, not relabelled as four
 ticks. Positions are authoritative Minecraft positions, not a lightweight simulator.
 
+### Local context and motor controllability
+
+The current schema is `bcmc-citizen-egocentric-context`. Features 334–345 add
+body-relative target coordinates and bearing, inverse target distance, normalized
+forward/lateral velocity, continuous physical stillness and water/lava state.
+Features 384–447 describe at most eight nearby owned-region entities; 448–511
+contain eight coarse, at-most-twelve-block radial probes with visibility, material,
+collision, liquid, hazard, floor and ledge information. Fields 382–383 report
+context availability. Spectator players are omitted. No scan loads a chunk.
+This is local privileged state; entities can be sensed without visual line-of-sight.
+
+The old curriculum-difficulty input is zeroed: deployed policies should not
+condition motor control on a training-only difficulty knob. Forward-stop permits
+stop, forward and backward throughout every episode, allowing recovery from
+overshoot without a hidden actuator choosing a direction. The arrival potential
+includes bounded settling progress as well as distance. Physical stillness is an
+observation, not an instruction to stop. Exam eligibility and pass counts have
+not been relaxed. Crafting success uses exact required produced-item counts;
+partial recipe progress does not silently raise the terminal threshold.
+
 ## Asynchronous actor-learner updates
 
 Actors publish consecutive episode fragments of at most32 transitions, with
 behavior policy version and log probability, elapsed ticks, genuine terminals
 and the final next observation. A fragment never crosses a reset/episode boundary.
-Learning starts on available bounded work instead of waiting for all actors or
-all episodes to terminate. Currently available trajectories form updates of up
-to512 samples; fixed gradient workers parallelize useful computation.
+Learning does not wait for every actor or episode. The learner alone groups
+fragments for up to 100 milliseconds or until the 512-sample target is reached;
+the last whole fragment may cross that target by at most 31 samples. Entity tick
+threads never wait for this batching window. Fixed gradient workers process the
+resulting independent trajectory groups.
 
 The learner computes V-trace targets with importance ratios clipped at1 for both
 rho and trace continuation. Discount is `0.997 ** (elapsed_ticks / 4)`, zero at
 real finite-horizon terminals. Fragment truncation bootstraps its actual next state
 but does not invent a terminal. Actor loss uses corrected next targets, entropy
-coefficient0.002, a Huber critic and Adam base rate0.0003. Global gradient norm is
-clipped at0.5. Model/optimizer publication is one checked immutable transaction;
-NaN/Inf never produces a new published version.
+coefficient 0.002 and a Huber critic. A separate, weak head-wise uniform legal-
+control prior (cross entropy coefficient 0.005) has a nonvanishing gradient when
+a control becomes almost impossible. It is not a demonstration, task solution,
+or per-state answer mask. The conditional gameplay likelihood is unchanged.
+
+Adam starts at `0.00015 * sqrt(min(1, actual_batch_samples / 512))`; the global
+gradient norm is clipped at 0.5. Before publication, up to 128 evenly spaced
+observed states compare the old and candidate policies using the exact
+conditional categorical KL. Mean KL must be at most 0.005 and maximum KL at
+most 0.05. A rejected candidate halves the learning rate, up to twelve attempts;
+all attempts start from the same original weights and Adam state. A fully
+rejected batch is explicitly counted and is not added to trained samples.
+This is a local, sampled update guard, not a proof of skill retention.
+Model/optimizer publication is one checked immutable transaction; NaN/Inf never
+produces a new published version. Status exposes the accepted rate, sample count,
+KL values, backtracking and rejected samples.
 
 This is an IMPALA-inspired implementation of V-trace, not PPO or a reproduction
 of the whole IMPALA training system. It deliberately processes bounded stale
@@ -88,7 +125,7 @@ transaction with the Minecraft world, and export is not a learned-skill claim.
 
 | ID | Task | Reset resources and required outcome |
 | --- | --- | --- |
-|0|Forward-stop|Reach and settle near a forward goal|
+|0|Forward-stop|Reach and settle near a forward goal; backward recovery is available|
 |1|Turn-stop|Rotate, reach and settle|
 |2|Aim-hold|Hold target yaw and pitch|
 |3|Navigate-stop|Reach a random planar goal and settle|

@@ -44,6 +44,12 @@ public final class TrainingEnvironment {
                 // Reset-only aim assistance fades out; full probes/exams have random initial facing.
                 yaw=d<.5?0:(float)(rng.unit()*360-180);pitch=d<.5?12:0;
             }
+            if(task==2){
+                double targetYaw=Math.toDegrees(Math.atan2(-(gx-sx),gz-sz));
+                double targetPitch=-Math.toDegrees(Math.atan2(gy+.5-(65+npc.entity.getEyeHeight()),Math.hypot(gx-sx,gz-sz)));
+                AimPractice.Pose pose=AimPractice.reset(lesson.kind(),d,yaw,pitch,targetYaw,targetPitch,rng);
+                yaw=pose.yaw();pitch=pose.pitch();
+            }
             Goal goal=new Goal(lesson.task(),gx,gy,gz,lesson.serial(),d,lesson.task().horizon());
             Location spawn=new Location(world,sx,65,sz,yaw,pitch);
             npc.reset(goal,spawn,()->{
@@ -84,8 +90,8 @@ public final class TrainingEnvironment {
     public static double potential(Npc npc,Session s){
         var at=npc.entity.getLocation();Goal goal=npc.goal;int task=goal.task().ordinal();
         double distance=Math.hypot(goal.x()-at.getX(),goal.z()-at.getZ());
-        if(task==2){double dx=goal.x()-at.getX(),dz=goal.z()-at.getZ();double yaw=Sensors.angle(Math.toDegrees(Math.atan2(-dx,dz))-at.getYaw());double pitch=Sensors.angle(-Math.toDegrees(Math.atan2(goal.y()+.5-(at.getY()+npc.entity.getEyeHeight()),Math.hypot(dx,dz)))-at.getPitch());return -(Math.abs(yaw)+Math.abs(pitch))/180;}
-        if(task<5)return -Math.min(16,distance)/8;
+        if(task==2){double dx=goal.x()-at.getX(),dz=goal.z()-at.getZ();double yaw=Sensors.angle(Math.toDegrees(Math.atan2(-dx,dz))-at.getYaw());double pitch=Sensors.angle(-Math.toDegrees(Math.atan2(goal.y()+.5-(at.getY()+npc.entity.getEyeHeight()),Math.hypot(dx,dz)))-at.getPitch());return AimPractice.potential(yaw,pitch,s.hold);}
+        if(task<5)return -Math.min(16,distance)/4+.3*Math.min(1,s.hold/20.0);
         return switch(task){
             case 5->Math.min(1,count(npc.broken,2))*.8+targetMining(npc,s)*.2;
             case 6->Math.min(1,count(npc.broken,2))*.3+Math.min(1,count(npc.collected,2))*.5+targetMining(npc,s)*.15;
@@ -109,18 +115,18 @@ public final class TrainingEnvironment {
             double speed=Math.hypot(next.x()-previous.frame().x(),next.z()-previous.frame().z())/ticks;
             double angular=Math.max(Math.abs(Sensors.angle(next.yaw()-previous.frame().yaw())),Math.abs(next.pitch()-previous.frame().pitch()))/ticks;
             boolean meets=task==2?Math.abs(next.yawError())<=8&&Math.abs(next.pitchError())<=8:Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z())<=.65&&speed<=.025&&next.ground();
-            if(meets&&angular<=.15&&ticks<=8)s.hold+=ticks;else s.hold=0;return s.hold>=20;
+            if(meets&&angular<=.15&&ticks<=8)s.hold+=ticks;else s.hold=0;return s.hold>=(task==2?AimPractice.requiredHold(s.lesson.kind(),s.lesson.difficulty()):20);
         }
         return switch(task){
             case 5->count(npc.broken,2)>=1&&kindAt(npc,s.arena.x()+8,66,s.arena.z()+8)==0;
             case 6->count(npc.collected,2)>=1&&npc.pocket.countKind(2)>=1;
             case 7->kindAt(npc,s.arena.x()+8,65,s.arena.z()+8)==3&&count(npc.placed,3)>=1;
-            case 8->count(npc.pocket.crafted,3)>=4&&npc.pocket.countKind(3)>=4+InitialCrafting.progress(npc.pocket,task)*.2;
-            case 9->npc.pocket.crafted.getOrDefault("STICK",0L)>=4&&npc.pocket.count("STICK")>=4+InitialCrafting.progress(npc.pocket,task)*.2;
+            case 8->count(npc.pocket.crafted,3)>=4&&npc.pocket.countKind(3)>=4;
+            case 9->npc.pocket.crafted.getOrDefault("STICK",0L)>=4&&npc.pocket.count("STICK")>=4;
             case 10,17->npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L)>=1&&npc.pocket.count("CRAFTING_TABLE")>=1;
-            case 11->npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L)>=1&&npc.pocket.count("WOODEN_PICKAXE")>=1+InitialCrafting.progress(npc.pocket,task)*.2;
+            case 11->npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L)>=1&&npc.pocket.count("WOODEN_PICKAXE")>=1;
             case 12->count(npc.collected,8)>=1&&npc.pocket.count("COBBLESTONE")>=1;
-            case 13->npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L)>=1&&npc.pocket.count("STONE_PICKAXE")>=1+InitialCrafting.progress(npc.pocket,task)*.2;
+            case 13->npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L)>=1&&npc.pocket.count("STONE_PICKAXE")>=1;
             case 14->npc.pocket.extracted.getOrDefault("IRON_INGOT",0L)>=1&&npc.pocket.count("IRON_INGOT")>=1;
             case 15->chestLogs(npc,s)>=4&&npc.pocket.countKind(2)<=4;
             case 16->placedCells(npc,s)==3&&count(npc.placed,3)>=3;

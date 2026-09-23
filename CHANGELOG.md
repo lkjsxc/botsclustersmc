@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0 — 2026-09-23
+
+- Replace the undead body with a neutral Villager. Do not cancel real combustion
+  events or alter the operator world to hide a daylight-body mismatch.
+- Add permission-separated spectator tracking, tours, goal markers, per-actor
+  diagnostics and a JDK-only private, read-only web observatory.
+- Expand the shared model to 512 inputs and 96-unit hidden layers. Add bounded
+  body-relative motion, stillness, liquid, nearby-entity and radial terrain inputs.
+  No per-NPC chunk transfer, pathfinder, auto-aim or teacher actions are introduced.
+- Allow backward recovery in forward-stop; fix unreachable crafting count checks.
+- Stabilize V-trace learning with bounded batch formation, a weak uniform legal
+  control prior and measured conditional-KL backtracking of candidate Adam updates.
+- Introduce progressive aiming practice and explicit angular-error costs; keep
+  full-condition exam requirements and record an independent fixed-policy test.
+- Retain canonical checkpoint export, ancestor-path checks, unique inference reply
+  tickets and the persistence/concurrency regressions from 0.6.1.
+
+The observation/body schema is intentionally incompatible with earlier weights.
+Preserve old Academies separately; never silently reset them. Actual operator
+learning and software acceptance are documented separately in Validation. The
+project still does not implement complete vanilla-player survival or a persistent
+autonomous settlement.
+
 ## 0.6.1 — 2026-09-23
 
 - Save one authoritative training checkpoint and derive deployment weights from

@@ -48,6 +48,17 @@ public final class Course {
     }
     public synchronized void abandon(long actor){Agent a=agent(actor);if(a.current!=null){a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
     public synchronized long examVersion(long actor){return agent(actor).examVersion;}
+    public record Progress(int stage,int practiceEpisodes,int probes,double practiceSuccess,double probeSuccess,boolean exam,long examPolicy,int examCases,boolean completed) {}
+    public synchronized Progress progress(long actor){
+        Agent a=agent(actor);
+        return new Progress(a.stage,a.episodes[a.stage],a.probes[a.stage],a.ema[a.stage],a.probeEma[a.stage],a.exam,a.examVersion,a.examIndex,a.complete);
+    }
+    public record Metrics(double practiceMean,double probeMean,double bestProbe,int ready) {}
+    public synchronized Metrics metrics(){
+        double practice=0,probe=0,best=0;int ready=0;
+        for(Agent a:agents){practice+=a.ema[a.stage];probe+=a.probeEma[a.stage];best=Math.max(best,a.probeEma[a.stage]);if(eligible(a))ready++;}
+        return new Metrics(practice/agents.length,probe/agents.length,best,ready);
+    }
     public synchronized int stage(long actor){return agent(actor).stage;}
     public synchronized boolean completed(long actor){return agent(actor).complete;}
     public synchronized long certifiedVersion(long actor,int task){return agent(actor).certified[task];}

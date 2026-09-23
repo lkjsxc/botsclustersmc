@@ -1,13 +1,16 @@
 name: BotsClustersMC
-version: '0.6.1'
+version: '0.7.0'
 main: org.botsclustersmc.plugin.InferencePlugin
 api-version: '1.21'
 folia-supported: true
 load: POSTWORLD
 commands:
   bots:
-    description: Manage learned NPC policies
-    permission: botsclustersmc.admin
+    description: Observe or administer learned NPC policies
 permissions:
+  botsclustersmc.observe:
+    description: Read NPC diagnostics and use spectator cameras
+    default: op
   botsclustersmc.admin:
+    description: Spawn, remove, pause or change NPC goals
     default: op
