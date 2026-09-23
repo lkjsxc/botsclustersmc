@@ -1,6 +1,7 @@
 # Learning contract
 
 [Aiming practice and unchanged full-condition exams](AIMING.md).
+[Resource practice and real-contact diagnostics](HARVESTING.md).
 
 ## Observations and primitive actions
 
@@ -80,6 +81,20 @@ explicit lag budget, rather than coupling admission to one global barrier.
 Primary source: Espeholt et al., *IMPALA: Scalable Distributed Deep-RL with
 Importance Weighted Actor-Learner Architectures*, ICML2018:
 https://proceedings.mlr.press/v80/espeholt18a.html
+
+## Loss allocation across tasks
+
+The learner uses one capped task-loss allocation per complete batch, shared across
+all gradient workers. Present tasks receive equal loss mass where possible, with
+per-transition weights capped at eight and the total mass conserved. This does
+not fabricate experience, include exam data, change V-trace targets or inflate
+`trained_samples`. Weighted loss/entropy/importance statistics describe this new
+objective. [Task balance](TASK_BALANCE.md) explains the bounds and exact tests.
+
+The distinction matters because review is selected by episode while gradients
+consume transitions: long failures can outnumber short successful reviews in the
+learner. Episode promotion remains independent and unchanged. Balanced updates
+are not themselves a guarantee that the latest model retains every earlier skill.
 
 ## Independent courses, frozen individual exams
 

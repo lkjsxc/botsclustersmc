@@ -61,6 +61,9 @@ public final class Observatory implements CommandExecutor, TabCompleter, Listene
         sender.sendMessage(String.format(Locale.ROOT,"%s | xyz %.2f %.2f %.2f | goal %.2f %.2f %.2f | distance %.3f | speed %.4f",s.task(),s.x(),s.y(),s.z(),s.goalX(),s.goalY(),s.goalZ(),s.distance(),s.speed()));
         sender.sendMessage("body="+s.body()+" action="+s.action()+" policy="+s.policy()+" decisions="+s.decisions()+" health="+s.health()+" fire_ticks="+s.fireTicks()+" burns_in_sunlight="+s.burnsInSunlight());
         sender.sendMessage(String.format(Locale.ROOT,"snapshot_age=%.2fs; %s",(System.nanoTime()-s.capturedNanos())/1e9,npc.status));
+        sender.sendMessage(s.controls());
+        sender.sendMessage("held="+s.heldItem()+" x"+s.heldCount()+" | mining_ticks="+s.miningTicks()+" mining_block="+s.miningBlock());
+        sender.sendMessage("This episode: blocks_broken="+s.broken()+" items_collected="+s.collected()+" items_crafted="+s.crafted()+". These counts are not skill certificates.");
         Frame observed=npc.observedFrame;if(observed!=null)sender.sendMessage(PolicyDiagnostics.describe(plugin.policy,observed));
     }
     private void start(Player player,long id,String mode) {
@@ -81,7 +84,7 @@ public final class Observatory implements CommandExecutor, TabCompleter, Listene
         Npc npc=plugin.npcs.get(w.actor); if(npc==null) { player.sendActionBar(Component.text("NPC unavailable; /bots watch to select another.")); return; }
         AgentSnapshot s=npc.snapshot; if(s==null) return;
         double age=(System.nanoTime()-s.capturedNanos())/1e9;
-        player.sendActionBar(Component.text("#"+w.actor+" "+s.task()+" | "+plugin.observerHud(w.actor)+(age>2?" | STALE":"")));
+        player.sendActionBar(Component.text("#"+w.actor+" "+s.task()+" | "+plugin.observerHud(w.actor)+(s.task().equals("break-log")||s.task().equals("collect-log")?" | dig "+s.miningTicks()+"t | broken "+s.broken()+" picked "+s.collected():"")+(age>2?" | STALE":"")));
         World world=Bukkit.getWorld(s.world()); if(world==null) return;
         if((!w.overview||!w.positioned)&&age<2&&w.moving.compareAndSet(false,true)) {
             double yaw=Math.toRadians(s.yaw());

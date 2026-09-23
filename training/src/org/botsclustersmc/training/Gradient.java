@@ -8,6 +8,9 @@ public final class Gradient {
     private Gradient(){}
     public record Result(float[] weights,int samples,double valueLoss,double entropy,double importance) {}
     public static Result compute(Policy target,List<Trajectory> trajectories) {
+        return compute(target,trajectories,null);
+    }
+    public static Result compute(Policy target,List<Trajectory> trajectories,TaskBalance balance) {
         float[] grad=new float[Policy.PARAMETERS]; Policy.Workspace w=new Policy.Workspace();
         int total=0; double loss=0,entropy=0,importance=0;
         for(Trajectory fragment:trajectories) {
@@ -28,9 +31,11 @@ public final class Gradient {
                 double error=w.logits[Schema.LOGITS]-returns.values()[i];
                 // Huber critic loss limits the effect of an unexpectedly large value target.
                 w.dout[Schema.LOGITS]=(float)(.5*Math.max(-1,Math.min(1,error)));
+                double weight=balance==null?1:balance.weight(s.observation());
+                for(int j=0;j<w.dout.length;j++)w.dout[j]*=(float)weight;
                 target.backward(s.observation(),w,w.dout,grad);
-                double a=Math.abs(error); loss+=a<=1?.5*a*a:a-.5;
-                entropy+=Distribution.entropy(w.probabilities); importance+=Math.exp(Math.min(0,ratio[i])); total++;
+                double a=Math.abs(error); loss+=weight*(a<=1?.5*a*a:a-.5);
+                entropy+=weight*Distribution.entropy(w.probabilities); importance+=weight*Math.exp(Math.min(0,ratio[i])); total++;
             }
         }
         return new Result(grad,total,loss,entropy,importance);

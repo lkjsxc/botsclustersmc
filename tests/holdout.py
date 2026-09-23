@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--policy', type=Path, required=True)
+    source=parser.add_mutually_exclusive_group(required=True)
+    source.add_argument('--policy', type=Path)
+    source.add_argument('--checkpoint', type=Path, help='Freeze and export one canonical training checkpoint without stopping live learning.')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--runtime', type=Path, default=ROOT/'dist/training.jar')
     parser.add_argument('--cache', type=Path, default=ROOT/'.cache/server')
@@ -29,7 +31,7 @@ def arguments():
     return args
 
 def prepare(args):
-    policy, runtime, cache = (p.resolve(strict=True) for p in (args.policy, args.runtime, args.cache))
+    policy, runtime, cache = (p.resolve(strict=True) for p in (args.checkpoint or args.policy, args.runtime, args.cache))
     output = args.output.absolute()
     for parent in (output, *output.parents):
         if parent.is_symlink():
@@ -53,8 +55,18 @@ def prepare(args):
     props.write_text('\n'.join(lines)+'\n')
     (server/'.botsclustersmc-exam').write_text('Disposable frozen-policy exam only.\n')
     data = server/'plugins/BotsClustersMC'; data.mkdir()
-    frozen = policy.read_bytes(); (data/'policy.bcmc').write_bytes(frozen)
+    if policy.stat().st_size > 32*1024*1024:
+        raise ValueError('The source policy/checkpoint exceeds the evaluation size bound.')
     shutil.copy2(runtime, output/'runtime.jar')
+    if args.checkpoint:
+        checkpoint=output/'source-training.bcmc';checkpoint.write_bytes(policy.read_bytes())
+        java=os.environ.get('JAVA_BIN', 'java')
+        with (output/'export.log').open('w') as log:
+            subprocess.run([java,'-cp',str(output/'runtime.jar'),'org.botsclustersmc.training.CheckpointTool',
+                'export',str(checkpoint),str(data/'policy.bcmc')],check=True,stdout=log,stderr=subprocess.STDOUT)
+        frozen=(data/'policy.bcmc').read_bytes()
+    else:
+        frozen=policy.read_bytes();(data/'policy.bcmc').write_bytes(frozen)
     return output, server, data, cache, frozen
 
 def entry(jar, name, data):
@@ -111,6 +123,12 @@ def verify_result(args, data, frozen, process):
         assert len(selected) == args.cases and summary['cases'] == args.cases
         assert all(type(trial['success']) is bool for trial in selected)
         assert sum(trial['success'] for trial in selected) == summary['passed']
+    for trial in trials:
+        detail=trial['diagnostics']
+        assert detail['observations'] > 0 and 0 <= detail['dig_decisions'] <= detail['observations']
+        assert detail['observed_max_target_mining_ticks'] >= 0
+        assert 0 <= detail['mean_abs_yaw_error'] <= 180 and 0 <= detail['mean_abs_pitch_error'] <= 180
+        assert detail['blocks_broken'] >= 0 and detail['items_collected'] >= 0
     assert (data/'policy.bcmc').read_bytes() == frozen
     assert not list(data.glob('training*.bcmc')), 'A holdout exam must never create a training checkpoint.'
     return result
@@ -126,11 +144,16 @@ def main():
         'bind': '127.0.0.1', 'port': args.port, 'terrain': 'academy-flat',
         'claim': 'Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.',
     }
+    metadata['input_kind']='canonical-checkpoint' if args.checkpoint else 'inference-policy'
+    if args.checkpoint:
+        metadata['checkpoint_sha256']=hashlib.sha256((output/'source-training.bcmc').read_bytes()).hexdigest()
     (output/'metadata.json').write_text(json.dumps(metadata, indent=2)+'\n')
     print('Running independent holdout:', output, flush=True)
     process = acceptance.direct(server, cache, output/'server.log', '-Dbcmc.holdout=true')
     try:
         process.wait(timeout=300+args.cases*len(args.tasks)//4)
+        if args.checkpoint:
+            assert hashlib.sha256((output/'source-training.bcmc').read_bytes()).hexdigest()==metadata['checkpoint_sha256']
         result = verify_result(args, data, frozen, process)
         (output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
         print(json.dumps({k: v for k, v in result.items() if k != 'trials'}, indent=2), flush=True)

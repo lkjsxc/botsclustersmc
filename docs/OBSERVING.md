@@ -16,7 +16,7 @@ Inference defaults to operator-only observation: its camera can change game mode
 | `/bots unwatch` | Release tracking; inference also restores the prior location/mode |
 | `/bots progress` | Read the population, readiness and historical exam totals |
 | `/bots list 0` | Read ten actors, ranked by current stage/readiness; pages start at zero |
-| `/bots inspect 17` | Read task, action, location, speed, health, fire and policy identity |
+| `/bots inspect 17` | Read task, named controls, inventory/mining attempt, speed, health and policy identity |
 
 The HUD distinguishes a frozen exam from training. Small client-only particles
 mark the actual lesson target. They neither modify the world nor appear in the
@@ -56,3 +56,24 @@ The dashboard averages readiness over actors at their **current** stages. When
 actors advance into harder tasks, those averages can fall without implying that
 all earlier skills were forgotten. Use stage populations and the individual HUD
 alongside the curves. No survival or cooperation certificate is implied.
+
+## Resource attempts and cohort readiness
+
+Resource lessons add actual current mining ticks and episode broken/picked counts
+to the HUD. Inspection names the selected primitive controls and held item; it
+does not recommend a correct action. Successful mining is not inferred from a
+button press. The block/pickup counts are real episode outcomes, not certificates.
+
+Each dashboard stage displays the readiness and training-trial count of actors
+currently at that stage. The cohort's trials include probes. Empty cohorts have
+no readiness score; actors with no probes are explicitly marked. Historical
+certificate totals can exceed the current-stage population because graduates
+have moved on. Those certificates still name past frozen models, not the latest
+continually changing model. Missing recorded cohort data is not displayed as a
+measured zero-percent result.
+
+Exact per-task success/trial counts for the current process are also recorded.
+They are separate from moving averages initialized with priors, and they reset
+when the process restarts. Frozen-exam cases have their own counters and never
+increase training counts. These raw results prevent a nonzero initialization
+prior from looking like an observed resource success before any success occurred.

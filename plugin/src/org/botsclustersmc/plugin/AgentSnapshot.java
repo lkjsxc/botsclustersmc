@@ -2,13 +2,16 @@ package org.botsclustersmc.plugin;
 
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.Map;
+import org.botsclustersmc.core.ActionText;
 
 /** Immutable observation for operators, copied only by the owning entity thread. */
 public record AgentSnapshot(long id, String body, UUID world, double x, double y, double z,
         float yaw, float pitch, double goalX, double goalY, double goalZ,
         String task, double distance, double speed, double health, int fireTicks,
         boolean burnsInSunlight, long decisions, long policy, String action,
-        double logProbability, long capturedNanos) {
+        double logProbability, long capturedNanos, String controls, String heldItem, int heldCount,
+        String miningBlock, int miningTicks, long broken, long collected, long crafted) {
     public static AgentSnapshot capture(Npc npc, Frame frame, Npc.Applied applied) {
         return new AgentSnapshot(npc.id, npc.entity.getType().name(), npc.entity.getWorld().getUID(), frame.x(),
             frame.y(), frame.z(), frame.yaw(), frame.pitch(), npc.goal.x(),
@@ -16,6 +19,11 @@ public record AgentSnapshot(long id, String body, UUID world, double x, double y
             Math.hypot(frame.vx(), frame.vz()), npc.entity.getHealth(),
             npc.entity.getFireTicks(), npc.entity instanceof org.bukkit.entity.Zombie zombie && zombie.shouldBurnInDay(), npc.decisions,
             applied.result().policyVersion(), Arrays.toString(applied.result().actions()),
-            applied.result().logProbability(), System.nanoTime());
+            applied.result().logProbability(), System.nanoTime(),ActionText.describe(applied.result().actions()),
+            npc.pocket.held().item(),npc.pocket.held().count(),npc.mining==null?"none":npc.mining,
+            npc.miningTicks,total(npc.broken),total(npc.collected),total(npc.pocket.crafted));
+    }
+    private static long total(Map<String,Long> counts) {
+        long total=0;for(long count:counts.values())total+=count;return total;
     }
 }

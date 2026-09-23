@@ -30,6 +30,14 @@ public final class ControlTest {
         // No direction is selected by a target position: the entire lesson shares one mask.
         check(Arrays.equals(mask,Task.FORWARD_STOP.mask(0,false)));
         check(Schema.INPUTS==512);check(Schema.HIDDEN==96);
+        int[] input=Schema.IDLE.clone();String idle=ActionText.describe(input);
+        check(idle.contains("move=stop")&&idle.contains("interact=none")&&!idle.contains("slot(index)"));
+        input[0]=5;input[1]=4;input[2]=0;input[3]=1;input[4]=3;input[5]=8;input[6]=2;input[7]=38;
+        String description=ActionText.describe(input);
+        check(description.contains("move=forward-left")&&description.contains("yaw=8")&&description.contains("pitch=-4"));
+        check(description.contains("jump-pulse")&&description.contains("drop-one")&&description.contains("hotbar=9"));
+        check(description.contains("right-click")&&description.contains("slot(index)=38"));
+        check(input[0]==5&&input[4]==3&&input[7]==38); // Text rendering must not alter gameplay.
         System.out.println("PASS control observation checks="+checks);
     }
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.1 — resource attempts and retained-skill diagnostics
+
+- Display named selected controls, held items, actual mining contact and episode
+  break/pickup/crafting counts without reading another region's mutable state.
+- Separate cohort readiness, exact process-local outcomes and historical frozen
+  certificates. Record actual learner sample allocation by task.
+- Reject already disallowed mining before reporting partial progress.
+- Add practice-only log orientation and bounded nonpositive resource state costs;
+  real block/drop success criteria and full-condition exams are unchanged.
+- Balance present-task loss mass within each learner batch, with bounded weights,
+  unchanged behavior correction and raw accepted-sample accounting.
+- Evaluate a frozen policy directly from a copied canonical checkpoint; retain
+  every failed trial and its contact/aim diagnostics. This is not a survival or
+  all-skills mastery release.
+
+
 ## 0.7.0 — 2026-09-23
 
 - Replace the undead body with a neutral Villager. Do not cancel real combustion

@@ -11,10 +11,17 @@ After personally accepting the Minecraft EULA and building the current runtime:
 ```sh
 ./build.sh
 EULA=true python3 tests/holdout.py \
-  --policy academy/server/plugins/BotsClustersMC/policy.bcmc \
+  --checkpoint academy/server/plugins/BotsClustersMC/training.bcmc \
   --output .build/holdout \
   --tasks 0 1 2 --cases 64 --seed 618203
 ```
+
+`--checkpoint` first copies one complete canonical checkpoint, then exports its
+policy inside the disposable evaluation directory. The live Academy need not be
+stopped, and later training cannot change that frozen copy. An inference-only
+model can instead be supplied with `--policy`; the two inputs are mutually exclusive.
+No new training checkpoint is created by the evaluation plugin. The input copy is
+retained as `source-training.bcmc` and checked for modification when using a checkpoint.
 
 The output directory must be new. `--runtime` can identify an independently built
 training JAR; `--cache` selects the prepared server cache. They default to
@@ -28,7 +35,10 @@ Each task uses a fixed initial seed schedule. Cases, task IDs and seed are store
 with every result. Full-difficulty tasks still have the documented academy
 assistance: supplied targets/resources, rooms, resets and training invulnerability.
 
-The results are written to `result.json`, including every failure. `metadata.json`
+The results are written to `result.json`, including every failure. Each trial
+also records selected-dig frequency, observed peak contact with the designated
+block, mean angular error, closest distance and real broken/collected counts.
+These diagnose failures; they do not replace the original success predicates. `metadata.json`
 identifies the exact runtime JAR, evaluator JAR and immutable policy bytes.
 The copied policy and runtime remain in the disposable output for reproduction.
 The runner verifies the policy is unchanged, no training checkpoint exists, all
