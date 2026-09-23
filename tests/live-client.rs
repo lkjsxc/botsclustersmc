@@ -23,7 +23,7 @@ fn recipe(ops:&mut VecDeque<Op>,items:&[(ItemKind,usize)],output:ItemKind){for &
 fn operations(l:&Lesson)->VecDeque<Op>{
     use ItemKind::*;let mut q=VecDeque::new();
     match l.stage{
-        7|16=>{q.extend([Op::Take(OakPlanks),Op::Left(36),Op::Select]);for i in 0..if l.stage==16{3}else{1}{q.extend([Op::Align([l.goal[0]+i as f64,96.99,l.goal[2]]),Op::Wait(2),Op::Use,Op::Wait(3)]);}},
+        7|16=>{q.extend([Op::Take(OakPlanks),Op::Left(36),Op::Select]);for i in (0..if l.stage==16{3}else{1}).rev(){q.extend([Op::Align([l.goal[0]+i as f64,96.99,l.goal[2]]),Op::Wait(2),Op::Use,Op::Wait(3)]);}},
         8=>recipe(&mut q,&[(OakLog,1)],OakPlanks),
         9=>recipe(&mut q,&[(OakPlanks,1),(OakPlanks,3)],Stick),
         10=>recipe(&mut q,&[(OakPlanks,1),(OakPlanks,2),(OakPlanks,3),(OakPlanks,4)],CraftingTable),
@@ -95,6 +95,11 @@ impl Check{
             return Err(format!("fixture {} timed out; actor={} pending={:?} episode_started={} token={} raw={raw:?} menu={:?} cursor={:?}",self.stage,self.actor,self.ops.front(),self.episode.is_some(),l.token(),bot.menu(),carried(bot)));
         }
         if self.stage>=5&&self.ticks%100==0{
+            if let Some(hit)=bot.hit_result().as_entity_hit_result(){
+                let ecs=bot.ecs.read();
+                eprintln!("DIAGNOSTIC ENTITY actor={} source={:?} source_id={:?} picked={:?} picked_id={:?} picked_position={:?}",self.actor,bot.entity,ecs.get::<azalea::core::entity_id::MinecraftEntityId>(bot.entity),hit.entity,ecs.get::<azalea::core::entity_id::MinecraftEntityId>(hit.entity),ecs.get::<azalea::entity::Position>(hit.entity));
+            }
+
             let pos=azalea::core::position::BlockPos::new(l.goal[0].floor() as i32,l.goal[1].floor() as i32,l.goal[2].floor() as i32);
             let block={let world=bot.world();let w=world.read();w.get_block_state(pos)};
             eprintln!("DIAGNOSTIC STATE actor={} stage={} episode={} op={:?} client={:?} target={:?} block={block:?} hit={:?} held={:?} selected={} cursor={:?}",self.actor,self.stage,self.episode.is_some(),self.ops.front(),bot.position(),pos,bot.hit_result(),bot.get_held_item(),bot.selected_hotbar_slot(),carried(bot));
@@ -132,6 +137,8 @@ impl Check{
                 return Ok(());
             }
         }
+        // Scripted platform placement proceeds far-to-near so earlier blocks do
+        // not occlude later floor targets. This is NOT the learned policy.
         // Diagnostic control uses the current input-device view; scoring above
         // still uses only the authoritative server frame and unchanged task gate.
         // A four-tick movement pulse followed by twelve idle ticks avoids stale

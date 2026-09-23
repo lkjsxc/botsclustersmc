@@ -71,7 +71,7 @@ git -C "$repo" diff --exit-code -- Cargo.lock Cargo.toml azalea/Cargo.toml
 # Restore only this declared file in the disposable vendor checkout, then
 # apply the repository-owned protocol correction to the exact pinned revision.
 # The operator's checkout and data are never reset by this step.
-git -C "$repo" restore --source="$AZALEA_REV" --worktree -- azalea-client/src/plugins/packet/game/mod.rs
+git -C "$repo" restore --source="$AZALEA_REV" --worktree -- azalea-client/src/plugins/packet/game/mod.rs azalea-client/src/plugins/interact/pick.rs
 git -C "$repo" apply --check "$BCMC_ROOT/pins/azalea-client.patch"
 git -C "$repo" apply "$BCMC_ROOT/pins/azalea-client.patch"
 # The example reuses the upstream workspace's exact Cargo.lock and dependency set.
