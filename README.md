@@ -6,7 +6,7 @@ A Java-only, reward-trained Minecraft NPC experiment, separated into an isolated
 training server and a self-contained Paper/Folia inference plugin. One current
 implementation, stable filenames, no legacy compatibility or migration layers.
 
-**The bodies are server-side Zombie NPCs, not logged-in Minecraft players.** This
+**The bodies are server-side Villager NPCs, not logged-in Minecraft players.** This
 is an intentional redesign: no external clients, per-agent sockets, NMS adapters,
 Rust toolchain, native inference libraries, Python runtime, Maven or Gradle.
 Player skins, hunger, complete vanilla mechanics and persistent NPC lives are
@@ -37,6 +37,29 @@ empty `ACADEMY` or a fresh clone: checkpoints bind actor count. For a 16-CPU,
 12-GiB allocation, `BOTS=1024` and `HEAP_GB=8` are a starting configuration, **not
 a hardware-capacity guarantee**. See the measured tests before increasing count.
 
+## Observe real training
+
+Join the training server with Minecraft Java 1.21.11. Observers do not need operator
+rights: `/bots watch` follows the most advanced actor, `/bots watch 0` selects one,
+`/bots tour` cycles actors, `/bots overview` positions a free-flight camera and
+`/bots unwatch` releases tracking. The HUD shows the actual task and exam state;
+private particles mark the target. `/bots progress` reports curriculum readiness;
+`/bots inspect 0` shows chosen actions, speed, body type, health and fire state.
+Admin actions still require operator permission. Inference observation is also
+operator-only by default because its camera changes the player's game mode.
+
+For the read-only web dashboard, in another terminal:
+
+```sh
+./monitor.sh                         # http://127.0.0.1:8765/
+./monitor.sh YOUR_TAILSCALE_IP 8765   # explicitly bind your private server address
+```
+
+`monitor.cmd` is the Windows equivalent. No npm, Python, API key or separate web
+stack is needed. The monitor refuses wildcard/public binds, provides no console,
+and shows stale snapshots as stale. Do not publish it through an unauthenticated
+reverse proxy. [Observation details](docs/OBSERVING.md) explain the metrics.
+
 ## Export and deploy
 
 Stop the Academy cleanly and confirm process exit first.
@@ -59,7 +82,7 @@ plugins/BotsClustersMC/policy.bcmc
 
 Start the server normally. Do **not** install `training.jar` alongside the
 inference plugin. No other process or training directory is needed. As an operator
-in a non-Peaceful world, use `/bots spawn 16`, then e.g.
+use `/bots spawn 16`, then e.g.
 `/bots goal all 3 100 65 120`. Goal arguments are actor ID or `all`, task0..17 and
 world coordinates. Console spawn accepts `bots spawn 16 world 100 65 100`.
 `/bots status`, `pause`, `resume`, `watch <id>` and `remove <id|all>` are available.
@@ -74,7 +97,7 @@ random-policy fallback or shutting down the operator's server.
 
 ## Useful scaling, not artificial CPU load
 
-One immutable shared 384→64→64 neural policy drives eight primitive action heads.
+One immutable shared 512→96→96 neural policy drives eight primitive action heads.
 Bounded batched inference and fixed gradient workers replace per-agent processes.
 Short trajectories train asynchronously with tick-aware V-trace correction;
 there is no population-wide episode-completion barrier. Each actor has its own

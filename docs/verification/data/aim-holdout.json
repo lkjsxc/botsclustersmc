@@ -1,0 +1,75 @@
+{
+  "complete": true,
+  "schema": "bcmc-citizen-egocentric-context",
+  "policy_updates": 100668,
+  "policy_trained_samples": 36285135,
+  "new_training_samples": 0,
+  "stochastic": true,
+  "cases_per_task": 64,
+  "seed": 773201,
+  "epoch_millis": 1790178822293,
+  "tasks": [
+    {
+      "task": 0,
+      "label": "forward-stop",
+      "passed": 64,
+      "cases": 64
+    },
+    {
+      "task": 1,
+      "label": "turn-stop",
+      "passed": 64,
+      "cases": 64
+    },
+    {
+      "task": 2,
+      "label": "aim-hold",
+      "passed": 61,
+      "cases": 64
+    }
+  ],
+  "metadata": {
+    "policy_sha256": "69e9026544fbf1e1992ed9318824bf3d6afb2f32be511a722dbc5c47c07a7964",
+    "runtime_jar_sha256": "040f5bdeb253b0a22eea70e3fb11434787a3ef8c7df87a835b0859d7bdfdcb9d",
+    "exam_jar_sha256": "318876d27042781bd62feedc119a22f6b6eb1b6febfd161c2f43688db483fcd3",
+    "tasks": [
+      0,
+      1,
+      2
+    ],
+    "cases_per_task": 64,
+    "seed": 773201,
+    "bind": "127.0.0.1",
+    "port": 25584,
+    "terrain": "academy-flat",
+    "claim": "Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation."
+  },
+  "completed_trials": 192,
+  "failures": [
+    {
+      "actor": 144,
+      "task": 2,
+      "seed": 4448871,
+      "success": false,
+      "elapsed_ticks": 601,
+      "distance": 5.213667
+    },
+    {
+      "actor": 152,
+      "task": 2,
+      "seed": 5286703,
+      "success": false,
+      "elapsed_ticks": 601,
+      "distance": 5.465514
+    },
+    {
+      "actor": 161,
+      "task": 2,
+      "seed": 6229264,
+      "success": false,
+      "elapsed_ticks": 601,
+      "distance": 3.952687
+    }
+  ],
+  "scope": "Full-difficulty stochastic frozen-policy motor tests, not survival or cooperation."
+}

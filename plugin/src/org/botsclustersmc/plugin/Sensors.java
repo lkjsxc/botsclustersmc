@@ -27,7 +27,7 @@ public final class Sensors {
         if((npc.pocket.menu()==Pocket.Menu.CHEST||npc.pocket.menu()==Pocket.Menu.FURNACE)&&external==Pocket.NONE){npc.pocket.close();npc.container=null;}
         if(npc.pocket.menu()==Pocket.Menu.WORKBENCH&&(npc.container==null||!WorldActions.owned(npc.container)||npc.container.getBlock().getType()!=Material.CRAFTING_TABLE||p.distanceSquared(npc.container)>36)){npc.pocket.close();npc.container=null;}
         f[42]=npc.pocket.menu().ordinal()/4f;f[43]=npc.pocket.selected()/8f;f[44]=Math.min(1,npc.miningTicks/60f);f[45]=clip(npc.entity.getHealth()/20);
-        f[46]=(float)goal.difficulty();f[47]=clip((npc.tick-npc.episodeStart)/3000.0);f[48]=clip(npc.collected.values().stream().mapToLong(Long::longValue).sum()/64.0);f[49]=clip(npc.broken.values().stream().mapToLong(Long::longValue).sum()/16.0);
+        f[46]=0;f[47]=clip((npc.tick-npc.episodeStart)/3000.0);f[48]=clip(npc.collected.values().stream().mapToLong(Long::longValue).sum()/64.0);f[49]=clip(npc.broken.values().stream().mapToLong(Long::longValue).sum()/16.0);
         int index=50;
         for(int y=-1;y<=1;y++)for(int z=-2;z<=2;z++)for(int x=-2;x<=2;x++){
             Location q=new Location(p.getWorld(),p.getBlockX()+x,p.getBlockY()+y,p.getBlockZ()+z);
@@ -37,6 +37,8 @@ public final class Sensors {
         f[328]=Stack.kind(npc.pocket.cursor().item())/20f;f[329]=npc.pocket.cursor().count()/64f;
         f[330]=clip(npc.pocket.crafted.values().stream().mapToLong(Long::longValue).sum()/64.0);f[331]=clip(npc.pocket.extracted.values().stream().mapToLong(Long::longValue).sum()/64.0);
         if(npc.pocket.menu()==Pocket.Menu.FURNACE&&npc.container!=null&&WorldActions.owned(npc.container)&&npc.container.getBlock().getState() instanceof org.bukkit.block.Furnace furnace){f[332]=clip(furnace.getCookTime()/(double)Math.max(1,furnace.getCookTimeTotal()));f[333]=clip(furnace.getBurnTime()/1600.0);}
+        GoalInputs.encode(f,dx,dy,dz,p.getYaw(),velocity.getX(),velocity.getZ(),npc.stillTicks,npc.entity.isInWater(),npc.entity.isInLava());
+        ContextSensors.capture(npc,p,f);
         for(int i=0;i<16;i++)f[346+i]=npc.previousKinematics[i];System.arraycopy(f,0,npc.previousKinematics,0,16);
         boolean[] mask=goal.task().mask(npc.pocket.slots(),npc.pocket.menu()!=Pocket.Menu.CLOSED);
         npc.plugin.sensorNanos.add(System.nanoTime()-begin);

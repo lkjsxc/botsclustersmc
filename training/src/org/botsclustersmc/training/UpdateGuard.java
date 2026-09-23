@@ -1,0 +1,54 @@
+package org.botsclustersmc.training;
+
+import org.botsclustersmc.core.*;
+import java.util.*;
+
+/** Measured policy-change guard. Rejected candidates never publish weights or Adam state. */
+public final class UpdateGuard {
+    private UpdateGuard() {}
+    public record Change(double mean,double maximum) {}
+    public record Result(Adam.Update update,double learningRate,Change change,int backtracks) {}
+    public static double divergence(double[] before,double[] after) {
+        double sum=0;int offset=0;
+        for(int head=0;head<7;head++) {
+            sum+=headDivergence(before,after,offset,Schema.HEADS[head]);offset+=Schema.HEADS[head];
+        }
+        int parent=Task.offset(6);double active=before[parent+1]+before[parent+2]+before[parent+3];
+        return Math.max(0,sum+(active>0?active*headDivergence(before,after,offset,Schema.HEADS[7]):0));
+    }
+    private static double headDivergence(double[] p,double[] q,int offset,int count) {
+        double sum=0;
+        for(int j=0;j<count;j++) {int i=offset+j;if(p[i]>0){if(!(q[i]>0))return Double.POSITIVE_INFINITY;sum+=p[i]*Math.log(p[i]/q[i]);}}
+        return sum;
+    }
+    public static List<Transition> observations(List<Trajectory> batch) {
+        List<Transition> all=new ArrayList<>();for(Trajectory trajectory:batch)all.addAll(trajectory.steps());
+        int n=Math.min(128,all.size());List<Transition> selected=new ArrayList<>(n);
+        for(int i=0;i<n;i++)selected.add(all.get(i*all.size()/n));return selected;
+    }
+    private static List<double[]> distributions(Policy policy,List<Transition> samples) {
+        Policy.Workspace w=new Policy.Workspace();List<double[]> result=new ArrayList<>(samples.size());
+        for(Transition s:samples){policy.forward(s.observation(),s.mask(),w);result.add(w.probabilities.clone());}return result;
+    }
+    private static Change measure(Policy candidate,List<Transition> samples,List<double[]> before) {
+        Policy.Workspace w=new Policy.Workspace();double sum=0,maximum=0;
+        for(int i=0;i<samples.size();i++) {
+            Transition s=samples.get(i);candidate.forward(s.observation(),s.mask(),w);
+            double kl=divergence(before.get(i),w.probabilities);sum+=kl;maximum=Math.max(maximum,kl);
+        }
+        return new Change(sum/samples.size(),maximum);
+    }
+    public static Result update(Policy policy,Adam optimizer,float[] gradient,int count,List<Trajectory> batch) {
+        List<Transition> samples=observations(batch);if(samples.isEmpty())throw new IllegalArgumentException("Empty update");
+        List<double[]> before=distributions(policy,samples);
+        double rate=.00015*Math.sqrt(Math.min(1,count/512.0));
+        for(int attempt=0;attempt<12;attempt++,rate*=.5) {
+            Adam.Update candidate=optimizer.update(policy,gradient,count,rate);
+            Change change=measure(candidate.policy(),samples,before);
+            if(Double.isFinite(change.mean())&&change.mean()<=.005&&change.maximum()<=.05)
+                return new Result(candidate,rate,change,attempt);
+        }
+        // Explicitly accounted rejection; caller retains the original policy/optimizer.
+        return new Result(null,0,new Change(0,0),12);
+    }
+}

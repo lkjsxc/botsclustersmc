@@ -72,6 +72,10 @@ public final class TrainingPlugin extends RuntimePlugin {
         int ticks=Math.toIntExact(next.tick()-previous.frame().tick());boolean success=TrainingEnvironment.success(npc,s,previous,next);
         boolean terminal=success||next.tick()-npc.episodeStart>=npc.goal.horizon()||!s.arena.contains(next.x(),next.y(),next.z());
         double potential=TrainingEnvironment.potential(npc,s);float reward=(float)((success?3:terminal?-.3:0)-.0005*ticks/4.0+VTrace.discount(ticks,terminal)*(terminal?0:potential)-s.potential);s.potential=potential;
+        if(npc.goal.task()==Task.AIM_HOLD){
+            double angular=Math.max(Math.abs(Sensors.angle(next.yaw()-previous.frame().yaw())),Math.abs(next.pitch()-previous.frame().pitch()))/ticks;
+            reward+=(float)AimPractice.controlReward(next.yawError(),next.pitchError(),angular,ticks);
+        }
         if(s.lesson.kind()!=Course.Kind.EXAM){
             s.fragment.add(new Transition(previous.frame().observation(),previous.frame().mask(),previous.result().actions(),previous.result().logProbability(),previous.result().policyVersion(),reward,ticks,next.observation(),next.mask(),terminal));buffered.increment();
             if(s.fragment.size()>=32||terminal)flush(npc,s);
@@ -91,12 +95,22 @@ public final class TrainingPlugin extends RuntimePlugin {
     private void save()throws Exception{
         synchronized(saveLock){TrainingState state=learner.snapshot(course.encode());state.write(getDataFolder().toPath().resolve("training.bcmc"));savedUpdate=state.policy().updates();}
     }
+    @Override public String observerProgress(){
+        Course.Metrics m=course.metrics();
+        return String.format(Locale.ROOT,"Stages %s | practice EMA %.1f%% | full-probe EMA %.1f%% | frozen exams %d/%d passed | completed actors %d. Practice is not certification.",Arrays.toString(course.population()),100*m.practiceMean(),100*m.probeMean(),course.passedExams(),course.exams(),course.completedAgents());
+    }
+    @Override public String observerAgent(long id){
+        Course.Progress p=course.progress(id);
+        return String.format(Locale.ROOT,"stage %d | practice %d (EMA %.1f%%) | full probes %d (EMA %.1f%%) | %s",p.stage(),p.practiceEpisodes(),100*p.practiceSuccess(),p.probes(),100*p.probeSuccess(),p.exam()?"frozen exam "+p.examCases()+"/"+(16+4*p.stage())+" policy "+p.examPolicy():"practice");
+    }
+    @Override public String observerHud(long id){Course.Progress p=course.progress(id);return String.format(Locale.ROOT,"stage %d | probe %.0f%% | %s",p.stage(),100*p.probeSuccess(),p.exam()?"EXAM "+p.examCases()+"/"+(16+4*p.stage()):"practice");}
+    @Override public double observerRank(long id){Course.Progress p=course.progress(id);return p.stage()+p.probeSuccess()*.5;}
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
-        s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
+        Course.Metrics m=course.metrics();s.put("practice_success_ema",m.practiceMean());s.put("probe_success_ema",m.probeMean());s.put("best_probe_success_ema",m.bestProbe());s.put("exam_ready_agents",m.ready());s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
         s.put("learner_offered_samples",learner.offered.sum());s.put("learner_rejected_samples",learner.rejected.sum());s.put("learner_stale_samples",learner.stale.sum());s.put("actor_buffered_samples",buffered.sum());s.put("exam_transitions",examTransitions.sum());
-        s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
+        s.put("learner_algorithm","vtrace-guarded-adam");s.put("aim_curriculum","progressive-settling");s.put("update_samples",learner.updateSamples);s.put("update_learning_rate",learner.learningRate);s.put("update_mean_policy_kl",learner.meanPolicyKl);s.put("update_max_policy_kl",learner.maxPolicyKl);s.put("update_backtracks",learner.guardBacktracks.sum());s.put("update_rejected_samples",learner.guardRejectedSamples.sum());s.put("batch_wait_ns",learner.batchWaitNanos.sum());s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
     }
     @Override protected void closing()throws Exception{
         closing=true;if(learner==null)return;learner.close();if(!learner.awaitTermination(30000))throw new IllegalStateException("Learner has not drained; last complete checkpoint retained");

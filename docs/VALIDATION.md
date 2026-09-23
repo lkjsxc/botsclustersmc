@@ -1,79 +1,73 @@
-# Validation — current Java runtime (0.6.1)
+# Validation — citizen runtime (0.7.0)
 
-Bots are zombie-bodied server NPCs, not logged-in Minecraft players. Source
-correctness, mechanical reachability, short-run capacity and learned competence
-are separate claims. No pretrained mastery or full survival is shipped.
+Software correctness, real-server reachability, learned exam outcomes and
+survival/cooperation are separate claims. Bodies are in-server Villager NPCs,
+not network-connected Minecraft players. No full-survival model is shipped.
 
-## Current completed acceptance
+## Local completed checks
 
-[Runtime hardening acceptance](verification/20260923-runtime-hardening.md) records
-the exact source, measurements, failed daylight test and repair, canonical export,
-file-path checks and late-inference isolation.
+On Linux x86_64, OpenJDK 21 and official Folia 1.21.11 build 14, the integrated
+citizen runtime passed numerical, mechanics, curriculum, filesystem, late-reply
+concurrency and canonical-export checks. The tests include the new body-relative
+observation contract, nonvanishing legal-control prior, conditional policy KL,
+backtracking and rejection without mutating the original optimizer/model.
 
-[CI run 35861174286](https://github.com/lkjsxc/botsclustersmc/actions/runs/35861174286)
-passed all seven jobs on source `169d37ba6fb18495f8e1c25bb5da5b80771fd3c3`:
+The disposable real-server acceptance passed fresh 64-NPC training, exact
+model/Adam resume, canonical export despite an obsolete loose policy, all 18
+scripted full-difficulty fixtures, and a separate 64-NPC inference deployment.
+Deployment exercised pause/resume, rapid goal replacement, chunk-ticket release,
+respawn and corrupt-policy rejection without shutting down the operator server.
+The 18 fixtures performed no learning and are not learned skill certificates.
 
-| Environment | Actual result |
-| --- | --- |
-| Linux x86_64, Java 21 | Clean source build, numerical/mechanical/course/filesystem/concurrency/export checks, real Folia API compilation |
-| Windows x86_64, Java 21 | Same source and API checks, including actual symlink tests |
-| Folia 1.21.11 build 14, Linux/Java 21 | 1,024-body training, exact weight/Adam resume, canonical export, 18 scripted full-difficulty fixtures, separate 64-body inference |
-| Paper 1.21.1 build 133, Linux/Java 21 | Same exported JAR/model, 64-body inference and 18 scripted fixtures |
-| Paper 1.21.11 build 132, Linux/Java 21 | Same exported JAR/model, 64-body inference and 18 scripted fixtures |
-| Paper 26.2 build 128, Linux/Java 25 | Same exported JAR/model, 64-body inference and 18 scripted fixtures |
-| Folia 1.21.11 build 14, Windows/Java 21 | Source launcher, 32-body training/resume/export, 18 fixtures, separate 64-body inference |
-
-Deployment checks include real movement, pause/resume, 24 rapid goal replacements,
-continued all-body progress, chunk-lease release, respawn and corrupt-policy
-fail-closed without stopping the host server or writing training checkpoints.
-Paper download metadata and exact tested builds are retained in CI artifacts.
-No API stubs or synthetic-only tests stand in for these live results.
-
-## Measured local capacity, not a hardware guarantee
-
-The same final runtime also passed a fresh 2,048-body Folia training/resume/export
-and fixture/deployment sequence on Linux with 4 effective CPUs, a 4 GiB container
-and a 3 GiB training heap. During 244.999 seconds it used 1,985,595 new samples
-(8,104.5025/s), averaged 1.7325 server-JVM CPU cores and retained all 2,048 ticking
-and progressing bodies. Maximum sampled heap was 1,291 MiB, not peak RSS.
-
-An independent plugin-only 2,048-body trial used no training process, averaged
-8,192 decisions/s over 90 seconds and 0.5469 CPU cores, with maximum sampled heap
-678 MiB. All bodies progressed; retirements and inference failures were zero.
-These short flat-world measurements are **not** evidence for thousands of
-connected players, complex dense settlements or indefinite performance.
-
-Full numeric results, source binding and counter endpoints are in
-[data/runtime-hardening.json](verification/data/runtime-hardening.json). No
-individual frozen exam passed in these capacity windows; no learned-skill claim
-is inferred from throughput or scripted fixture success.
+Non-operator observer and browser tests are independently reproducible below.
+Cross-platform results for 0.6.1 are historical, not an automatic certification
+of this changed observation/body schema. Delivery evidence identifies the exact
+source and completed environments.
 
 ## Reproduce
 
-Ordinary build/start/export require a Java 21+ JDK and Git, not Rust, Maven,
-Gradle, Python or an external inference service. Python is used only by live tests.
-
+Normal build, training, monitoring and export require only Git and a Java JDK.
+Python and Node dependencies below are optional developer test tools only.
 ```sh
 ./test.sh
-# After personally accepting the Minecraft EULA, in an unused checkout:
+# Only after personally accepting the Minecraft EULA:
 EULA=true python3 tests/acceptance.py all --count 1024 --seconds 45 --output acceptance
 python3 tests/report.py acceptance
+
+# Optional, pinned observer/browser test dependencies:
+npm install --prefix .build/browser --no-audit --no-fund playwright@1.63.0
+npm install --prefix .build/observer-client --no-audit --no-fund mineflayer@4.39.0
+.build/browser/node_modules/.bin/playwright install chromium
+EULA=true python3 tests/observe.py --output observer-acceptance
 ```
 
-The verification record includes the larger 2,048-body commands. Windows uses
-`test.cmd` and `build.cmd`; live test orchestration still uses Python. Live CI
-runs only after affirmative `workflow_dispatch` EULA consent. Normal main/PR CI
-builds and tests source without starting a Minecraft world.
+Output directories must not already exist. The observer test starts its own
+128-NPC loopback Academy on port 25581 and a read-only loopback monitor on 8766.
+Its fictional, non-operator client checks spectator entry, actual goal particles,
+cross-island following, overview, unwatch and denial of administration. It never
+uses a human Minecraft account or generates gameplay policy training examples.
+Browser checks cover live metrics, 18 stage rows, charts, desktop/mobile bounds,
+stale-state warnings, denied writes and inaccessible model paths.
 
-## Scope and historical records
+## What the learning evidence means
 
-Earlier [Java redesign acceptance](verification/20260923-java-runtime.md) and
-[initial compatibility CI](verification/20260923-mainline-acceptance.md) describe 0.6.0, before
-the canonical-export and daylight fixes. Rust/Azalea verification records describe
-the previous player-client experiment, not the current NPC actuator.
+The operator's 1,024-actor run passed the first frozen-policy motor exam for every
+actor without weakening eligibility or passing thresholds. This is stronger than
+movement or a scripted fixture, but each actor examines its own frozen policy
+version. It does not establish that one latest exported model passed every actor's
+exam, or that future updates preserve every earlier skill. Progress and regression
+are continuously visible; no stage is promoted merely because time has elapsed.
+## Historical evidence and limits
 
-No result certifies every Paper fork/version, macOS/ARM64 execution, arbitrary
-other plugins, hot reload, NPC inventory persistence, long-run uptime, vanilla
-player mechanics, human likeness, learned completion of all 18 tasks, retention
-or generalization. World edits default off in deployment; use copied worlds for
-experiments. Skill learning requires separate held-out evaluations.
+[Runtime hardening acceptance](verification/20260923-runtime-hardening.md) records
+0.6.1's canonical export, path protections, reply isolation and seven successful
+compatibility jobs. Those mechanisms are retained; its zombie-body workaround is
+replaced, not silently left as a second runtime. Earlier Rust/Azalea records refer
+to the former connected-player experiment and cannot certify this NPC system.
+
+A completed lesson catalogue or an exported model does not provide hunger,
+complete tool durability/combat, every recipe, persistent NPC inventories,
+self-selected long-horizon goals or a cooperative settlement. Those remain
+unimplemented or unverified. Dense shared-world performance, arbitrary plugins,
+macOS/ARM64, hot reload and indefinite uptime are not certified by short flat-world
+trials. World edits default off; test inference on copied worlds first.

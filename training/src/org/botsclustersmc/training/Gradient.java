@@ -24,6 +24,7 @@ public final class Gradient {
             for(int i=0;i<n;i++) {
                 Transition s=fragment.steps().get(i); target.forward(s.observation(),s.mask(),w);
                 Distribution.gradient(w.probabilities,s.action(),returns.advantages()[i],0.002,w.dout);
+                Exploration.addGradient(w.probabilities,s.mask(),Exploration.COEFFICIENT,w.dout);
                 double error=w.logits[Schema.LOGITS]-returns.values()[i];
                 // Huber critic loss limits the effect of an unexpectedly large value target.
                 w.dout[Schema.LOGITS]=(float)(.5*Math.max(-1,Math.min(1,error)));

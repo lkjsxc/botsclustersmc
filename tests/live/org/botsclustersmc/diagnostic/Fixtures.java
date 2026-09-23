@@ -34,7 +34,7 @@ public final class Fixtures extends RuntimePlugin {
         EntityCombustEvent ambient=new EntityCombustEvent(n.entity,8.0f);ambient.callEvent();
         EntityCombustEvent block=new EntityCombustByBlockEvent(null,n.entity,8.0f);block.callEvent();
         EntityCombustEvent attacker=new EntityCombustByEntityEvent(n.entity,n.entity,8.0f);attacker.callEvent();
-        if(!ambient.isCancelled()||block.isCancelled()||attacker.isCancelled())throw new IllegalStateException("NPC combustion protection scope");
+        if(ambient.isCancelled()||block.isCancelled()||attacker.isCancelled()||!(n.entity instanceof org.bukkit.entity.Villager))throw new IllegalStateException("Citizen bodies must not gain blanket combustion immunity");
         TrainingEnvironment.Session s=sessions.get(n.id);s.lesson=new Course.Lesson(1,Task.at((int)n.id),1,700+n.id,Course.Kind.PROBE);n.context=new Control();TrainingEnvironment.reset(this,n,s,s.lesson);
     }
     @Override protected void startNpc(Npc n){n.entity.getScheduler().runAtFixedRate(this,t->{try{tick(n);}catch(Throwable e){fail(e);}},()->{},1,1);}

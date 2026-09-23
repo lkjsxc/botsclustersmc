@@ -25,11 +25,13 @@ server pin; CI may resolve a named test version and record its exact build/diges
 
 ## Why NPCs instead of protocol clients
 
-Each body is an adult Zombie. Random vanilla spawn initialization is disabled to
-prevent rare passenger/jockey state. Native mob goals and awareness are disabled;
-otherwise vanilla look control overwrites neural pitch. Physics remains active,
-but these are deliberately modified mob semantics, not vanilla players. Peaceful
-worlds are rejected. The plugin never changes operator difficulty or authentication.
+Each body is an adult, age-locked Villager with the nitwit profession. It has no
+undead daylight-burning classification and does not offer a trading menu. Native
+mob goals and awareness are disabled; otherwise autonomous look control can
+replace neural inputs. Physics remains active, but these are deliberately modified
+mob semantics, not vanilla players. Peaceful worlds are allowed. Real fire/lava
+are not globally disabled, and deployment bodies are not made invulnerable.
+The plugin never changes operator difficulty or authentication.
 
 The policy controls literal horizontal velocity, yaw/pitch increments, jump or
 crouch, dig/use/swing, hotbar selection and individual inventory/menu clicks.
@@ -73,6 +75,24 @@ to the CPU/region budget. Islands are64 chunks apart. This avoids one contiguous
 campus becoming one Folia region without creating thousands of tiny isolated
 regions and oversized chunk halos. Crowding every NPC in a single settlement can
 still limit world parallelism. Paper world ticks remain single-main-thread work.
+
+## Fixed local inputs and independent observation
+
+Each decision uses 512 floats, not a copy of Minecraft chunks. Terrain already
+lives in the server. Near-body block samples, local inventory/menu state,
+ego-relative target/velocity, physical settling time, eight nearby entities and
+eight coarse radial probes are assembled on the owner thread. Unknown chunks or
+foreign regions are not loaded or read to complete an observation. This is a
+bounded local state interface, not a global map, raw video or a pathfinding oracle.
+It supplies information needed for future survival/cooperation experiments; it
+does not itself train those behaviors or add a high-level autonomous planner.
+
+Operator cameras consume immutable snapshots rather than reaching into another
+actor's entity. Player movement uses the player's own scheduler and asynchronous
+teleportation, with only one camera move in flight. Spectators do not enter the
+policy's nearby-entity inputs. A separate JDK-only, private-bind HTTP monitor reads
+bounded metric history. It cannot issue game commands or expose checkpoints.
+See [Observing](OBSERVING.md) for permissions and the meaning of progress metrics.
 
 ## Model files and supervision
 
@@ -124,14 +144,10 @@ held-out skill outcomes improve under comparable conditions.
 
 ## NPC daylight semantics
 
-Bodies request `setShouldBurnInDay(false)`. In the pinned Folia build, the actual
-Mob daylight-tag combustion path still burns them despite that setting. A scoped
-listener therefore cancels plain `EntityCombustEvent` for this run's tagged
-zombies. This covers natural/unattributed combustion, including third-party
-plugins that deliberately emit that same generic event; block-attributed and
-entity-attributed combustion are **not** cancelled. This is not invulnerability,
-world-wide daylight suppression, scripted navigation, or learned fire avoidance.
-The status counter `suppressed_ambient_combustions` makes the intervention visible.
-Real daylight inference now runs for at least 45 seconds by default and checks
-that every body remains active, ticking and making decisions. Separate fixtures
-check cancellation scope against actual server event classes.
+The current body is a Villager rather than an undead mob. It does not require
+cancelling ambient combustion or changing time/difficulty. Deployment remains
+vulnerable to ordinary fire and lava; training invulnerability is explicit arena
+assistance. Status records current burning bodies. Real fixtures require a
+Villager body and verify that generic, block-attributed and entity-attributed
+combustion events are not cancelled by this plugin. Historical zombie-body
+workarounds are retained in Git history, not as a second implementation.
