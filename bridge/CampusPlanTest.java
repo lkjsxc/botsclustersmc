@@ -1,32 +1,23 @@
-import org.botsclustersmc.lab.*;
 import java.util.*;
-public final class CampusPlanTest {
-    private static Protocol.Request task(int id,int stage) {
-        int x=CampusPlan.ox(id),z=CampusPlan.oz(id);
-        return new Protocol.Request("r","0-0",id,stage,x+8,97,z+5,0,0,x+8.5,stage==2||stage==5?98.5:97,z+11.5);
-    }
-    public static void main(String[] args) {
-        int positions=0,transitions=0;
-        for(int id=0;id<32;id++) {
-            Map<CampusPlan.Pos,String> base=new HashMap<>();
-            for(var e:CampusPlan.base(id)) {
-                var p=e.pos();
-                if((p.x()>>4)!=(CampusPlan.ox(id)>>4)||(p.z()>>4)!=(CampusPlan.oz(id)>>4)) throw new AssertionError("cross chunk");
-                if(base.put(p,e.material())!=null) throw new AssertionError("duplicate position");
-                positions++;
+import org.botsclustersmc.lab.*;
+public final class CampusPlanTest{
+    private static void check(boolean value){if(!value)throw new AssertionError();}
+    public static void main(String[] args){
+        int resetPositions=0;
+        for(int id=0;id<64;id++){
+            int ox=CampusPlan.ox(id),oz=CampusPlan.oz(id);var base=CampusPlan.base(id);check(base.size()==2304);
+            Set<CampusPlan.Pos> seen=new HashSet<>();for(var e:base){check(seen.add(e.pos()));check(e.pos().x()>=ox&&e.pos().x()<ox+16&&e.pos().z()>=oz&&e.pos().z()<oz+16);if(e.pos().y()==104)check(e.material().equals("GLASS"));}
+            Protocol.Request previous=null;
+            for(int stage=0;stage<18;stage++){
+                var next=new Protocol.Request("run","1-"+id+"-"+stage,id,stage,ox+7.5,97,oz+7.5,0,0,ox+8.5,stage==5||stage==6||stage==12||stage==17?98.5:97.5,oz+10.5,stage,1,true);
+                var overlay=CampusPlan.overlay(next);var edits=CampusPlan.reset(previous,next);check(edits.size()==2304);Set<CampusPlan.Pos> reset=new HashSet<>();
+                for(var e:edits){check(reset.add(e.pos()));check(e.material().equals(overlay.getOrDefault(e.pos(),CampusPlan.baseMaterial(id,e.pos().x(),e.pos().y(),e.pos().z()))));}
+                resetPositions+=edits.size();previous=next;
             }
-            if(base.size()!=2304) throw new AssertionError("size");
-            for(int x=2;x<=13;x++) for(int z=2;z<=13;z++) for(int y=97;y<=103;y++)
-                if(!base.get(new CampusPlan.Pos(CampusPlan.ox(id)+x,y,CampusPlan.oz(id)+z)).equals("AIR")) throw new AssertionError("interior blocked");
-            for(int before=0;before<6;before++) for(int after=0;after<6;after++) {
-                var a=task(id,before);var b=task(id,after);var result=new HashMap<>(base);result.putAll(CampusPlan.overlay(a));
-                var edits=CampusPlan.reset(a,b);if(edits.size()>26) throw new AssertionError("reset bound");
-                for(var e:edits) result.put(e.pos(),e.material());
-                var expected=new HashMap<>(base);expected.putAll(CampusPlan.overlay(b));
-                if(!result.equals(expected)) throw new AssertionError("reset mismatch");transitions++;
-            }
+            check(CampusPlan.placeable(id,ox+4,98,oz+4));check(!CampusPlan.placeable(id,ox+1,98,oz+4));check(!CampusPlan.placeable(id,ox+4,96,oz+4));
         }
-        if(!CampusPlan.manifest("r",32).endsWith("31 112 48\n")) throw new AssertionError("layout");
-        System.out.println("PASS: actual pure planner: "+positions+" positions, "+transitions+" reset transitions. Not a Folia integration test.");
+        String manifest=CampusPlan.manifest("run",64);check(manifest.lines().count()==65);check(manifest.endsWith("63 112 112\n"));
+        for(int bad:new int[]{-1,64})try{CampusPlan.base(bad);throw new AssertionError();}catch(IllegalArgumentException expected){}
+        System.out.println("Campus: 64 rooms x 18 tasks, "+resetPositions+" bounded reset/readback positions passed");
     }
 }
