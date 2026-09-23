@@ -122,7 +122,7 @@ impl Check{
 #[derive(Component,Clone)]struct State(Arc<Mutex<Check>>);
 async fn handler(bot:Client,event:Event,state:State)->anyhow::Result<()>{
     let result=(||->Result<(),String>{let mut s=state.0.lock().unwrap();match event{
-        Event::Spawn=>{s.ready=true;s.ticks=0;},
+        Event::Spawn=>{bot.set_client_information(azalea::ClientInformation{view_distance:if s.observer{16}else{3},..Default::default()});s.ready=true;s.ticks=0;},
         Event::Death(_)=>return Err("diagnostic client died".into()),
         Event::Disconnect(reason)=>{if !DONE.load(Ordering::Relaxed){return Err(format!("diagnostic disconnected: {reason:?}"));}},
         Event::ConnectionFailed(e)=>return Err(format!("diagnostic connection failed: {e:?}")),
