@@ -2,7 +2,7 @@ name: Integration workbench
 on:
   push:
     branches: ['work/rl64-integration-20260923']
-    paths: ['.maintenance/**', '.github/workflows/integration-workbench.yml']
+    paths: ['.maintenance/**','.github/workflows/integration-workbench.yml']
 permissions:
   contents: write
 concurrency:
@@ -11,31 +11,36 @@ concurrency:
 jobs:
   promote:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Apply reviewed transformations on the isolated work branch
+      - name: Apply reviewed source transformations on the work branch
         run: |
           set -euo pipefail
           if [ ! -d learning/src/next ]; then python3 .maintenance/promote.py; fi
-          if [ -f .maintenance/patch.py ]; then python3 .maintenance/patch.py; fi
+          for script in .maintenance/patch*.py; do python3 "$script"; done
           git diff --stat
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add learning experimental scripts app launcher bridge tests .env.example
+          git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'refactor: apply reviewed native integration transformations'
+            git commit -m 'refactor: apply reviewed integration source transformations'
             git push origin HEAD:work/rl64-integration-20260923
           fi
-      - name: Compile and test promoted shared modules
+      - name: Compile and test the native learning modules
         run: |
           set -euo pipefail
+          mkdir -p /tmp/evidence
           rustup toolchain install nightly-2026-02-04 --profile minimal
-          rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o /tmp/core-tests
-          /tmp/core-tests
-          rustup run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release
-      - name: Inspect integration boundaries
+          git rev-parse HEAD > /tmp/evidence/source.txt
+          rustup run nightly-2026-02-04 rustc --edition=2024 --test learning/src/lib.rs -o /tmp/core-debug
+          /tmp/core-debug 2>&1 | tee /tmp/evidence/core-debug.txt
+          rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o /tmp/core-release
+          /tmp/core-release 2>&1 | tee /tmp/evidence/core-release.txt
+          rustup run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release 2>&1 | tee /tmp/evidence/standalone.txt
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          git log -1 --format='%H %s'
-          grep -RnE '(BOTS.*32|bots>32|bots<=32|1\.\.=32|id>=32|BCMCLAB2|curriculum::Curriculum|academy/)' scripts launcher bridge/src app/settings.rs | head -n 100 || true
+        with:
+          name: native-integration-tests
+          path: /tmp/evidence
+          retention-days: 30

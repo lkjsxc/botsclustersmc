@@ -1,230 +1,129 @@
-//! Finite-horizon goal tasks, stage-local input availability and held-out gates.
-//! This module never emits movement, camera directions, paths, or action labels.
-use super::{rng::Rng, checkpoint::{Encoder, Decoder, checksum}, HEADS, ACTIONS};
-use std::io;
-
-pub const STAGES: usize = 6;
-pub const TRAIN_EPISODES: u32 = 40;
-pub const EXAM_CURRENT: u32 = 16;
-/// Four held-out trials for EACH earlier stage (a second base set at stage zero).
-pub const EXAM_REVIEW: u32 = 4;
-pub fn review_total(stage:usize)->u32 { EXAM_REVIEW * stage.max(1) as u32 }
-pub const IDLE: [usize; 8] = [0, 3, 2, 0, 0, 0, 0, 0];
-pub const YAW_RATES: [f32; 7] = [-90., -30., -10., 0., 10., 30., 90.];
-pub const PITCH_RATES: [f32; 5] = [-45., -15., 0., 15., 45.];
-pub const NAMES: [&str; STAGES] = ["forward-stop", "turn-and-stop", "look-at-target", "navigate-and-stop", "step-over", "mine-target"];
-
-/// One 16x16 chunk per cell; its 12x12 interior is enclosed in glass.
-pub fn origin(id: usize) -> [f64; 2] { [((id % 8) * 16) as f64, ((id / 8) * 16) as f64] }
-#[derive(Clone, Debug)]
-pub struct Lesson {
-    pub stage: usize, pub serial: u64, pub generation: u64, pub exam: bool, pub review: bool,
-    pub start: [f64; 3], pub goal: [f64; 3], pub yaw: f32, pub pitch: f32, pub limit_ticks: u64,
+//! Minecraft task geometry and rewards. This module never chooses an action.
+//! Adaptive issuance, frozen exams and task evidence gates live in `next`.
+use super::{HEADS,ACTIONS,next::{Rng,math::{potential_shaping,Boundary},tasks::{Evidence,ProgressGate,Task,ITEM_COUNT}}};
+pub use super::next::curriculum::{Curriculum,Phase};
+pub const STAGES:usize=18;
+pub const IDLE:[usize;8]=[0,3,2,0,0,0,0,0];
+pub const YAW_RATES:[f32;7]=[-90.,-30.,-10.,0.,10.,30.,90.];
+pub const PITCH_RATES:[f32;5]=[-45.,-15.,0.,15.,45.];
+pub const NAMES:[&str;STAGES]=["forward-stop","turn-and-stop","look-at-target","navigate-and-stop","step-over","mine-target","collect-log","place-block","craft-planks","craft-sticks","craft-workbench","craft-wooden-pickaxe","mine-cobblestone","craft-stone-pickaxe","smelt-iron","supply-chest","build-platform","log-to-workbench"];
+pub fn origin(id:usize)->[f64;2]{assert!(id<64);[((id%8)*16) as f64,((id/8)*16) as f64]}
+#[derive(Clone,Debug)]
+pub struct Lesson{
+    pub choice:super::next::curriculum::Lesson,
+    pub stage:usize,pub serial:u64,pub generation:u64,pub exam:bool,pub review:bool,
+    pub start:[f64;3],pub goal:[f64;3],pub yaw:f32,pub pitch:f32,pub limit_ticks:u64,
 }
-fn between(r: &mut Rng, lo: f64, hi: f64) -> f64 { lo + (hi-lo) * r.uniform() as f64 }
-impl Lesson {
-    pub fn sample(id: usize, stage: usize, serial: u64, generation: u64, exam: bool, review: bool, seed: u64) -> Self {
-        assert!(id < 32 && stage < STAGES);
-        // Evaluation and training have disjoint PRNG domains. Serial counters are persisted.
-        let salt = if exam { 0x6578_616d_2d76_3031 } else { 0x7472_6169_6e76_3031 };
-        let mut r = Rng(seed ^ salt ^ (id as u64).wrapping_mul(7919) ^ serial.wrapping_mul(0x9e3779b97f4a7c15));
-        let [x,z] = origin(id);
-        let mut l = Self { stage, serial, generation, exam, review, start:[x+8.,97.,z+5.], goal:[x+8.,97.,z+8.], yaw:0., pitch:0., limit_ticks:600 };
-        match stage {
-            0 => { l.start[0]=x+between(&mut r,5.,10.).floor()+0.5; l.goal[0]=l.start[0]; l.goal[2]=z+between(&mut r,7.,10.); },
-            1 | 3 => {
-                l.start=[x+7.5,97.,z+7.5]; let angle=between(&mut r,0.,std::f64::consts::TAU);
-                let distance=between(&mut r,2.,4.5); l.goal=[x+7.5+angle.cos()*distance,97.,z+7.5+angle.sin()*distance];
-                l.yaw=between(&mut r,-180.,180.) as f32;
-            },
-            2 => {
-                l.start=[x+7.5,97.,z+7.5]; let angle=between(&mut r,0.,std::f64::consts::TAU);
-                l.goal=[(x+7.5+angle.cos()*4.).floor()+0.5,between(&mut r,97.,101.).floor()+0.5,(z+7.5+angle.sin()*4.).floor()+0.5];
-                l.yaw=between(&mut r,-180.,180.) as f32; l.pitch=between(&mut r,-20.,20.) as f32;
-            },
-            4 => { l.start=[x+between(&mut r,5.,10.),97.,z+4.5]; l.goal=[x+between(&mut r,5.,10.),97.,z+11.5]; l.yaw=between(&mut r,-20.,20.) as f32; l.limit_ticks=900; },
-            5 => {
-                l.start=[x+between(&mut r,6.,9.),97.,z+7.5]; l.goal=[x+8.5,98.5,z+11.5];
-                l.yaw=between(&mut r,-25.,25.) as f32; l.limit_ticks=900;
-            }, _=>unreachable!()
+fn between(r:&mut Rng,lo:f64,hi:f64)->f64{lo+(hi-lo)*r.unit()}
+impl Lesson{
+    pub fn from_choice(choice:super::next::curriculum::Lesson)->Self{
+        let id=choice.session.actor as usize;let stage=choice.task as usize;
+        assert!(id<64 && stage<STAGES);
+        let [x,z]=origin(id);let d=choice.difficulty;let mut r=Rng(choice.seed);
+        let mut l=Self{stage,serial:choice.session.lesson,generation:choice.session.generation,exam:choice.evaluation,review:choice.review,
+            start:[x+7.5,97.,z+5.5],goal:[x+7.5,97.,z+8.5],yaw:0.,pitch:0.,limit_ticks:choice.task.spec().limit_ticks as u64,choice};
+        match stage{
+            0=>{l.start[0]=x+between(&mut r,5.,10.).floor()+0.5;l.goal[0]=l.start[0];l.goal[2]=z+6.5+between(&mut r,1.,3.5)*d;},
+            1|3=>{l.start=[x+7.5,97.,z+7.5];let a=between(&mut r,0.,std::f64::consts::TAU);let n=between(&mut r,2.,4.5)*d.max(0.5);l.goal=[x+7.5+a.cos()*n,97.,z+7.5+a.sin()*n];l.yaw=angles(l.start,0.,0.,l.goal)[0]+between(&mut r,-180.*d,180.*d) as f32;},
+            2=>{l.start=[x+7.5,97.,z+7.5];let a=between(&mut r,0.,std::f64::consts::TAU);l.goal=[(x+7.5+a.cos()*4.).floor()+0.5,between(&mut r,97.,101.).floor()+0.5,(z+7.5+a.sin()*4.).floor()+0.5];let a=angles(l.start,0.,0.,l.goal);l.yaw=a[0]+between(&mut r,-180.*d,180.*d) as f32;l.pitch=a[1]+between(&mut r,-20.*d,20.*d) as f32;},
+            4=>{l.start=[x+between(&mut r,6.,9.),97.,z+6.5-2.*d];l.goal=[x+between(&mut r,6.,9.),97.,z+11.5];l.yaw=between(&mut r,-20.*d,20.*d) as f32;},
+            5|6|12|17=>{l.start=[x+8.5+between(&mut r,-1.,1.)*d,97.,z+9.5-2.*d];l.goal=[x+8.5,98.5,z+11.5];l.yaw=between(&mut r,-25.*d,25.*d) as f32;},
+            8..=10=>{l.start=[x+7.5,97.,z+7.5];l.goal=l.start;},
+            _=>{l.goal=[x+8.5,97.5,z+10.5];l.start=[x+8.5+between(&mut r,-1.,1.)*d,97.,z+8.5-d];let a=angles(l.start,0.,0.,l.goal);l.yaw=a[0]+between(&mut r,-45.*d,45.*d) as f32;l.pitch=a[1]+between(&mut r,-15.*d,15.*d) as f32;}
         }
-        // Goal blocks and the numeric goal share an unambiguous horizontal center.
         l.goal[0]=l.goal[0].floor()+0.5;l.goal[2]=l.goal[2].floor()+0.5;
-        l
+        l.yaw=(l.yaw+180.).rem_euclid(360.)-180.;l.pitch=l.pitch.clamp(-80.,80.);l
     }
+    pub fn token(&self)->String{format!("{}-{}-{}",self.generation,self.choice.session.actor,self.serial)}
 }
-/// Only task-wide input availability, never target-dependent hints.
-pub fn restrict(mask: &mut [bool], stage: usize) {
+pub fn restrict(mask:&mut[bool],stage:usize){
     assert!(stage<STAGES && mask.len()==ACTIONS);
-    let mut off=0;
-    for (h,&n) in HEADS.iter().enumerate() {
-        for a in 0..n {
-            let enabled=match h {
-                0=>match stage {0=>a<=1,1=>a<=1,2=>a==0,_=>true},
-                1=>stage!=0 || a==IDLE[1],
-                2=>matches!(stage,2|5) || a==IDLE[2],
-                3=>stage==4 && a<=1 || a==0,
-                4=>stage==5 && a==1 || a==0,
-                _=>a==IDLE[h],
-            };
-            mask[off+a]&=enabled;
-        }
-        off+=n;
+    let task=super::next::tasks::TASKS[stage];let availability=task.mask();let mut off=0;
+    for (h,&n) in HEADS.iter().enumerate(){for a in 0..n{mask[off+a]&=availability[h][a];}off+=n;}
+}
+pub fn angles(p:[f64;3],yaw:f32,pitch:f32,g:[f64;3])->[f32;2]{
+    let dx=g[0]-p[0];let dz=g[2]-p[2];let dy=g[1]-(p[1]+1.62);
+    let y=(-dx).atan2(dz).to_degrees() as f32;let t=(-dy).atan2((dx*dx+dz*dz).sqrt()).to_degrees() as f32;
+    [(y-yaw+180.).rem_euclid(360.)-180.,(t-pitch).clamp(-180.,180.)]
+}
+#[derive(Clone,Debug)]
+pub struct Frame{pub tick:u64,pub position:[f64;3],pub yaw:f32,pub pitch:f32,pub grounded:bool,pub evidence:Evidence}
+#[derive(Clone,Debug)]
+pub struct Episode{
+    pub first_tick:u64,pub previous:Frame,pub held:u64,pub rotation:f64,pub switches:u64,pub decisions:u64,pub speed:f32,pub angular_speed:f32,
+    previous_action:[usize;8],gate:ProgressGate,
+}
+#[derive(Clone,Debug)]
+pub struct Outcome{pub reward:f32,pub done:bool,pub success:bool,pub reason:&'static str,pub elapsed_ticks:u32,pub tick:u64}
+fn distance(p:[f64;3],g:[f64;3])->f64{((p[0]-g[0]).powi(2)+(p[2]-g[2]).powi(2)).sqrt()}
+fn potential(l:&Lesson,f:&Frame)->f64{
+    let angular=||{let a=angles(f.position,f.yaw,f.pitch,l.goal);-0.003*(a[0].abs()+a[1].abs()) as f64};
+    match l.stage{
+        2|5=>angular(),
+        0|1|3|4=>-0.15*distance(f.position,l.goal).min(20.),
+        6|12|17=>angular()-0.03*distance(f.position,l.goal).min(20.)+0.1*f.evidence.counters.broken.min(1) as f64+0.2*f.evidence.counters.picked_up.min(1) as f64,
+        7|16=>angular()+0.1*f.evidence.occupied_targets.count_ones() as f64,
+        _=>0.0,
     }
 }
-pub fn angles(position:[f64;3], yaw:f32, pitch:f32, goal:[f64;3])->[f32;2] {
-    let dx=goal[0]-position[0]; let dz=goal[2]-position[2]; let dy=goal[1]-(position[1]+1.62);
-    let desired_yaw=(-dx).atan2(dz).to_degrees() as f32;
-    let desired_pitch=(-dy).atan2((dx*dx+dz*dz).sqrt()).to_degrees() as f32;
-    [(desired_yaw-yaw+180.).rem_euclid(360.)-180., (desired_pitch-pitch).clamp(-180.,180.)]
-}
-#[derive(Clone,Debug)]
-pub struct Frame { pub tick:u64, pub position:[f64;3], pub yaw:f32, pub pitch:f32, pub grounded:bool, pub broken:bool }
-#[derive(Clone,Debug)]
-pub struct Episode { pub first_tick:u64, pub previous:Frame, pub held:u64, pub rotation:f64, pub switches:u64, pub decisions:u64, pub speed:f32, pub angular_speed:f32, pub previous_action:[usize;8] }
-#[derive(Clone,Debug)]
-pub struct Outcome { pub reward:f32, pub done:bool, pub success:bool, pub reason:&'static str }
-fn distance(p:[f64;3],goal:[f64;3])->f64 { ((p[0]-goal[0]).powi(2)+(p[2]-goal[2]).powi(2)).sqrt() }
-fn potential(l:&Lesson, f:&Frame)->f32 {
-    if matches!(l.stage,2|5) {let a=angles(f.position,f.yaw,f.pitch,l.goal); -0.003*(a[0].abs()+a[1].abs())}
-    else {-0.15*distance(f.position,l.goal).min(20.) as f32}
-}
-impl Episode {
-    pub fn new(f:Frame)->Self {Self{first_tick:f.tick,previous:f,held:0,rotation:0.,switches:0,decisions:0,speed:0.,angular_speed:0.,previous_action:IDLE}}
-    pub fn step(&mut self,id:usize,l:&Lesson,f:Frame,action:&[usize],gamma:f32)->Outcome {
-        let dt=f.tick.saturating_sub(self.previous.tick);
-        assert!(dt>0 && action.len()==8);
+impl Episode{
+    pub fn new(l:&Lesson,f:Frame)->Result<Self,String>{
+        if f.evidence.session!=l.choice.session || f.evidence.tick!=f.tick{return Err("foreign episode baseline".into());}
+        let gate=ProgressGate::new(l.choice.task,&f.evidence).map_err(str::to_string)?;
+        Ok(Self{first_tick:f.tick,previous:f,held:0,rotation:0.,switches:0,decisions:0,speed:0.,angular_speed:0.,previous_action:IDLE,gate})
+    }
+    pub fn step(&mut self,id:usize,l:&Lesson,mut f:Frame,action:&[usize],gamma:f32)->Result<Outcome,String>{
+        let dt=f.tick.checked_sub(self.previous.tick).filter(|n|*n>0&&*n<=1_000_000).ok_or("invalid elapsed server ticks")?;
+        if id!=l.choice.session.actor as usize || action.len()!=8 || f.evidence.tick!=f.tick{return Err("invalid episode action/frame".into());}
         let speed=distance(f.position,self.previous.position)/dt as f64;
         let turn=((f.yaw-self.previous.yaw+180.).rem_euclid(360.)-180.).abs();
         let angular_speed=(turn+(f.pitch-self.previous.pitch).abs())/dt as f32;
-        self.speed=speed as f32;self.angular_speed=angular_speed;
         let [x,z]=origin(id);
         let outside=f.position[0]<x+1.7||f.position[0]>x+14.3||f.position[2]<z+1.7||f.position[2]>z+14.3||f.position[1]<96.5||f.position[1]>103.;
-        let angle=angles(f.position,f.yaw,f.pitch,l.goal);
-        let ready=if l.stage==2 { angle[0].abs()<=8. && angle[1].abs()<=8. && angular_speed<=0.15 }
-            else {distance(f.position,l.goal)<=0.65 && speed<=0.025 && angular_speed<=0.15 && f.grounded};
-        // Missing snapshots must not be interpreted as continuous successful holding.
-        if ready && dt<=8 {self.held+=dt;}else{self.held=0;}
-        let success=!outside && if l.stage==5 {f.broken} else {self.held>=20};
-        let timeout=f.tick.saturating_sub(self.first_tick)>=l.limit_ticks;
+        let a=angles(f.position,f.yaw,f.pitch,l.goal);
+        let ready=if l.stage==2{a[0].abs()<=8.&&a[1].abs()<=8.&&angular_speed<=0.15}
+            else{distance(f.position,l.goal)<=0.65&&speed<=0.025&&angular_speed<=0.15&&f.grounded};
+        let held=if ready&&dt<=8{self.held+dt}else{0};
+        f.evidence.motor_hold_ticks=held.min(u32::MAX as u64) as u32;
+        let mut gate=self.gate.clone();let reached=gate.observe(&f.evidence).map_err(str::to_string)?;
+        let success=!outside&&reached;let timeout=f.tick-self.first_tick>=l.limit_ticks;
         let done=success||outside||timeout;
-        let before=potential(l,&self.previous); let after=if done {0.}else{potential(l,&f)};
-        self.rotation+=turn as f64;
-        let switched=action[0]!=self.previous_action[0]; if switched{self.switches+=1;}
-        // Task reward dominates small input regularizers. No reward for mere staying alive.
-        let reward=(if success {2.} else if done {-1.} else {0.}) + gamma*after-before -0.002 -0.00005*turn -(if switched {0.003}else{0.});
-        self.decisions+=1;self.previous_action.copy_from_slice(action);self.previous=f;
-        Outcome{reward,done,success,reason:if success{"success"}else if outside{"outside"}else if timeout{"timeout"}else{"running"}}
+        let shaping=potential_shaping(potential(l,&self.previous),potential(l,&f),gamma as f64,dt as u32,4,
+            if done{Boundary::Terminated}else{Boundary::Continuing}).map_err(str::to_string)?;
+        let switched=action[0]!=self.previous_action[0];
+        let reward=(if success{2.0}else if done{-1.0}else{0.0})+shaping-0.002*dt as f64/4.-0.00005*turn as f64-if switched{0.003}else{0.0};
+        if !reward.is_finite(){return Err("nonfinite curriculum reward".into());}
+        self.gate=gate;self.held=held;self.speed=speed as f32;self.angular_speed=angular_speed;self.rotation+=turn as f64;
+        self.switches+=switched as u64;self.decisions+=1;self.previous_action.copy_from_slice(action);let tick=f.tick;self.previous=f;
+        Ok(Outcome{reward:reward as f32,done,success,reason:if success{"success"}else if outside{"outside"}else if timeout{"timeout"}else{"running"},elapsed_ticks:dt as u32,tick})
     }
-    /// 23 slots fit in the existing frame's unused tail. Goal observations are
-    /// privileged training instrumentation, not images or human demonstrations.
-    pub fn features(&self,l:&Lesson,f:&Frame)->[f32;23] {
-        let mut v=[0.;23]; let a=angles(f.position,f.yaw,f.pitch,l.goal);
+    /// Goal/state instrumentation, not demonstrations or a teacher action.
+    /// The policy sees identical features in training and exams; no exam flag.
+    pub fn features(&self,l:&Lesson,f:&Frame)->[f32;87]{
+        let mut v=[0.;87];let a=angles(f.position,f.yaw,f.pitch,l.goal);
         v[0]=((l.goal[0]-f.position[0])/12.) as f32;v[1]=((l.goal[1]-f.position[1])/8.) as f32;v[2]=((l.goal[2]-f.position[2])/12.) as f32;
-        v[3]=a[0].to_radians().sin();v[4]=a[0].to_radians().cos();v[5]=a[1]/180.;
-        v[6+l.stage]=1.;v[12]=(f.tick.saturating_sub(self.first_tick) as f32/l.limit_ticks as f32).min(1.);
-        v[13]=(self.held as f32/20.).min(1.);v[14]=if f.grounded{1.}else{0.};
-        v[15]=f.yaw.to_radians().sin();v[16]=f.yaw.to_radians().cos();
-        v[17]=(f.pitch/90.).clamp(-1.,1.);v[18]=1.;v[19]=(self.speed/0.3).clamp(0.,1.);v[20]=(self.angular_speed/4.5).clamp(0.,1.);v
+        v[3]=a[0].to_radians().sin();v[4]=a[0].to_radians().cos();v[5]=a[1]/180.;v[6+l.stage]=1.;
+        v[24]=(f.tick-self.first_tick) as f32/l.limit_ticks as f32;v[25]=self.held as f32/20.;v[26]=f.grounded as u8 as f32;
+        v[27]=f.yaw.to_radians().sin();v[28]=f.yaw.to_radians().cos();v[29]=f.pitch/90.;v[30]=self.speed/0.3;v[31]=self.angular_speed/4.5;
+        v[32]=l.choice.difficulty as f32;
+        for i in 0..ITEM_COUNT{v[33+i]=f.evidence.stock[i] as f32/64.;}
+        let c=f.evidence.counters;for(i,n)in[c.broken,c.picked_up,c.crafted,c.placed,c.smelted,c.deposited].iter().enumerate(){v[46+i]=*n as f32/8.;}
+        v[52]=f.evidence.target_stock as f32/64.;for i in 0..3{v[53+i]=((f.evidence.occupied_targets>>i)&1) as f32;}
+        if let Some((item,n))=l.choice.task.craft_output(){v[56+item as usize]=1.;v[69]=n as f32/4.;}
+        for x in &mut v{*x=x.clamp(-1.,1.);}v
     }
 }
-#[derive(Clone,Copy,PartialEq,Eq,Debug)] pub enum Phase { Train, Exam }
-#[derive(Clone,Default,Debug)] pub struct Score {pub trained:u32,pub current:u32,pub current_success:u32,pub review:u32,pub review_success:u32,pub retained:[u32;STAGES]}
-#[derive(Clone,Debug)] pub struct Curriculum {
-    pub stage:usize,pub phase:Phase,pub generation:u64,pub cycle:u64,pub completed:bool,
-    pub scores:Vec<Score>,pub serials:Vec<u64>,pub last_pass:Option<bool>,pub exams:u64,
-}
-impl Curriculum {
-    pub fn new(bots:usize)->Self{assert!((1..=32).contains(&bots));Self{stage:0,phase:Phase::Train,generation:0,cycle:0,completed:false,scores:vec![Score::default();bots],serials:vec![0;bots],last_pass:None,exams:0}}
-    pub fn begin(&mut self,id:usize,seed:u64)->Option<Lesson> {
-        let s=&self.scores[id];let exam=self.phase==Phase::Exam;
-        if exam && s.current>=EXAM_CURRENT && s.review>=review_total(self.stage){return None;}
-        let serial=self.serials[id];self.serials[id]=serial.checked_add(1).expect("episode counter exhausted");
-        let review=if exam{s.current>=EXAM_CURRENT}else{serial%5==4&&self.stage>0};
-        let stage=if review&&self.stage>0 {
-            if exam {(s.review/EXAM_REVIEW) as usize % self.stage}
-            else {((serial/5) as usize+id)%self.stage}
-        }else{self.stage};
-        Some(Lesson::sample(id,stage,serial,self.generation,exam,review,seed))
-    }
-    pub fn record(&mut self,id:usize,l:&Lesson,success:bool) {
-        if l.generation!=self.generation||l.exam!=(self.phase==Phase::Exam){return;}
-        let s=&mut self.scores[id];
-        if l.exam {if l.review{s.review+=1;s.review_success+=success as u32;s.retained[l.stage]+=success as u32;}else{s.current+=1;s.current_success+=success as u32;}}
-        else if !l.review{s.trained=s.trained.saturating_add(1);}
-    }
-    /// Called by the learner ONLY between optimizer updates. All evaluators
-    /// therefore see one frozen model. No agent can promote itself.
-    pub fn advance(&mut self)->Option<&'static str> {
-        match self.phase {
-            Phase::Train if self.scores.iter().all(|s|s.trained>=TRAIN_EPISODES)=>{
-                self.phase=Phase::Exam;self.generation+=1;self.cycle+=1;
-                for s in &mut self.scores{s.current=0;s.review=0;s.current_success=0;s.review_success=0;s.retained=[0;STAGES];}
-                Some("exam-start")
-            },
-            Phase::Exam if self.scores.iter().all(|s|s.current>=EXAM_CURRENT && s.review>=review_total(self.stage))=>{
-                let passed=self.scores.iter().all(|s|s.current_success>=14 && s.retained[..self.stage.max(1)].iter().all(|&n|n>=3));
-                self.last_pass=Some(passed);self.exams+=1;
-                if passed {if self.stage+1<STAGES {self.stage+=1;}else{self.completed=true;}}
-                self.phase=Phase::Train;self.generation+=1;for s in &mut self.scores{*s=Score::default();}
-                Some(if passed{"exam-pass"}else{"exam-fail"})
-            },_=>None
-        }
-    }
-    pub fn encode(&self,version:u64,fingerprint:u64)->Vec<u8>{
-        let mut e=Encoder(b"BCAC0001".to_vec());
-        for v in [version,fingerprint,self.stage as u64,self.cycle,self.completed as u64,self.exams,self.scores.len() as u64]{e.u64(v);}
-        for (s,&serial) in self.scores.iter().zip(&self.serials){e.u64(serial);e.u64(s.trained as u64);}
-        let c=checksum(&e.0);e.u64(c);e.0
-    }
-    pub fn decode(bytes:&[u8],bots:usize,version:u64,fingerprint:u64)->io::Result<Self>{
-        let bad=||io::Error::new(io::ErrorKind::InvalidData,"academy checkpoint mismatch: restore a complete stopped backup");
-        if bytes.len()<72||bytes.len()>4096{return Err(bad());}
-        let body=&bytes[..bytes.len()-8];if checksum(body)!=u64::from_le_bytes(bytes[bytes.len()-8..].try_into().unwrap()){return Err(bad());}
-        let mut d=Decoder{bytes:body,pos:0};if d.take(8)?!=b"BCAC0001"||d.u64()?!=version||d.u64()?!=fingerprint{return Err(bad());}
-        let stage=d.size(STAGES-1)?;let cycle=d.u64()?;let complete=d.size(1)?==1;let exams=d.u64()?;if d.size(32)?!=bots{return Err(bad());}
-        let mut c=Self::new(bots);c.stage=stage;c.cycle=cycle;c.completed=complete;c.exams=exams;
-        for i in 0..bots{c.serials[i]=d.u64()?;c.scores[i].trained=d.size(u32::MAX as usize)? as u32;}
-        if d.pos!=body.len(){return Err(bad());}
-        // Never restore partially completed exam scores; retry a fresh frozen exam.
-        Ok(c)
-    }
-}
-
-#[cfg(test)] mod tests {
-    use super::*;
-    #[test] fn stage_masks_leave_one_legal_action_per_head(){for stage in 0..STAGES{let mut mask=vec![true;ACTIONS];restrict(&mut mask,stage);let mut o=0;for n in HEADS{assert!(mask[o..o+n].iter().any(|x|*x));o+=n;}if stage==0{assert_eq!(mask.iter().filter(|x|**x).count(),9);}}}
-    #[test] fn tasks_are_inside_owned_cells(){for id in 0..32{let [x,z]=origin(id);for stage in 0..STAGES{for serial in 0..100{let l=Lesson::sample(id,stage,serial,0,false,false,123);for p in [l.start,l.goal]{assert!(p[0]>x+2.&&p[0]<x+14.&&p[2]>z+2.&&p[2]<z+14.);}}}}}
-    #[test] fn exams_do_not_reuse_training_random_domain(){let a=Lesson::sample(0,1,5,0,false,false,1);let b=Lesson::sample(0,1,5,0,true,false,1);assert_ne!(a.goal,b.goal);}
-    #[test] fn every_agent_must_qualify(){let mut c=Curriculum::new(2);c.scores[0].trained=40;assert_eq!(c.advance(),None);c.scores[1].trained=40;assert_eq!(c.advance(),Some("exam-start"));assert_eq!(c.stage,0);}
-    #[test] fn exam_failure_never_promotes(){let mut c=Curriculum::new(2);c.phase=Phase::Exam;for s in &mut c.scores{s.current=16;s.current_success=16;s.review=4;s.review_success=4;s.retained[0]=4;}c.scores[1].current_success=13;assert_eq!(c.advance(),Some("exam-fail"));assert_eq!(c.stage,0);}
-    #[test] fn retention_failure_never_promotes(){let mut c=Curriculum::new(1);c.phase=Phase::Exam;c.scores[0]=Score{current:16,current_success:16,review:4,review_success:2,..Score::default()};assert_eq!(c.advance(),Some("exam-fail"));}
-    #[test] fn pass_advances_exactly_one_stage(){let mut c=Curriculum::new(1);c.phase=Phase::Exam;c.scores[0]=Score{current:16,current_success:14,review:4,review_success:3,retained:[3,0,0,0,0,0],..Score::default()};assert_eq!(c.advance(),Some("exam-pass"));assert_eq!(c.stage,1);}
-    #[test] fn checkpoint_checks_policy_and_drops_exam_scores(){let mut c=Curriculum::new(2);c.stage=3;c.phase=Phase::Exam;c.serials[0]=79;let bytes=c.encode(9,15);let d=Curriculum::decode(&bytes,2,9,15).unwrap();assert_eq!(d.stage,3);assert_eq!(d.serials[0],79);assert_eq!(d.phase,Phase::Train);assert!(Curriculum::decode(&bytes,2,10,15).is_err());assert!(Curriculum::decode(&bytes,1,9,15).is_err());}
-    #[test] fn every_previous_skill_is_examined() {
-        let mut c=Curriculum::new(1);c.stage=5;c.phase=Phase::Exam;c.scores[0].current=16;
-        let mut counts=[0;STAGES];
-        while let Some(l)=c.begin(0,91){counts[l.stage]+=1;c.record(0,&l,true);}
-        assert_eq!(counts,[4,4,4,4,4,0]);
-    }
-    #[test] fn training_review_does_not_alias_modulo_five() {
-        let mut c=Curriculum::new(1);c.stage=5;let mut counts=[0;STAGES];
-        for _ in 0..125{let l=c.begin(0,1).unwrap();if l.review{counts[l.stage]+=1;}}
-        assert_eq!(counts,[5,5,5,5,5,0]);
-    }
-    #[test] fn aggregate_review_score_cannot_hide_one_lost_skill() {
-        let mut c=Curriculum::new(1);c.stage=3;c.phase=Phase::Exam;
-        c.scores[0]=Score{current:16,current_success:16,review:12,review_success:10,retained:[4,4,2,0,0,0],..Score::default()};
-        assert_eq!(c.advance(),Some("exam-fail"));assert_eq!(c.stage,3);
-    }
-    fn frame(tick:u64,p:[f64;3])->Frame{Frame{tick,position:p,yaw:0.,pitch:0.,grounded:true,broken:false}}
-    #[test] fn arrival_requires_settled_hold_not_drive_by(){let l=Lesson::sample(0,0,0,0,false,false,1);let mut e=Episode::new(frame(0,l.start));let r=e.step(0,&l,frame(4,l.goal),&IDLE,0.997);assert!(!r.done);for t in [8,12,16,20]{assert!(!e.step(0,&l,frame(t,l.goal),&IDLE,0.997).done);}assert!(e.step(0,&l,frame(24,l.goal),&IDLE,0.997).success);}
-    #[test] fn looking_through_target_while_spinning_is_not_holding() {
-        let mut l=Lesson::sample(0,2,0,0,false,false,1);l.start=[8.,97.,8.];l.goal=[8.,98.62,11.];
-        let mut e=Episode::new(frame(0,l.start));let mut f=frame(4,l.start);f.yaw=2.;
-        assert!(!e.step(0,&l,f,&IDLE,0.997).success);assert_eq!(e.held,0);
-    }
-    #[test] fn missing_samples_do_not_fake_continuous_hold(){let l=Lesson::sample(0,0,0,0,false,false,1);let mut e=Episode::new(frame(0,l.goal));assert!(!e.step(0,&l,frame(40,l.goal),&IDLE,0.997).success);assert_eq!(e.held,0);}
-    #[test] fn timeout_and_escape_are_failures(){let l=Lesson::sample(0,0,0,0,false,false,1);let mut e=Episode::new(frame(0,l.start));let r=e.step(0,&l,frame(l.limit_ticks,l.start),&IDLE,0.997);assert!(r.done&&!r.success);assert_eq!(r.reason,"timeout");let mut e=Episode::new(frame(0,l.start));assert_eq!(e.step(0,&l,frame(4,[0.,97.,0.]),&IDLE,0.997).reason,"outside");}
-    #[test] fn mine_requires_server_break_not_a_mine_action(){let l=Lesson::sample(0,5,0,0,false,false,1);let mut e=Episode::new(frame(0,l.start));let mut a=IDLE;a[4]=1;assert!(!e.step(0,&l,frame(4,l.start),&a,0.997).success);let mut f=frame(8,l.start);f.broken=true;assert!(e.step(0,&l,f,&a,0.997).success);}
+#[cfg(test)] mod tests{
+    use super::*;use super::super::next::{tasks::{Session,Counters,TASKS},curriculum::{Lesson as Choice,PolicyId}};
+    fn lesson(id:usize,stage:usize,seed:u64,d:f64)->Lesson{Lesson::from_choice(Choice{session:Session{run:1,actor:id as u8,generation:1,lesson:seed},task:TASKS[stage],difficulty:d,seed,full_probe:d==1.,evaluation:false,review:false,policy:PolicyId{version:0,signature:1}})}
+    fn frame(l:&Lesson,tick:u64,p:[f64;3])->Frame{Frame{tick,position:p,yaw:l.yaw,pitch:l.pitch,grounded:true,evidence:Evidence{session:l.choice.session,tick,stock:[0;ITEM_COUNT],counters:Counters::default(),target_stock:0,occupied_targets:0,motor_hold_ticks:0}}}
+    #[test]fn all_18_tasks_and_64_cells_have_finite_bounded_geometry(){for id in 0..64{for stage in 0..STAGES{for seed in 0..20{for d in [0.2,0.5,1.]{let l=lesson(id,stage,seed,d);let[x,z]=origin(id);for p in [l.start,l.goal]{assert!((x+2.0..=x+13.5).contains(&p[0]));assert!((z+2.0..=z+13.5).contains(&p[2]));assert!((97.0..=101.5).contains(&p[1]));}assert!(l.yaw.is_finite()&&l.pitch.is_finite());assert!(l.limit_ticks<=3000);}}}}}
+    #[test]fn every_task_mask_has_legal_actions_and_advanced_gui_access(){for stage in 0..STAGES{let mut m=vec![true;ACTIONS];restrict(&mut m,stage);let mut off=0;for n in HEADS{assert!(m[off..off+n].iter().any(|v|*v));off+=n;}if stage>=6{assert!(m[ACTIONS-90..].iter().all(|v|*v));}}}
+    #[test]fn arrival_requires_settled_hold_not_drive_by(){let l=lesson(0,0,3,1.);let mut e=Episode::new(&l,frame(&l,0,l.start)).unwrap();assert!(!e.step(0,&l,frame(&l,4,l.goal),&IDLE,0.997).unwrap().success);for t in [8,12,16,20]{assert!(!e.step(0,&l,frame(&l,t,l.goal),&IDLE,0.997).unwrap().success);}assert!(e.step(0,&l,frame(&l,24,l.goal),&IDLE,0.997).unwrap().success);}
+    #[test]fn missing_snapshots_never_invent_continuous_holding(){let l=lesson(0,0,3,1.);let mut e=Episode::new(&l,frame(&l,0,l.goal)).unwrap();let r=e.step(0,&l,frame(&l,40,l.goal),&IDLE,0.997).unwrap();assert!(!r.success);assert_eq!(e.held,0);assert_eq!(r.elapsed_ticks,40);}
+    #[test]fn rotation_through_aim_is_not_a_hold(){let l=lesson(0,2,8,1.);let mut a=frame(&l,0,l.start);let angles=angles(l.start,0.,0.,l.goal);a.yaw=angles[0]-60.;a.pitch=angles[1];let mut e=Episode::new(&l,a).unwrap();let mut f=frame(&l,4,l.start);f.yaw=angles[0];f.pitch=angles[1];assert!(!e.step(0,&l,f,&IDLE,0.997).unwrap().success);assert_eq!(e.held,0);}
+    #[test]fn action_alone_does_not_prove_a_server_break(){let l=lesson(0,5,9,1.);let mut e=Episode::new(&l,frame(&l,0,l.start)).unwrap();let mut action=IDLE;action[4]=1;assert!(!e.step(0,&l,frame(&l,4,l.start),&action,0.997).unwrap().success);let mut f=frame(&l,8,l.start);f.evidence.counters.broken=1;assert!(e.step(0,&l,f,&action,0.997).unwrap().success);}
+    #[test]fn stale_evidence_does_not_mutate_episode(){let l=lesson(63,6,7,1.);let mut e=Episode::new(&l,frame(&l,0,l.start)).unwrap();let mut f=frame(&l,4,l.start);f.evidence.session.lesson+=1;assert!(e.step(63,&l,f,&IDLE,0.997).is_err());assert_eq!(e.previous.tick,0);}
+    #[test]fn timeout_and_escape_are_not_success(){let l=lesson(0,0,9,1.);let mut e=Episode::new(&l,frame(&l,0,l.start)).unwrap();let r=e.step(0,&l,frame(&l,600,l.start),&IDLE,0.997).unwrap();assert!(r.done&&!r.success);assert_eq!(r.reason,"timeout");let mut e=Episode::new(&l,frame(&l,0,l.start)).unwrap();let r=e.step(0,&l,frame(&l,4,[0.,97.,0.]),&IDLE,0.997).unwrap();assert!(r.done&&!r.success);assert_eq!(r.reason,"outside");}
+    #[test]fn features_fit_new_frame_and_do_not_reveal_an_exam_flag(){let l=lesson(0,17,2,1.);let f=frame(&l,0,l.start);let e=Episode::new(&l,f.clone()).unwrap();let a=e.features(&l,&f);let mut exam=l.clone();exam.exam=true;exam.choice.evaluation=true;assert_eq!(a,e.features(&exam,&f));assert_eq!(617+a.len(),super::super::FRAME);assert!(a.iter().all(|v|v.is_finite()&&v.abs()<=1.));}
 }
