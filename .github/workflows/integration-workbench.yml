@@ -6,24 +6,33 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: rl64-workbench
+  cancel-in-progress: false
 jobs:
-  inspect:
+  core:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Read integration boundaries
+        with:
+          fetch-depth: 0
+      - name: Apply reviewed integration migration
+        run: python3 .github/rl64/prepare.py
+      - name: Apply integration corrections
         run: |
-          for f in learning/src/lib.rs experimental/rl-next/src/math/time.rs experimental/rl-next/src/math/distribution.rs experimental/rl-next/src/curriculum/checkpoint.rs app/settings.rs launcher/config.rs launcher/academy_audit.rs scripts/env.sh scripts/build-state.sh academy.sh; do
-            echo "===== $f ====="
-            cat "$f"
-          done
-          echo '===== POPULATION AND FRAME CONSTRAINTS ====='
-          grep -RnE '32|640|1292|view.distance|VIEW_DISTANCE|simulation.distance|Curriculum::|academy::|NAMES|STAGES|BCMCLAB2|BCMCCAMPUS1' app launcher learning/src/lib.rs bridge scripts tests academy.sh smoke.sh | head -260
-      - name: Read pinned input-device implementation
+          if test -f .github/rl64/fixes.py; then python3 .github/rl64/fixes.py; fi
+      - name: Compile and test actual runtime learning core
         run: |
-          git clone --filter=blob:none --no-checkout https://github.com/azalea-rs/azalea.git "$RUNNER_TEMP/azalea"
-          cd "$RUNNER_TEMP/azalea"
-          git checkout f8ddefa70cc53e6385785fb56e7a688a389cf0ab
-          grep -RnE 'pub fn start_use_item|pub fn use_item_on|pub fn get_inventory|pub fn left_click|pub fn right_click' azalea* --include='*.rs'
-          grep -Rl 'pub fn start_use_item' azalea* --include='*.rs' | xargs -r cat
+          rustup toolchain install nightly-2026-02-04 --profile minimal
+          rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o "$RUNNER_TEMP/core-tests"
+          "$RUNNER_TEMP/core-tests" --test-threads=1
+      - name: Show failed source boundary
+        if: failure()
+        run: |
+          echo '===== ORIGINAL NETWORK ====='
+          git show 720d989b3999d07437185fc407609d1c90d9fbc9:learning/src/network.rs | head -105
+          echo '===== ORIGINAL PPO ====='
+          git show 720d989b3999d07437185fc407609d1c90d9fbc9:learning/src/ppo.rs | head -160
+          echo '===== GEOMETRY SIGNATURES ====='
+          grep -nE 'fn |struct |enum ' learning/src/curriculum.rs | head -30
