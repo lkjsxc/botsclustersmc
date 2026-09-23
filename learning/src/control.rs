@@ -9,7 +9,7 @@ impl Mode{pub fn parse(s:&str)->Result<Self,String>{match s{"train"=>Ok(Self::Tr
 #[derive(Clone,Copy,Default,Debug)]
 struct Clock{episode:Option<u64>,tick:u64,closed:bool}
 pub struct Coordinator{
-    pub policy:Arc<Model>,identity:PolicyId,pub course:Curriculum,pub actor_rngs:Vec<u64>,pub mode:Mode,
+    pub policy:Arc<Model>,pub course:Curriculum,pub actor_rngs:Vec<u64>,pub mode:Mode,
     identity:PolicyId,cohort:Cohort<Transition>,clocks:Vec<Clock>,quota:usize,optimizing:bool,
     pub local_samples:Vec<usize>,pub pending_actions:Vec<bool>,
 }
