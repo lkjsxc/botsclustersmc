@@ -1,0 +1,103 @@
+name: Live Minecraft acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      accept_eula:
+        description: 'I have read and accept the Minecraft EULA for this disposable test server'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: live-acceptance-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Require explicit disposable-server EULA consent
+        env:
+          ACCEPT_EULA: ${{ inputs.accept_eula }}
+        run: |
+          test "$ACCEPT_EULA" = true || { echo 'Read https://aka.ms/MinecraftEULA and explicitly accept it before this live test.'; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            .build/cargo
+            .build/rustup
+            .build/azalea/target
+          key: bcmc-native-linux-20260204-v3-${{ github.sha }}
+          restore-keys: bcmc-native-linux-20260204-v3-
+      - name: Build and test the actual native application
+        id: native
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/evidence/source.txt"
+          for path in bin runtime academy academy-v2 server state .env; do test ! -e "$path"; done
+          ./scripts/preflight.sh
+          ./scripts/build-host-tools.sh > "$RUNNER_TEMP/evidence/host-build.txt" 2>&1
+          if ! ./scripts/build.sh > "$RUNNER_TEMP/evidence/native-build.txt" 2>&1; then tail -n 100 "$RUNNER_TEMP/evidence/native-build.txt"; exit 1; fi
+          cp bin/build-manifest.txt "$RUNNER_TEMP/evidence/"
+          grep 'test result:' "$RUNNER_TEMP/evidence/native-build.txt"
+      - name: Exercise all 18 tasks through isolated scripted diagnostics
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        env:
+          EULA: 'true'
+        run: |
+          set -euo pipefail
+          if ! ./scripts/test-live-fixtures.sh > "$RUNNER_TEMP/evidence/fixtures.txt" 2>&1; then tail -n 100 "$RUNNER_TEMP/evidence/fixtures.txt"; exit 1; fi
+          grep -E 'PASS:|DIAGNOSTIC PASS|RESET CHECK' experiments/fixtures-*/logs/fixtures.log
+          grep -E 'PASS:|OBSERVER' experiments/fixtures-*/logs/observer.log
+      - name: Verify 64 normal learners, simultaneous observer and exact model resume
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        env:
+          EULA: 'true'
+          BCMC_TEST_NEW_ACADEMY: 'true'
+          BCMC_EVIDENCE_DIR: ${{ runner.temp }}/evidence
+        run: |
+          set -euo pipefail
+          if ! python3 tests/public_entry_checks.py > "$RUNNER_TEMP/evidence/public-entry.txt" 2>&1; then tail -n 100 "$RUNNER_TEMP/evidence/public-entry.txt"; exit 1; fi
+          cat "$RUNNER_TEMP/evidence/public-entry.txt"
+          grep -E 'PASS:|OBSERVER' "$RUNNER_TEMP/evidence/public-observer.log"
+          git diff --exit-code
+      - name: Collect only disposable test logs and status
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os,shutil
+          out=Path(os.environ['RUNNER_TEMP'])/'evidence';out.mkdir(exist_ok=True)
+          for i,lab in enumerate(sorted(Path('experiments').glob('fixtures-*'))+[Path('academy-v2')]):
+              for p in sorted((lab/'logs').glob('*')):
+                  if p.is_file() and p.stat().st_size<16*1024*1024:
+                      shutil.copyfile(p,out/f'live-{i}-{p.name}')
+              for name in ['status.json','academy-status.json']:
+                  p=lab/'state'/name
+                  if p.exists():shutil.copyfile(p,out/f'live-{i}-{name}')
+          (out/'scope.txt').write_text('Live disposable Minecraft tests. Diagnostic scripts do not train policies. Normal 64-actor learning and checkpoint resume are tested separately, including a concurrent read-only observer. Compilation caches may be reused. No learned-mastery, FPS or long-run capacity claim. No worlds, weights or private config are included.\n')
+          PY
+      - uses: actions/cache/save@v4
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        with:
+          path: |
+            .build/cargo
+            .build/rustup
+            .build/azalea/target
+          key: bcmc-native-linux-20260204-v3-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-acceptance-evidence
+          path: ${{ runner.temp }}/evidence
+          retention-days: 30
+          if-no-files-found: warn
