@@ -39,7 +39,7 @@ class Recovery(unittest.TestCase):
         (lab/'campus.ready').write_text('BCMCCAMPUS1 run 32 8 16 96\n'+''.join(f'{i} {i%8*16} {i//8*16}\n' for i in range(32)))
         return lab
     def test_requested_defaults(self):
-        q=self.config();self.assertEqual(q.returncode,0,q.stderr);self.assertEqual(q.stdout.strip(),'bcmc 32 25565 0.0.0.0')
+        q=self.config();self.assertEqual(q.returncode,0,q.stderr);self.assertEqual(q.stdout.strip(),'bcmc 64 25565 0.0.0.0')
     def test_old_invalid_prefix_is_rejected_explicitly(self):
         q=self.config(BOT_PREFIX='botsclustersmc');self.assertNotEqual(q.returncode,0);self.assertIn('BOT_PREFIX',q.stderr)
     def test_prefix_boundary(self):

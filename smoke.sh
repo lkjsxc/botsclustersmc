@@ -12,7 +12,7 @@ source scripts/build-state.sh
 academy_mode=true
 hz=5;verifier=verify-academy
 bots=${SMOKE_BOTS:-2}
-[[ $bots =~ ^([1-9]|[12][0-9]|3[0-2])$ ]] || { echo 'SMOKE_BOTS must be 1..64' >&2; exit 1; }
+[[ $bots =~ ^([1-9]|[1-5][0-9]|6[0-4])$ ]] || { echo 'SMOKE_BOTS must be 1..64' >&2; exit 1; }
 first=${SMOKE_SECONDS:-300}
 second=${SMOKE_RESTART_SECONDS:-180}
 for seconds in "$first" "$second"; do

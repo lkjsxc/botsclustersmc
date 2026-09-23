@@ -221,8 +221,8 @@ public final class BotsClustersMCLab extends JavaPlugin implements Listener {
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true) public void acquired(EntityPickupItemEvent e){
         if(!(e.getEntity() instanceof Player p)||p.getWorld()!=world)return;Session s=sessions.get(id(p));if(s==null||!s.ready)return;
         Item item=e.getItem();String actual=item.getPersistentDataContainer().get(itemTag,PersistentDataType.STRING);if(!tag(s,"target").equals(actual))return;
-        UUID receipt=item.getUniqueId();Material material=item.getItemStack().getType();int before=p.getStatistic(Statistic.PICKUP_ITEM,material);
-        p.getScheduler().run(this,t->{if(sessions.get(s.request.id())==s&&s.ready&&p.getStatistic(Statistic.PICKUP_ITEM,material)>before&&s.pickupReceipts.add(receipt))s.pickedUp.incrementAndGet();},null);
+        UUID receipt=item.getUniqueId();Material material=item.getItemStack().getType();int before=p.getStatistic(Statistic.PICKUP,material);
+        p.getScheduler().run(this,t->{if(sessions.get(s.request.id())==s&&s.ready&&p.getStatistic(Statistic.PICKUP,material)>before&&s.pickupReceipts.add(receipt))s.pickedUp.incrementAndGet();},null);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void placing(BlockPlaceEvent e){
         if(e.getBlock().getWorld()!=world)return;Session s=sessions.get(id(e.getPlayer()));Block b=e.getBlock();

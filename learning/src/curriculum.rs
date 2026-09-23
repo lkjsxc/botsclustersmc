@@ -1,6 +1,6 @@
 //! Minecraft task geometry and rewards. This module never chooses an action.
 //! Adaptive issuance, frozen exams and task evidence gates live in `next`.
-use super::{HEADS,ACTIONS,next::{Rng,math::{potential_shaping,Boundary},tasks::{Evidence,ProgressGate,Task,ITEM_COUNT}}};
+use super::{HEADS,ACTIONS,next::{Rng,math::{potential_shaping,Boundary},tasks::{Evidence,ProgressGate,ITEM_COUNT}}};
 pub use super::next::curriculum::{Curriculum,Phase};
 pub const STAGES:usize=18;
 pub const IDLE:[usize;8]=[0,3,2,0,0,0,0,0];

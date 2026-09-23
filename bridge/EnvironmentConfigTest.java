@@ -16,7 +16,8 @@ public class EnvironmentConfigTest {
         rejects("run","",32,"BOT_PREFIX");
         rejects("bad run","bcmc",32,"BCMC_RUN_ID");
         rejects("run","bcmc",0,"BOTS");
-        rejects("run","bcmc",33,"BOTS");
+        EnvironmentConfig.validate("run","bcmc",64);
+        rejects("run","bcmc",65,"BOTS");
         System.out.println("PASS: default identities, boundaries and six configuration rejections");
     }
 }
