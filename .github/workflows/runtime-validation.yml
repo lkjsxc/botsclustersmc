@@ -1,0 +1,39 @@
+name: Apply daylight regression fix and validate
+on:
+  push:
+    branches: [work/runtime-hardening-20260923]
+    paths: [.github/workflows/runtime-validation.yml]
+permissions:
+  contents: read
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/runtime-hardening-20260923
+          fetch-depth: 2
+      - name: Apply exact source change without modifying workflow files
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^)" = e7a2c5515dfaf80ad179f0a2754be68b163595c3
+          gh api repos/lkjsxc/botsclustersmc/git/blobs/1cd5fb6bcaaf85b238d1ce00e804ff58a836e995 --jq .content | base64 -d > /tmp/daylight.patch
+          git apply --index --unidiff-zero /tmp/daylight.patch
+          git update-index --force-remove .github/workflows/runtime-validation.yml
+          test "$(git write-tree)" = c061cf276abe43248956fbf614ada6d363a2a3db
+          git restore --source=HEAD --staged .github/workflows/runtime-validation.yml
+          test -z "$(git diff --cached --name-only -- .github)"
+          git diff --cached --check
+          git config user.name 'Runtime integration'
+          git config user.email 'integration@botsclustersmc.invalid'
+          git commit -m 'fix: keep deployed NPCs alive in daylight with scoped combustion protection'
+          git push origin HEAD:refs/heads/work/runtime-hardening-20260923
+          gh workflow run validate.yml --repo lkjsxc/botsclustersmc --ref work/runtime-hardening-20260923 -f eula_consent=true
