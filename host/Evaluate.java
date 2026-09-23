@@ -48,6 +48,21 @@ public final class Evaluate {
         data.addProperty("started_epoch_millis",started);data.addProperty("watch",options.watch());data.addProperty("interval_seconds",options.interval());
         data.add("tasks",new Gson().toJsonTree(selected));data.addProperty("cases_per_task",options.cases());
         Policy p=current;if(p!=null){data.addProperty("policy_updates",p.updates());data.addProperty("policy_trained_samples",p.samples());}
+        EvaluationServer experiment=active.get();
+        if(experiment!=null&&state.equals("running")) {
+            Path progress=experiment.data.resolve("status.json");
+            try {
+                if(Files.isRegularFile(progress,LinkOption.NOFOLLOW_LINKS)&&Files.size(progress)<=131072) {
+                    JsonObject update=JsonParser.parseString(Files.readString(progress)).getAsJsonObject();
+                    long total=EvaluationChecks.integer(update,"evaluation_trials_total");
+                    long done=EvaluationChecks.integer(update,"evaluation_trials_completed");
+                    if(total==selected.size()*options.cases()&&done>=0&&done<=total
+                            &&EvaluationChecks.integer(update,"policy_updates")==current.updates()) {
+                        data.addProperty("trials_total",total);data.addProperty("trials_completed",done);
+                    }
+                }
+            }catch(IOException|RuntimeException unavailable){/* A missing heartbeat is not a result. */}
+        }
         Host.text(folder.resolve("evaluation-status.json"),data+"\n");
     }
     private void heartbeat(){try{status("running","A fixed policy is being tested; training continues independently.");}catch(IOException e){throw new UncheckedIOException(e);}}
@@ -132,7 +147,8 @@ public final class Evaluate {
                 String last="";
                 while(!stopping.get()) {
                     checkOwned();TrainingState snapshot=TrainingState.read(folder.resolve("training.bcmc"));
-                    List<Integer> tasks=options.tasks().isEmpty()?reached(snapshot):options.tasks();
+                    List<Integer> available=reached(snapshot); // Validate course bytes even for explicitly selected tasks.
+                    List<Integer> tasks=options.tasks().isEmpty()?available:options.tasks();
                     String key=identity(snapshot.policy())+tasks;
                     if(!key.equals(last)){once(snapshot);last=key;}
                     if(!options.watch())break;

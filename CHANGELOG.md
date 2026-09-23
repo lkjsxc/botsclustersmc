@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2 — independently measured progress
+
+Add the native `evaluate` command and an independent evaluation panel.
+Test each frozen policy in actual Minecraft rooms and show its measured task
+success counts separately from the continuously changing learning process.
+Periodic evaluation supports graceful stopping and skips unchanged policies.
+The software does not claim completed survival or cooperative settlement skills.
+
+
 ## 0.7.1 — resource attempts and retained-skill diagnostics
 
 - Display named selected controls, held items, actual mining contact and episode

@@ -155,9 +155,12 @@ public final class Host {
         if(!Files.isRegularFile(marker)||!Files.readString(marker).equals("botsclustersmc-owned-training\n")||!Files.isRegularFile(checkpoint))throw new IOException("Evaluation requires an owned Academy with a complete checkpoint");
         build();Path tools=Files.createTempDirectory(ROOT.resolve(".build"),"evaluation-tools-");
         try {
+            try(FileChannel guard=FileChannel.open(ROOT.resolve(".build/build.lock"),StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);FileLock held=guard.tryLock()){
+                if(held==null)throw new IOException("Another build is publishing artifacts; retry evaluation");
             Files.copy(ROOT.resolve("dist/training.jar"),tools.resolve("runtime.jar"));Files.copy(ROOT.resolve("dist/botsclustersmc.jar"),tools.resolve("inference.jar"));
             Path src=ROOT.resolve("tests/holdout");
             for(Path file:sources("tests/holdout")){safe(file);Path dest=tools.resolve("holdout-src").resolve(src.relativize(file));Files.createDirectories(dest.getParent());Files.copy(file,dest);}
+            }
             String cp=tools.resolve("runtime.jar")+File.pathSeparator+classpath();
             List<String> compile=new ArrayList<>(List.of("--release","21","-encoding","UTF-8","-proc:none","-cp",cp,"-d",tools.toString()));
             for(Path file:sources("host"))compile.add(file.toString());

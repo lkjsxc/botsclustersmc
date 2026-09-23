@@ -59,6 +59,7 @@ public final class FrozenPolicyExam extends RuntimePlugin {
             }
         },1,1,TimeUnit.SECONDS);
     }
+    @Override protected Map<String,Object> extraStatus(){return Map.of("evaluation_trials_total",count,"evaluation_trials_completed",outcomes.size());}
     @Override protected void spawned(Npc npc) {
         TrainingEnvironment.Session session=sessions.get(npc.id);npc.context=session;traces.put(npc.id,new TrialTrace());
         TrainingEnvironment.reset(this,npc,session,session.lesson);

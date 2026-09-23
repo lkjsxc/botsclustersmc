@@ -77,3 +77,12 @@ They are separate from moving averages initialized with priors, and they reset
 when the process restarts. Frozen-exam cases have their own counters and never
 increase training counts. These raw results prevent a nonzero initialization
 prior from looking like an observed resource success before any success occurred.
+
+## Fixed-policy measurements
+
+The independent evaluation panel reads `/api/evaluation`, showing the most recent
+completed test and the evaluator heartbeat. It names both the frozen tested policy
+and the current live policy. Run `./evaluate.sh` for one evaluation or
+`./evaluate.sh --watch` for repeated changed-policy tests. Zero-success tasks are
+not hidden. Evaluation never updates weights or curriculum certificates. See
+[Evaluation](EVALUATION.md) before treating these results as deployment evidence.

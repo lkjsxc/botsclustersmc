@@ -64,6 +64,12 @@ public final class EvaluationTest {
             EvaluationChecks.validate("{}",POLICY,TASKS,2,23,1);
             throw new AssertionError("Empty report accepted");
         }catch(IOException expected){checks++;}
+        org.botsclustersmc.training.TrainingState fresh=new org.botsclustersmc.training.TrainingState(Policy.initialize(1),new org.botsclustersmc.training.Adam(),new org.botsclustersmc.training.Course(2,1).encode());
+        check(Evaluate.reached(fresh).equals(List.of(0)));
+        try {
+            Evaluate.reached(new org.botsclustersmc.training.TrainingState(Policy.initialize(1),new org.botsclustersmc.training.Adam(),new byte[]{0}));
+            throw new AssertionError("Invalid course accepted");
+        }catch(IOException expected){checks++;}
         check(POLICY.updates()==7&&POLICY.samples()==64);
         System.out.println("PASS operator evaluation integrity checks="+checks);
     }

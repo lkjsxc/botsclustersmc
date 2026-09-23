@@ -60,6 +60,20 @@ stack is needed. The monitor refuses wildcard/public binds, provides no console,
 and shows stale snapshots as stale. Do not publish it through an unauthenticated
 reverse proxy. [Observation details](docs/OBSERVING.md) explain the metrics.
 
+## Evaluate the actual policy
+
+Run `./evaluate.sh` (`evaluate.cmd` on Windows) to test an immutable snapshot of the
+canonical checkpoint in separate real Minecraft rooms, without stopping training.
+`./evaluate.sh --watch --interval 600` repeats the check for changed policies.
+Type `stop` and press Enter in that terminal to stop the evaluator, not training.
+An extra loopback-only server uses a default 2-GiB maximum heap while each test runs.
+
+The dashboard displays each task's actual success count and the tested policy
+identity separately from live metrics and historical curriculum certificates.
+Zero successes are retained. No Python/npm or external service is needed for
+these operator commands. See [Independent evaluation](docs/EVALUATION.md) for
+resource bounds, export ordering, stale results and precise interpretation.
+
 ## Export and deploy
 
 Stop the Academy cleanly and confirm process exit first.

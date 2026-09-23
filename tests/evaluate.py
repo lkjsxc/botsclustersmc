@@ -57,10 +57,11 @@ def main():
                 process.stdin.write('stop\n');process.stdin.flush();process.wait(timeout=90)
     with (output/'active-stop.log').open('w') as log:
         before={p.name for p in (ROOT/'.build').glob('evaluation-*') if p.is_dir()}
-        cancelled=subprocess.Popen([*command,'--watch','--interval','60'],cwd=ROOT,env=env,stdin=subprocess.PIPE,stdout=log,stderr=subprocess.STDOUT,text=True)
+        active_command=command.copy();active_command[active_command.index('--tasks')+1]='14'
+        cancelled=subprocess.Popen([*active_command,'--watch','--interval','60'],cwd=ROOT,env=env,stdin=subprocess.PIPE,stdout=log,stderr=subprocess.STDOUT,text=True)
         begun=int(time.time()*1000)
         try:
-            wait(cancelled,data/'evaluation-status.json',lambda s:s['state']=='running' and s['started_epoch_millis']>=begun-1000)
+            wait(cancelled,data/'evaluation-status.json',lambda s:s['state']=='running' and s.get('trials_total')==2 and s['started_epoch_millis']>=begun-1000)
             cancelled.stdin.write('stop\n');cancelled.stdin.flush();cancelled.wait(timeout=90)
             assert cancelled.returncode==0
             assert read(data/'evaluation-status.json')['state']=='stopped'

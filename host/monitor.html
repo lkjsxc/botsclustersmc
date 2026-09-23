@@ -40,6 +40,7 @@ async function renderEvaluation(live){
   const age=monitor?Math.max(0,(Date.now()-Number(monitor.epoch_millis))/1000):0;
   const active=monitor&&['running','preparing'].includes(monitor.state);
   $('evaluation-progress').textContent=monitor?`Evaluator: ${monitor.state}${active&&age>60?' (heartbeat is stale)':''} · ${monitor.detail||''}`:'No evaluation process has reported yet.';
+  if(Number.isInteger(monitor?.trials_completed)&&Number.isInteger(monitor?.trials_total))$('evaluation-progress').textContent+=' · '+monitor.trials_completed+'/'+monitor.trials_total+' trials completed';
   $('evaluation-results').replaceChildren();
   if(!report){$('evaluation-identity').textContent='No independent result is available. Curriculum certificates are historical actor records.';return;}
   if(report.complete!==true||report.stochastic!==true||report.new_training_samples!==0||!Array.isArray(report.tasks))throw new Error('Invalid independent evaluation report.');

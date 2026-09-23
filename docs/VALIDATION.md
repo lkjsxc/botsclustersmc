@@ -1,8 +1,20 @@
-# Validation — citizen runtime (0.7.0)
+# Validation — citizen runtime
 
 Software correctness, real-server reachability, learned exam outcomes and
 survival/cooperation are separate claims. Bodies are in-server Villager NPCs,
 not network-connected Minecraft players. No full-survival model is shipped.
+
+## Resource learning and native evaluation (0.7.2)
+
+[The evaluated-progress record](verification/20260924-evaluated-progress.md)
+separates software acceptance from measured skill outcomes, including failures
+and older-skill regressions. The native command reuses the canonical real-server
+holdout evaluator without changing live weights or historical certificates.
+`./evaluate.sh` is the operator entry point; [Evaluation](EVALUATION.md) explains
+its resource limits, periodic mode and snapshot identity.
+
+The checks below originally established 0.7.0. They do not by themselves certify
+all later changes, every server release, or open-world survival.
 
 ## Local completed checks
 

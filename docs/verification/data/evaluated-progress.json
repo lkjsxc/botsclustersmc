@@ -1,0 +1,476 @@
+{
+  "scope": "Historical immutable-policy tests. Intermediate development runs are not a controlled ablation. Later policy versions are not certified by these results.",
+  "complete_trials": 1952,
+  "complete_trial_archive_sha256": "ede2719a621b25197b19c4adec5ee7e38a7235e1568b253c6fe45ecbb6504529",
+  "raw_trial_retention": "The full per-trial records are retained in the authorized operator backup directory. This repository file contains the checked aggregates.",
+  "runs": [
+    {
+      "name": "contact-holdout",
+      "retained_trial_count": 224,
+      "metadata": {
+        "policy_sha256": "426f904139fcc61cef34b1fef6169cd62ad19becab7ca01c0e142a90adabb723",
+        "runtime_jar_sha256": "a98e75e7c5332d40b427cc82fe6f09beb067088b9882cb871dd6ee9938872785",
+        "exam_jar_sha256": "f71c75d095cbb541ff479ca097df6ce57b159a1ceb11ce9e296c3ed0c6db996c",
+        "tasks": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "cases_per_task": 32,
+        "seed": 932401,
+        "terrain": "academy-flat",
+        "claim": "Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation."
+      },
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 120887,
+        "policy_trained_samples": 44111281,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 32,
+        "seed": 932401,
+        "epoch_millis": 1790181806272,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 31,
+            "cases": 32
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 0,
+            "cases": 32
+          },
+          {
+            "task": 6,
+            "label": "collect-log",
+            "passed": 0,
+            "cases": 32
+          }
+        ]
+      }
+    },
+    {
+      "name": "sustained-final-holdout",
+      "retained_trial_count": 224,
+      "metadata": {
+        "policy_sha256": "3172bedc4883c8d9bbc34f3b75fa99ebe1401238c4f1fe23267eef379dd58e05",
+        "runtime_jar_sha256": "a8a414297228fa17abaa4b37dceabc46db508ba076552cc95b79388bdfd9a1fc",
+        "exam_jar_sha256": "6084fcc03ac463732701c5f5d3f220c85b89730defbe640c38ee02c36c05b1e1",
+        "tasks": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "cases_per_task": 32,
+        "seed": 932401,
+        "terrain": "academy-flat",
+        "claim": "Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.",
+        "input_kind": "canonical-checkpoint",
+        "checkpoint_sha256": "8b42441dc8f946be7b58ed60913530c020d0e65e0882dd52f5f5bbcbb3da2567"
+      },
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 132845,
+        "policy_trained_samples": 49593990,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 32,
+        "seed": 932401,
+        "epoch_millis": 1790183460660,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 29,
+            "cases": 32
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 3,
+            "cases": 32
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 31,
+            "cases": 32
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 11,
+            "cases": 32
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 6,
+            "label": "collect-log",
+            "passed": 32,
+            "cases": 32
+          }
+        ]
+      }
+    },
+    {
+      "name": "balanced-fresh-seed-holdout",
+      "retained_trial_count": 512,
+      "metadata": {
+        "policy_sha256": "3b0ef4394ba291156ef384fcfe9b874c3dacfa02eb574c4b9ec4aa82750d9f7d",
+        "runtime_jar_sha256": "740bb5863065c6054735d3c2e412f0d19fc28a2f524a3f3f6a41dc8b731a15c7",
+        "exam_jar_sha256": "29ce571e911dd0ab18d8e27925fa65ea67705c83378e972f8a92662531868d95",
+        "tasks": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cases_per_task": 64,
+        "seed": 901827415,
+        "terrain": "academy-flat",
+        "claim": "Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.",
+        "input_kind": "canonical-checkpoint",
+        "checkpoint_sha256": "b190e10645efae8e35e316267fde95d9f5062f8548b97afcb5a9685045f17f6e"
+      },
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 140831,
+        "policy_trained_samples": 52692498,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 64,
+        "seed": 901827415,
+        "epoch_millis": 1790184621748,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 62,
+            "cases": 64
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 6,
+            "label": "collect-log",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 7,
+            "label": "place-block",
+            "passed": 0,
+            "cases": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "balanced-confirmation-holdout",
+      "retained_trial_count": 512,
+      "metadata": {
+        "policy_sha256": "3b0ef4394ba291156ef384fcfe9b874c3dacfa02eb574c4b9ec4aa82750d9f7d",
+        "runtime_jar_sha256": "740bb5863065c6054735d3c2e412f0d19fc28a2f524a3f3f6a41dc8b731a15c7",
+        "exam_jar_sha256": "252825daa99b57f8141f7438786b7ebc4449fcd094d2953cad5a142c4e56c5c7",
+        "tasks": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cases_per_task": 64,
+        "seed": 419673027,
+        "terrain": "academy-flat",
+        "claim": "Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.",
+        "input_kind": "canonical-checkpoint",
+        "checkpoint_sha256": "b190e10645efae8e35e316267fde95d9f5062f8548b97afcb5a9685045f17f6e"
+      },
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 140831,
+        "policy_trained_samples": 52692498,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 64,
+        "seed": 419673027,
+        "epoch_millis": 1790185419241,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 63,
+            "cases": 64
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 6,
+            "label": "collect-log",
+            "passed": 64,
+            "cases": 64
+          },
+          {
+            "task": 7,
+            "label": "place-block",
+            "passed": 2,
+            "cases": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "native-before-resource-deployment",
+      "retained_trial_count": 192,
+      "metadata": {},
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 151842,
+        "policy_trained_samples": 58835771,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 32,
+        "seed": 738319,
+        "epoch_millis": 1790185458517,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 31,
+            "cases": 32
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 0,
+            "cases": 32
+          }
+        ],
+        "policy_sha256": "e6b18e56cb0589c522a39adcfeb01427982dcff71f86646524739e587559b3d6",
+        "runtime_jar_sha256": "9121e4c0ca8258ef50d9f926b818a5a903e2a83ce96e9573dacd6945fe5bba39",
+        "inference_jar_sha256": "73d96974aa4c99851f3b98f401ab997b1ff4537b76b55a6b681c10d160a5335c",
+        "exam_jar_sha256": "d314460027cf48d91a1779cd73c329ecf8d45c044b845edfdb2908ddd8928f41",
+        "server_version": "1.21.11",
+        "server_build": "14",
+        "scope": "Fixed policy in full-difficulty Academy rooms; not open-world survival or a certificate for later policies."
+      }
+    },
+    {
+      "name": "native-after-resource-deployment",
+      "retained_trial_count": 288,
+      "metadata": {},
+      "result": {
+        "complete": true,
+        "schema": "bcmc-citizen-egocentric-context",
+        "policy_updates": 144297,
+        "policy_trained_samples": 53739585,
+        "new_training_samples": 0,
+        "stochastic": true,
+        "cases_per_task": 32,
+        "seed": 741833,
+        "epoch_millis": 1790186288920,
+        "tasks": [
+          {
+            "task": 0,
+            "label": "forward-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 1,
+            "label": "turn-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 2,
+            "label": "aim-hold",
+            "passed": 31,
+            "cases": 32
+          },
+          {
+            "task": 3,
+            "label": "navigate-stop",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 4,
+            "label": "step-over",
+            "passed": 26,
+            "cases": 32
+          },
+          {
+            "task": 5,
+            "label": "break-log",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 6,
+            "label": "collect-log",
+            "passed": 32,
+            "cases": 32
+          },
+          {
+            "task": 7,
+            "label": "place-block",
+            "passed": 25,
+            "cases": 32
+          },
+          {
+            "task": 8,
+            "label": "craft-planks",
+            "passed": 0,
+            "cases": 32
+          }
+        ],
+        "policy_sha256": "5905d6f9fe64a189e8bfc05ae13370ebee7351e2f63375796883e22aeddeb5d9",
+        "runtime_jar_sha256": "740bb5863065c6054735d3c2e412f0d19fc28a2f524a3f3f6a41dc8b731a15c7",
+        "inference_jar_sha256": "5eca8aa750599c0182ce1dbb313f3f3b65142dc243b051bd207b532e53c3e6e9",
+        "exam_jar_sha256": "cd780ec44c8e5d7e651195083bdf11d607c06661b15255e7b52f8994d1195f85",
+        "server_version": "1.21.11",
+        "server_build": "14",
+        "scope": "Fixed policy in full-difficulty Academy rooms; not open-world survival or a certificate for later policies."
+      }
+    }
+  ]
+}

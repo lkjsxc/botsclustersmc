@@ -37,7 +37,7 @@ public final class Observatory implements CommandExecutor, TabCompleter, Listene
                 case "progress" -> sender.sendMessage(plugin.observerProgress());
                 case "list" -> { int page=args.length>1?Integer.parseInt(args[1]):0;
                     if(page<0||page>1000) throw new IllegalArgumentException("Page must be 0..1000");
-                    plugin.npcs.keySet().stream().sorted(Comparator.<Long>comparingDouble(plugin::observerRank).reversed().thenComparingLong(Long::longValue)).skip(page*10L).limit(10).forEach(id -> sender.sendMessage("#"+id+" "+plugin.observerAgent(id))); }
+                    ranked().stream().map(Rank::id).skip(page*10L).limit(10).forEach(id -> sender.sendMessage("#"+id+" "+plugin.observerAgent(id))); }
                 case "inspect" -> { if(args.length!=2) throw new IllegalArgumentException("/bots inspect <id>"); inspect(sender,Long.parseLong(args[1])); }
                 case "unwatch" -> { Player player=player(sender); player.getScheduler().run(plugin,t->stop(player,true),null); }
                 default -> { Player player=player(sender); long id=args.length>1?Long.parseLong(args[1]):best();
@@ -51,8 +51,14 @@ public final class Observatory implements CommandExecutor, TabCompleter, Listene
         if(!(sender instanceof Player player)) throw new IllegalArgumentException("This view requires a connected player.");
         return player;
     }
+    private record Rank(long id,double score) {}
+    private List<Rank> ranked() {
+        // Read a live score once; comparator results must not change during sorting.
+        return plugin.npcs.keySet().stream().map(id->new Rank(id,plugin.observerRank(id)))
+            .sorted(Comparator.comparingDouble(Rank::score).reversed().thenComparingLong(Rank::id)).toList();
+    }
     private long best() {
-        return plugin.npcs.keySet().stream().max(Comparator.<Long>comparingDouble(plugin::observerRank).thenComparing(Comparator.reverseOrder())).orElseThrow(()->new IllegalStateException("No NPCs are ready yet."));
+        return ranked().stream().findFirst().orElseThrow(()->new IllegalStateException("No NPCs are ready yet.")).id();
     }
     private void inspect(CommandSender sender,long id) {
         Npc npc=Objects.requireNonNull(plugin.npcs.get(id),"Unknown NPC"); AgentSnapshot s=npc.snapshot;
