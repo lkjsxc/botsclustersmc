@@ -8,25 +8,21 @@ permissions:
 jobs:
   workspace:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Pinned Rust compiler
+      - name: Source snapshot
         shell: bash
         run: |
           set -euo pipefail
-          rustup toolchain install nightly-2026-02-04 --profile minimal
           mkdir -p /tmp/bcmc-workspace
-          compiler=$(rustup which --toolchain nightly-2026-02-04 rustc)
-          toolchain=$(dirname "$(dirname "$compiler")")
-          tar -C "$toolchain" -czf /tmp/bcmc-workspace/rust-toolchain.tar.gz bin lib libexec
-          rustup run nightly-2026-02-04 rustc --version --verbose > /tmp/bcmc-workspace/compiler.txt
+          git archive HEAD | gzip > /tmp/bcmc-workspace/source.tar.gz
+          git rev-parse HEAD > /tmp/bcmc-workspace/commit.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: engineering-compiler
+          name: engineering-source
           path: /tmp/bcmc-workspace
           retention-days: 3
           if-no-files-found: error
-          compression-level: 0
