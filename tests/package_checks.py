@@ -13,7 +13,7 @@ class Packaging(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.p = Path(self.tmp.name) / 'source'
-        shutil.copytree(ROOT, self.p, ignore=shutil.ignore_patterns('.git', '.build', 'academy', 'runtime', 'server', 'state', 'logs', 'bin', 'experiments', 'diagnostics', '__pycache__'))
+        shutil.copytree(ROOT, self.p, ignore=shutil.ignore_patterns('.git', '.build', 'academy-v2', 'runtime', 'server', 'state', 'logs', 'bin', 'experiments', 'diagnostics', '__pycache__'))
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(('BCMC_', 'VK_')) and k not in ('BOTS','EULA','BIND_ADDRESS','OFFLINE_ACCESS_ACK','RUN_SECONDS','SERVER_PORT','BOT_PREFIX','JAVA_HEAP_GB')}
     def tearDown(self): self.tmp.cleanup()
     def runsh(self, text, **env):
@@ -26,9 +26,9 @@ class Packaging(unittest.TestCase):
         self.stub('bin/botsclustersmc-bots','echo DUMMY_NO_MINECRAFT')
         q=self.runsh('export BCMC_ROOT="$PWD"; source scripts/build-state.sh; bcmc_source_fingerprint > bin/source.sha256; printf "%s/%s\n" "$(uname -s)" "$(uname -m)" > bin/target.txt; sha256sum bin/botsclustersmc-run bin/botsclustersmc-bots > bin/artifacts.sha256; bcmc_build_is_current')
         self.assertEqual(q.returncode,0,q.stderr)
-    def marker(self, bots=32):
-        d=self.p/'academy'; d.mkdir(exist_ok=True)
-        (d/'.botsclustersmc-academy-v1').write_text(f'botsclustersmc-academy-v1\nbots={bots}\ncampus=8x16\n')
+    def marker(self, bots=64):
+        d=self.p/'academy-v2'; d.mkdir(exist_ok=True)
+        (d/'.botsclustersmc-academy-v2').write_text(f'botsclustersmc-academy-v2\nbots={bots}\ncampus=8x16\n')
     def test_shell_syntax(self):
         for f in list(self.p.glob('*.sh'))+list((self.p/'scripts').glob('*.sh')):
             q=subprocess.run(['bash','-n',str(f)],capture_output=True,text=True)
@@ -39,20 +39,20 @@ class Packaging(unittest.TestCase):
     def test_no_wilderness_flag_fallback(self):
         self.stub('academy.sh','echo ACADEMY_ENTRY')
         q=self.runsh('./start.sh',BCMC_CURRICULUM='false');self.assertIn('ACADEMY_ENTRY',q.stdout)
-    def test_default_32_and_public_bind(self):
+    def test_default_64_and_public_bind(self):
         q=self.runsh('export BCMC_ROOT="$PWD";source scripts/env.sh;printf "%s %s %s" "$BOTS" "$BIND_ADDRESS" "$OFFLINE_ACCESS_ACK"')
-        self.assertEqual(q.stdout,'32 0.0.0.0 true')
+        self.assertEqual(q.stdout,'64 0.0.0.0 true')
     def test_export_wins_over_operator_config(self):
         (self.p/'.env').write_text('BOTS=4\nBIND_ADDRESS=127.0.0.1\n')
         q=self.runsh('export BCMC_ROOT="$PWD";source scripts/env.sh;echo "$BOTS $BIND_ADDRESS"',BOTS='2')
         self.assertEqual(q.stdout.strip(),'2 127.0.0.1')
     def test_eula_not_implicitly_accepted(self):
-        q=self.runsh('./start.sh');self.assertNotEqual(q.returncode,0);self.assertIn('EULA',q.stderr);self.assertFalse((self.p/'academy').exists())
+        q=self.runsh('./start.sh');self.assertNotEqual(q.returncode,0);self.assertIn('EULA',q.stderr);self.assertFalse((self.p/'academy-v2').exists())
     def test_unowned_world_is_preserved(self):
-        (self.p/'academy').mkdir();f=self.p/'academy/world.data';f.write_text('preserve')
+        (self.p/'academy-v2').mkdir();f=self.p/'academy-v2/world.data';f.write_text('preserve')
         q=self.runsh('./start.sh',EULA='true');self.assertNotEqual(q.returncode,0);self.assertIn('not owned',q.stderr);self.assertEqual(f.read_text(),'preserve')
     def test_symlink_lab_is_refused(self):
-        d=Path(self.tmp.name)/'elsewhere';d.mkdir();(self.p/'academy').symlink_to(d,target_is_directory=True)
+        d=Path(self.tmp.name)/'elsewhere';d.mkdir();(self.p/'academy-v2').symlink_to(d,target_is_directory=True)
         q=self.runsh('./start.sh',EULA='true');self.assertNotEqual(q.returncode,0);self.assertEqual(list(d.iterdir()),[])
     def test_changed_population_is_refused(self):
         self.marker(8);q=self.runsh('./start.sh',EULA='true');self.assertNotEqual(q.returncode,0);self.assertIn('population/schema',q.stderr)
@@ -65,20 +65,20 @@ class Packaging(unittest.TestCase):
             f=self.p/name;f.parent.mkdir(exist_ok=True);f.write_text('preserve')
         self.receipt();q=self.runsh('./start.sh',EULA='true')
         self.assertEqual(q.returncode,0,q.stderr);self.assertIn('DUMMY_EXECUTION_ONLY:',q.stdout)
-        self.assertIn('/academy true 32 0.0.0.0',q.stdout)
-        self.assertFalse((self.p/'academy/server/important-world').exists());self.assertFalse((self.p/'academy/state/policy.bcmc').exists())
+        self.assertIn('/academy-v2 true 64 0.0.0.0',q.stdout)
+        self.assertFalse((self.p/'academy-v2/server/important-world').exists());self.assertFalse((self.p/'academy-v2/state/policy.bcmc').exists())
         self.assertEqual((self.p/'state/policy.bcmc').read_text(),'preserve')
     def test_runtime_helper_upgrade_preserves_existing_state(self):
         self.receipt();self.marker()
         for name,text in [('runtime/host-lib/gson.jar','new-helper'),('runtime/host-tools.jar','new-host'),
-                          ('academy/runtime/folia.jar','keep-server'),('academy/state/policy.bcmc','keep-policy'),
-                          ('academy/server/important-world','keep-world')]:
+                          ('academy-v2/runtime/folia.jar','keep-server'),('academy-v2/state/policy.bcmc','keep-policy'),
+                          ('academy-v2/server/important-world','keep-world')]:
             f=self.p/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_text(text)
         q=self.runsh('./start.sh',EULA='true');self.assertEqual(q.returncode,0,q.stderr)
-        self.assertEqual((self.p/'academy/runtime/host-lib/gson.jar').read_text(),'new-helper')
-        self.assertEqual((self.p/'academy/runtime/host-tools.jar').read_text(),'new-host')
+        self.assertEqual((self.p/'academy-v2/runtime/host-lib/gson.jar').read_text(),'new-helper')
+        self.assertEqual((self.p/'academy-v2/runtime/host-tools.jar').read_text(),'new-host')
         for name,text in [('runtime/folia.jar','keep-server'),('state/policy.bcmc','keep-policy'),('server/important-world','keep-world')]:
-            self.assertEqual((self.p/'academy'/name).read_text(),text)
+            self.assertEqual((self.p/'academy-v2'/name).read_text(),text)
     def test_stale_binary_receipt_is_rejected(self):
         self.receipt();(self.p/'bin/botsclustersmc-bots').write_text('modified')
         q=self.runsh('export BCMC_ROOT="$PWD";source scripts/build-state.sh;bcmc_build_is_current');self.assertNotEqual(q.returncode,0)
@@ -87,17 +87,17 @@ class Packaging(unittest.TestCase):
         with (self.p/'app/main.rs').open('a') as f: f.write('\n// native change\n')
         q=self.runsh('./start.sh',EULA='true');self.assertEqual(q.returncode,7);self.assertIn('REBUILD_REQUIRED',q.stderr)
     def test_live_lab_lock_blocks_copy(self):
-        self.marker();d=self.p/'academy/.runtime';d.mkdir()
+        self.marker();d=self.p/'academy-v2/.runtime';d.mkdir()
         with (d/'run.lock').open('w') as lock:
             fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
             q=self.runsh('./start.sh',EULA='true');self.assertNotEqual(q.returncode,0);self.assertIn('already running',q.stderr)
     def test_stop_routes_to_owned_lab(self):
-        self.marker();(self.p/'academy/.runtime').mkdir();q=self.runsh('./stop.sh')
-        self.assertEqual(q.returncode,0,q.stderr);self.assertTrue((self.p/'academy/.runtime/stop').exists());self.assertFalse((self.p/'.runtime/stop').exists())
+        self.marker();(self.p/'academy-v2/.runtime').mkdir();q=self.runsh('./stop.sh')
+        self.assertEqual(q.returncode,0,q.stderr);self.assertTrue((self.p/'academy-v2/.runtime/stop').exists());self.assertFalse((self.p/'.runtime/stop').exists())
     def test_status_routes_to_owned_lab(self):
-        self.marker();self.stub('academy/bin/botsclustersmc-run','echo "STATUS_ROOT=$BCMC_ROOT"')
-        (self.p/'academy/state').mkdir(); (self.p/'academy/state/status.json').write_text('{}')
-        q=self.runsh('./status.sh');self.assertEqual(q.returncode,0,q.stderr);self.assertIn('/academy',q.stdout)
+        self.marker();self.stub('academy-v2/bin/botsclustersmc-run','echo "STATUS_ROOT=$BCMC_ROOT"')
+        (self.p/'academy-v2/state').mkdir(); (self.p/'academy-v2/state/status.json').write_text('{}')
+        q=self.runsh('./status.sh');self.assertEqual(q.returncode,0,q.stderr);self.assertIn('/academy-v2',q.stdout)
     def test_direct_supervisor_script_requires_ownership(self):
         q=self.runsh('./scripts/run.sh',EULA='true');self.assertNotEqual(q.returncode,0);self.assertIn('ownership marker',q.stderr)
     def test_explicit_network_ack_is_documented(self):

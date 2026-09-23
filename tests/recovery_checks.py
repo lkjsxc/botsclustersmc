@@ -35,7 +35,7 @@ class Recovery(unittest.TestCase):
         return self.host('status',self.root,'run',2,'bcmc',enforce)
     def campus(self):
         lab=self.root/'.runtime/lab'
-        (lab/'bridge.ready').write_text('BCMCLAB2 run ready\n')
+        (lab/'bridge.ready').write_text('BCMCLAB3 run ready\n')
         (lab/'campus.ready').write_text('BCMCCAMPUS1 run 32 8 16 96\n'+''.join(f'{i} {i%8*16} {i//8*16}\n' for i in range(32)))
         return lab
     def test_requested_defaults(self):

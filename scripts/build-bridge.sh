@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 : "${BCMC_ROOT:?}" "${BCMC_JAVA:?}" "${BCMC_FOLIA_JAR:?}"
 cd -- "$BCMC_ROOT"
-[[ ${BCMC_CURRICULUM:-false} == true && -f .botsclustersmc-academy-v1 ]] || {
+[[ ${BCMC_CURRICULUM:-false} == true && -f .botsclustersmc-academy-v2 ]] || {
   echo 'The environment bridge may only be installed in an isolated academy.' >&2; exit 1;
 }
 if [[ $BCMC_JAVA == */* ]]; then java_path=$(readlink -f -- "$BCMC_JAVA"); else java_path=$(readlink -f -- "$(command -v "$BCMC_JAVA")"); fi

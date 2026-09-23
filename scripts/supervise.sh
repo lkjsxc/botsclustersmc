@@ -11,7 +11,7 @@ export BCMC_ROOT="$PWD" BCMC_CURRICULUM=true
 source scripts/env.sh
 source scripts/runtime-config.sh
 bcmc_validate_runtime
-[[ -f .botsclustersmc-academy-v1 ]] || { echo 'Missing Academy ownership marker.' >&2; exit 1; }
+[[ -f .botsclustersmc-academy-v2 ]] || { echo 'Missing Academy ownership marker.' >&2; exit 1; }
 mkdir -p .runtime logs state server
 failure=''; server_pid=''; bots_pid=''; loggers=(); cleaned=false; stop_requested=false
 log() { printf '[botsclustersmc] %s\n' "$*" >&2; }

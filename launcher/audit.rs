@@ -1,7 +1,7 @@
 //! Acceptance checks inspect real run records. Unit fixtures below test rejection
 //! logic only; they never establish that Folia or learning ran.
 use std::{fs,path::Path};
-use super::{install::Result,json::{self,Json},learning::checkpoint::Checkpoint};
+use super::{install::Result,json::{self,Json},learning::bundle::Bundle};
 fn integer(j:&Json,key:&str)->Result<u64>{j.get(key)?.integer()}
 fn text<'a>(j:&'a Json,key:&str)->Result<&'a str>{j.get(key)?.text()}
 fn read(path:&Path)->Result<Json>{json::parse(&fs::read_to_string(path).map_err(|e|format!("{}: {e}",path.display()))?)}
@@ -47,7 +47,7 @@ pub fn verify(root:&Path,previous:Option<&Path>)->Result<()> {
     for name in ["supervisor.pid","java.pid","bots.pid"] {
         require(!root.join(".runtime").join(name).exists(),"run still has an owned PID marker")?;
     }
-    let cp=Checkpoint::load(&root.join("state/policy.bcmc")).map_err(|e|format!("checkpoint: {e}"))?;
+    let cp=Bundle::load(&root.join("state/training.bcmc"),integer(&run,"bots")? as usize,1).map_err(|e|format!("checkpoint: {e}"))?.checkpoint;
     require(cp.model.version==integer(&status,"version")? && cp.samples==integer(&status,"trained_samples")? && cp.adam.step==integer(&status,"optimizer_steps")?,"checkpoint and final status disagree")?;
     require(format!("{:016x}",cp.model.fingerprint())==text(&status,"fingerprint")?,"checkpoint weights and status disagree")?;
     if let Some(path)=previous {validate_restart(&read(path)?,&status)?;}

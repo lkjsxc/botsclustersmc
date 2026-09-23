@@ -12,7 +12,7 @@ source scripts/build-state.sh
 academy_mode=true
 hz=5;verifier=verify-academy
 bots=${SMOKE_BOTS:-2}
-[[ $bots =~ ^([1-9]|[12][0-9]|3[0-2])$ ]] || { echo 'SMOKE_BOTS must be 1..32' >&2; exit 1; }
+[[ $bots =~ ^([1-9]|[12][0-9]|3[0-2])$ ]] || { echo 'SMOKE_BOTS must be 1..64' >&2; exit 1; }
 first=${SMOKE_SECONDS:-300}
 second=${SMOKE_RESTART_SECONDS:-180}
 for seconds in "$first" "$second"; do
@@ -33,7 +33,7 @@ cp -a learning/src learning/Cargo.toml "$lab/learning/"
 for name in start.sh stop.sh status.sh console.sh academy.sh VERSION README.md README.ja.md .env.example; do cp -a "$name" "$lab/"; done
 if [[ -d runtime ]]; then cp -a --reflink=auto runtime "$lab/"; fi
 mkdir -p "$lab/evidence"
-printf 'botsclustersmc-academy-v1\nbots=%s\ncampus=8x16\n' "$bots" > "$lab/.botsclustersmc-academy-v1"
+printf 'botsclustersmc-academy-v2\nbots=%s\ncampus=8x16\n' "$bots" > "$lab/.botsclustersmc-academy-v2"
 echo "Isolated real-Minecraft test directory: $lab"
 trap 'printf "stop\n" > "$lab/.runtime/stop" 2>/dev/null || true; exit 130' INT TERM
 trap 'echo "Preserved test world, state and evidence: $lab"' EXIT

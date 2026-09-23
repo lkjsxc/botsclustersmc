@@ -7,7 +7,7 @@ source "$BCMC_ROOT/scripts/env.sh"
 source "$BCMC_ROOT/scripts/build-state.sh"
 source "$BCMC_ROOT/scripts/runtime-config.sh"
 bcmc_validate_runtime
-[[ -f .botsclustersmc-academy-v1 ]] || { echo "Dedicated Academy ownership marker missing; use ./start.sh from the source root." >&2; exit 1; }
+[[ -f .botsclustersmc-academy-v2 ]] || { echo "Dedicated Academy ownership marker missing; use ./start.sh from the source root." >&2; exit 1; }
 export BCMC_CURRICULUM=true
 mkdir -p .runtime logs
 command -v flock >/dev/null || { echo 'Install util-linux (flock) first.' >&2; exit 1; }

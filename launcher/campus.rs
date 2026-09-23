@@ -8,7 +8,7 @@ fn bounded(path:&Path)->Result<Option<String>> {
     }
 }
 pub fn validate(text:&str,run:&str,bots:usize)->Result<()> {
-    if !(1..=32).contains(&bots){return Err("invalid campus population".into());}
+    if !(1..=64).contains(&bots){return Err("invalid campus population".into());}
     let mut expected=format!("BCMCCAMPUS1 {run} {bots} 8 16 96\n");
     for id in 0..bots{expected.push_str(&format!("{id} {} {}\n",id%8*16,id/8*16));}
     if text!=expected{return Err("campus manifest has stale run, wrong population, missing cells or incompatible geometry".into());}
@@ -18,7 +18,7 @@ pub fn ready(root:&Path,run:&str,bots:usize)->Result<bool> {
     let lab=root.join(".runtime/lab");
     if let Some(fatal)=bounded(&lab.join("fatal.txt"))?{if fatal.starts_with(&format!("{run} ")){return Err(format!("Academy failed: {fatal}"));}}
     let Some(bridge)=bounded(&lab.join("bridge.ready"))? else{return Ok(false);};
-    if bridge!=format!("BCMCLAB2 {run} ready\n"){return Err("stale/incompatible bridge receipt".into());}
+    if bridge!=format!("BCMCLAB3 {run} ready\n"){return Err("stale/incompatible bridge receipt".into());}
     let Some(manifest)=bounded(&lab.join("campus.ready"))? else{return Ok(false);};
     validate(&manifest,run,bots)?;Ok(true)
 }

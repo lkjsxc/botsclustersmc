@@ -44,7 +44,7 @@ public final class BotsClustersMCLab extends JavaPlugin implements Listener {
         try{
             run=System.getenv().getOrDefault("BCMC_RUN_ID","unknown");directory=Path.of(Objects.requireNonNull(System.getenv("BCMC_ROOT"))).resolve(".runtime/lab");Files.createDirectories(directory);
             if(!"true".equals(System.getenv("BCMC_CURRICULUM")))throw new IllegalStateException("Academy-only plugin");
-            run=Objects.requireNonNull(System.getenv("BCMC_RUN_ID"));prefix=System.getenv().getOrDefault("BOT_PREFIX","bcmc");bots=setting("BOTS",64,1,64);botView=setting("BOT_VIEW_DISTANCE",3,2,6);
+            run=Objects.requireNonNull(System.getenv("BCMC_RUN_ID"));prefix=System.getenv().getOrDefault("BOT_PREFIX","bcmc");bots=setting("BOTS",64,1,64);botView=setting("BOT_VIEW_DISTANCE",3,3,6);
             EnvironmentConfig.validate(run,prefix,bots);
             world=Objects.requireNonNull(getServer().getWorld("bcmc_academy_v2"),"dedicated Academy v2 world is missing");
             if(world.getWorldType()!=WorldType.FLAT)throw new IllegalStateException("Academy requires its own FLAT world");

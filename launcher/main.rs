@@ -43,7 +43,7 @@ fn run(root:&Path,cfg:&config::Config)->Result<()>{
     if cfg.curriculum {
         let lab=root.join(".runtime/lab");fs::create_dir_all(&lab).map_err(|e|e.to_string())?;
         // Only transient protocol files are removed, never world/checkpoint data.
-        for id in 0..32 {for stem in ["request","frame"] {let path=lab.join(format!("{stem}-{id}.txt"));if path.exists(){fs::remove_file(path).map_err(|e|e.to_string())?;}}}
+        for id in 0..64 {for stem in ["request","frame"] {let path=lab.join(format!("{stem}-{id}.txt"));if path.exists(){fs::remove_file(path).map_err(|e|e.to_string())?;}}}
         for file in ["bridge.ready","campus.ready","fatal.txt"] {let path=lab.join(file);if path.exists(){fs::remove_file(path).map_err(|e|e.to_string())?;}}
     }
     let mut server_cmd=Command::new(&java);

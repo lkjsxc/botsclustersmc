@@ -49,7 +49,7 @@ public final class HostTools {
         }
         Path ready=lab.resolve("bridge.ready"),manifest=lab.resolve("campus.ready");
         if(!Files.exists(ready)||!Files.exists(manifest)) return false;
-        if(!read(ready,1024).equals("BCMCLAB2 "+run+" ready\n")) throw new IOException("Stale bridge receipt");
+        if(!read(ready,1024).equals("BCMCLAB3 "+run+" ready\n")) throw new IOException("Stale bridge receipt");
         StringBuilder expected=new StringBuilder("BCMCCAMPUS1 "+run+" "+bots+" 8 16 96\n");
         for(int i=0;i<bots;i++) expected.append(i).append(' ').append(i%8*16).append(' ').append(i/8*16).append('\n');
         if(!read(manifest,8192).equals(expected.toString())) throw new IOException("Incomplete or incompatible campus manifest");
