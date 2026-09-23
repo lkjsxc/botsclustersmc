@@ -11,7 +11,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -22,16 +22,26 @@ jobs:
         run: |
           set -euo pipefail
           python3 .maintenance/patch_zfix.py
+          python3 .maintenance/patch_runtime.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -u
           if ! git diff --cached --quiet; then
-            git commit -m 'fix: complete v2 routing and pinned Folia API compatibility'
+            git commit -m 'fix: preserve GUI observability and immutable policy/drop identities'
             git push origin HEAD:work/rl64-integration-20260923
           fi
           mkdir -p /tmp/evidence
           git rev-parse HEAD > /tmp/evidence/source.txt
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            .build/cargo
+            .build/rustup
+            .build/azalea/target
+          key: bcmc-native-linux-20260204-v3-${{ github.sha }}
+          restore-keys: bcmc-native-linux-20260204-v3-
       - name: Verify native and environment contracts
+        id: native
         run: |
           set -euo pipefail
           check() { local name=$1; shift; echo "Checking $name"; if "$@" >"/tmp/evidence/$name.txt" 2>&1; then tail -n 3 "/tmp/evidence/$name.txt"; else tail -n 90 "/tmp/evidence/$name.txt"; return 1; fi; }
@@ -43,6 +53,14 @@ jobs:
           check java-contracts ./scripts/test-bridge.sh
           check native-build ./scripts/build.sh
           check standalone env RUSTUP_HOME="$PWD/.build/rustup" CARGO_HOME="$PWD/.build/cargo" "$HOME/.cargo/bin/rustup" run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release
+      - uses: actions/cache/save@v4
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        with:
+          path: |
+            .build/cargo
+            .build/rustup
+            .build/azalea/target
+          key: bcmc-native-linux-20260204-v3-${{ github.sha }}
       - name: Compile against actual pinned Folia API
         run: |
           set -euo pipefail
@@ -53,10 +71,14 @@ jobs:
       - name: Isolated 64-client live learning and checkpoint resume
         run: |
           set -euo pipefail
-          # Explicit consent applies only to this disposable CI server. Operator
-          # EULA configuration is neither imported nor changed.
           if ! EULA=true SMOKE_BOTS=64 SMOKE_HEAP_GB=3 SMOKE_SECONDS=240 SMOKE_RESTART_SECONDS=180 ./smoke.sh >/tmp/evidence/live.txt 2>&1; then tail -n 90 /tmp/evidence/live.txt; exit 1; fi
           tail -n 10 /tmp/evidence/live.txt
+      - name: Scripted reachability of all fixtures and observer commands
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          if ! EULA=true ./scripts/test-live-fixtures.sh >/tmp/evidence/fixtures.txt 2>&1; then tail -n 100 /tmp/evidence/fixtures.txt; exit 1; fi
+          tail -n 50 /tmp/evidence/fixtures.txt
       - name: Print bounded evidence and preserve diagnostics
         if: always()
         run: |
@@ -64,7 +86,8 @@ jobs:
           from pathlib import Path
           import json,shutil
           out=Path('/tmp/evidence');out.mkdir(exist_ok=True)
-          for i,lab in enumerate(sorted(Path('experiments').glob('smoke-*'))):
+          for i,lab in enumerate(sorted(Path('experiments').glob('*'))):
+              if not lab.is_dir(): continue
               for p in sorted(lab.rglob('*.json')):
                   if p.name in {'status.json','academy-status.json','round1-status.json','round2-status.json'}:
                       shutil.copyfile(p,out/f'live-{i}-{p.parent.name}-{p.name}')
