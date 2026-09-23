@@ -148,6 +148,28 @@ public final class Host {
         try(Socket socket=new Socket()){socket.connect(new InetSocketAddress(address,Integer.parseInt(p.getProperty("port"))),2000);socket.setSoTimeout(3000);DataOutputStream out=new DataOutputStream(socket.getOutputStream());out.writeUTF(p.getProperty("token"));out.writeUTF(command);out.flush();String response=new DataInputStream(socket.getInputStream()).readUTF();if(!response.equals("sent"))throw new IOException("Console command rejected");System.out.println("Sent: "+command);}
     }
     static double metric(String json,String key,double fallback){Matcher m=Pattern.compile("\""+Pattern.quote(key)+"\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9Ee+\\-]+)?)").matcher(json);return m.find()?Double.parseDouble(m.group(1)):fallback;}
+    void evaluate(String[] options)throws Exception {
+        if(Arrays.asList(options).contains("--help")){System.out.println("evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600]");return;}
+        if(!bool("EULA",false))throw new IOException("Read and accept the Minecraft EULA before setting EULA=true");
+        Path marker=academy().resolve(".botsclustersmc-academy"),checkpoint=academy().resolve("server/plugins/BotsClustersMC/training.bcmc");safe(marker);safe(checkpoint);
+        if(!Files.isRegularFile(marker)||!Files.readString(marker).equals("botsclustersmc-owned-training\n")||!Files.isRegularFile(checkpoint))throw new IOException("Evaluation requires an owned Academy with a complete checkpoint");
+        build();Path tools=Files.createTempDirectory(ROOT.resolve(".build"),"evaluation-tools-");
+        try {
+            Files.copy(ROOT.resolve("dist/training.jar"),tools.resolve("runtime.jar"));Files.copy(ROOT.resolve("dist/botsclustersmc.jar"),tools.resolve("inference.jar"));
+            Path src=ROOT.resolve("tests/holdout");
+            for(Path file:sources("tests/holdout")){safe(file);Path dest=tools.resolve("holdout-src").resolve(src.relativize(file));Files.createDirectories(dest.getParent());Files.copy(file,dest);}
+            String cp=tools.resolve("runtime.jar")+File.pathSeparator+classpath();
+            List<String> compile=new ArrayList<>(List.of("--release","21","-encoding","UTF-8","-proc:none","-cp",cp,"-d",tools.toString()));
+            for(Path file:sources("host"))compile.add(file.toString());
+            if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,compile.toArray(String[]::new))!=0)throw new IOException("Evaluation tools compilation failed");
+            List<URL> urls=new ArrayList<>();urls.add(tools.toUri().toURL());for(String path:cp.split(Pattern.quote(File.pathSeparator)))urls.add(Path.of(path).toUri().toURL());
+            try(URLClassLoader loader=new URLClassLoader(urls.toArray(URL[]::new),ClassLoader.getPlatformClassLoader())) {
+                String[] args=new String[options.length+1];args[0]=tools.toString();System.arraycopy(options,0,args,1,options.length);
+                try{loader.loadClass("Evaluate").getMethod("main",String[].class).invoke(null,(Object)args);}
+                catch(java.lang.reflect.InvocationTargetException failure){if(failure.getCause() instanceof Exception e)throw e;throw failure;}
+            }
+        }finally{deleteTree(tools);}
+    }
     void status()throws Exception{
         Path path=academy().resolve("server/plugins/BotsClustersMC/status.json");String json=Files.readString(path);System.out.println(json);double age=(System.currentTimeMillis()-metric(json,"epoch_millis",0))/1000;System.out.printf(Locale.ROOT,"Status age: %.1f seconds. Process CPU fraction is normalized over available CPUs, not one thread.%n",age);
         if(!Files.exists(academy().resolve("control.properties")))System.out.println("Supervisor is not running; this is the last saved status, not a live health claim.");
@@ -177,12 +199,13 @@ public final class Host {
     }
     void test()throws Exception{
         build();Path out=ROOT.resolve(".build/tests");Files.createDirectories(out);String cp=ROOT.resolve(".build/classes")+File.pathSeparator+classpath();
-        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host"))args.add(p.toString());
+        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","host"))args.add(p.toString());
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
         for(String test:List.of("CoreTest","MechanicsTest","ControlTest","AimTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}
         System.out.println("PASS inference artifact separation; all tests completed.");
     }
-    public static void main(String[] args){try{Host host=new Host();String op=args.length==0?"help":args[0];switch(op){case "build"->host.build();case "start"->host.start();case "stop"->host.console("stop");case "console"->{if(args.length<2)throw new IOException("console <Minecraft command>");host.console(String.join(" ",Arrays.copyOfRange(args,1,args.length)));}case "monitor"->{if(args.length>3)throw new IOException("monitor [private bind address] [port]");execute(List.of(host.java(),"-Xmx128m","host/Monitor.java",host.academy().resolve("server/plugins/BotsClustersMC").toString(),args.length>1?args[1]:"127.0.0.1",args.length>2?args[2]:"8765"),ROOT);}case "status"->host.status();case "export"->host.export(args.length>1?Path.of(args[1]):ROOT.resolve("dist/deploy"));case "test"->host.test();default->System.out.println("Commands: build | start | status | monitor [private address] [port] | console <command> | stop | export [directory] | test");}}catch(Exception e){System.err.println("ERROR: "+e.getMessage());System.exit(1);}}
+    public static void main(String[] args){try{Host host=new Host();String op=args.length==0?"help":args[0];switch(op){case "build"->host.build();case "start"->host.start();case "stop"->host.console("stop");case "console"->{if(args.length<2)throw new IOException("console <Minecraft command>");host.console(String.join(" ",Arrays.copyOfRange(args,1,args.length)));}case "monitor"->{if(args.length>3)throw new IOException("monitor [private bind address] [port]");execute(List.of(host.java(),"-Xmx128m","host/Monitor.java",host.academy().resolve("server/plugins/BotsClustersMC").toString(),args.length>1?args[1]:"127.0.0.1",args.length>2?args[2]:"8765"),ROOT);}case "evaluate"->host.evaluate(Arrays.copyOfRange(args,1,args.length));case "status"->host.status();case "export"->host.export(args.length>1?Path.of(args[1]):ROOT.resolve("dist/deploy"));case "test"->host.test();default->System.out.println("Commands: build | start | status | evaluate [--help] | monitor [private address] [port] | console <command> | stop | export [directory] | test");}}catch(Exception e){System.err.println("ERROR: "+e.getMessage());System.exit(1);}}
 }

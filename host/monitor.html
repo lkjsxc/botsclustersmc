@@ -20,6 +20,40 @@
 'use strict';
 const $=id=>document.getElementById(id),fmt=n=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}),pct=n=>(100*Number(n||0)).toFixed(1)+'%';
 const labels=['Forward-stop','Turn-stop','Aim-hold','Navigate-stop','Step-over','Break-log','Collect-log','Place-block','Craft-planks','Craft-sticks','Craft-workbench','Craft-wood-pick','Mine-cobblestone','Craft-stone-pick','Smelt-iron','Supply-chest','Build-platform','Log-to-workbench'];
+async function renderEvaluation(live){
+ let panel=$('frozen-evaluation');
+ if(!panel){
+  panel=document.createElement('section');panel.id='frozen-evaluation';
+  const title=document.createElement('h2');title.textContent='Independent fixed-policy evaluation';
+  const progress=document.createElement('p');progress.id='evaluation-progress';progress.className='note';
+  const identity=document.createElement('p');identity.id='evaluation-identity';identity.className='note';
+  const rows=document.createElement('div');rows.id='evaluation-results';
+  const note=document.createElement('p');note.className='note';
+  note.textContent='Each listed task uses one unchanged policy, without learning. The result does not certify a later policy or open-world survival.';
+  panel.append(title,progress,identity,rows,note);$('population').closest('section').after(panel);
+ }
+ try{
+  const response=await fetch('/api/evaluation',{cache:'no-store',signal:AbortSignal.timeout(4000)});
+  if(!response.ok)throw new Error('Evaluation status unavailable.');
+  const data=await response.json(),report=data.result,monitor=data.monitor;
+  const age=monitor?Math.max(0,(Date.now()-Number(monitor.epoch_millis))/1000):0;
+  const active=monitor&&['running','preparing'].includes(monitor.state);
+  $('evaluation-progress').textContent=monitor?`Evaluator: ${monitor.state}${active&&age>60?' (heartbeat is stale)':''} · ${monitor.detail||''}`:'No evaluation process has reported yet.';
+  $('evaluation-results').replaceChildren();
+  if(!report){$('evaluation-identity').textContent='No independent result is available. Curriculum certificates are historical actor records.';return;}
+  if(report.complete!==true||report.stochastic!==true||report.new_training_samples!==0||!Array.isArray(report.tasks))throw new Error('Invalid independent evaluation report.');
+  $('evaluation-identity').textContent=`Tested policy #${fmt(report.policy_updates)} · ${new Date(report.epoch_millis).toLocaleString()} · Live policy #${fmt(live.policy_updates)}. Results belong only to the tested snapshot.`+(report.schema!==live.schema?' The observation schema differs from the live run.':'');
+  for(const task of report.tasks){
+   if(!Number.isInteger(task.task)||task.task<0||task.task>=labels.length||!Number.isInteger(task.cases)||task.cases<1||!Number.isInteger(task.passed)||task.passed<0||task.passed>task.cases)throw new Error('Invalid evaluation counts.');
+   const row=document.createElement('div');row.className='row';
+   const label=document.createElement('span');label.textContent=`${task.task} · ${labels[task.task]}`;
+   const track=document.createElement('div');track.className='track';
+   const bar=document.createElement('div');bar.className='fill';bar.style.width=100*task.passed/task.cases+'%';track.append(bar);
+   const count=document.createElement('span');count.textContent=task.passed+'/'+task.cases;
+   row.append(label,track,count);$('evaluation-results').append(row);
+  }
+ }catch(error){$('evaluation-progress').textContent='Independent evaluation unavailable: '+String(error.message||error);$('evaluation-results').replaceChildren();$('evaluation-identity').textContent='Live training metrics remain separate from evaluation results.';}
+}
 function chart(id,rows,fields,ceiling){
  const svg=$(id);svg.replaceChildren();const ns='http://www.w3.org/2000/svg';
  const max=ceiling||Math.max(1,...rows.flatMap(r=>fields.map(f=>Number(r[f])||0)));
@@ -55,7 +89,7 @@ async function update(){
  try{
   const responses=await Promise.all(['/api/status','/api/history'].map(path=>fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000)})));
   if(responses.some(r=>!r.ok))throw new Error('Metrics service is not ready.');
-  const [status,history]=await Promise.all(responses.map(r=>r.json()));render(status,history);
+  const [status,history]=await Promise.all(responses.map(r=>r.json()));render(status,history);await renderEvaluation(status);
  }catch(error){$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
  finally{setTimeout(update,5000);}
 }

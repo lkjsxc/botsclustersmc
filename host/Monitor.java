@@ -8,7 +8,19 @@ import java.util.concurrent.*;
 
 /** Read-only metrics HTTP service. Never provides a console or writes server data. */
 public final class Monitor {
-    record Snapshot(byte[] status,byte[] history) {}
+    record Snapshot(byte[] status,byte[] history,byte[] evaluation) {}
+    private static String optionalReport(Path path)throws IOException {
+        if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS)||Files.size(path)>131072)return "null";
+        String text=Files.readString(path).strip();
+        return text.startsWith("{")&&text.endsWith("}")?text:"null";
+    }
+    private static byte[] evaluation(Path folder) {
+        try {
+            String result=optionalReport(folder.resolve("evaluation.json"));
+            String monitor=optionalReport(folder.resolve("evaluation-status.json"));
+            return ("{\"result\":"+result+",\"monitor\":"+monitor+"}").getBytes(StandardCharsets.UTF_8);
+        }catch(IOException unavailable){return "{\"result\":null,\"monitor\":null}".getBytes(StandardCharsets.UTF_8);}
+    }
     private static volatile Snapshot snapshot;
     private static final byte[] UNAVAILABLE="{\"error\":\"Training metrics are not available\"}".getBytes(StandardCharsets.UTF_8);
     private static byte[] history(Path folder)throws IOException {
@@ -40,7 +52,7 @@ public final class Monitor {
             try {
                 Path status=folder.resolve("status.json");
                 if(!Files.isRegularFile(status,LinkOption.NOFOLLOW_LINKS)||Files.size(status)>131072)throw new IOException("Invalid status file");
-                snapshot=new Snapshot(Files.readAllBytes(status),history(folder));
+                snapshot=new Snapshot(Files.readAllBytes(status),history(folder),evaluation(folder));
             } catch(IOException failure) { snapshot=null; }
         },0,5,TimeUnit.SECONDS);
         HttpServer server=HttpServer.create(new InetSocketAddress(address,port),16);
@@ -50,8 +62,8 @@ public final class Monitor {
                 if(!exchange.getRequestMethod().equals("GET")){exchange.sendResponseHeaders(405,-1);return;}
                 String path=exchange.getRequestURI().getPath();Snapshot s=snapshot;byte[] body;String type;int code=200;
                 if(path.equals("/")){body=page;type="text/html; charset=utf-8";}
-                else if(path.equals("/api/status")||path.equals("/api/history")) {
-                    type="application/json; charset=utf-8";body=s==null?UNAVAILABLE:path.endsWith("status")?s.status():s.history();if(s==null)code=503;
+                else if(path.equals("/api/status")||path.equals("/api/history")||path.equals("/api/evaluation")) {
+                    type="application/json; charset=utf-8";body=s==null?UNAVAILABLE:path.endsWith("status")?s.status():path.endsWith("history")?s.history():s.evaluation();if(s==null)code=503;
                 } else {exchange.sendResponseHeaders(404,-1);return;}
                 Headers headers=exchange.getResponseHeaders();headers.set("Content-Type",type);
                 headers.set("Cache-Control","no-store");headers.set("X-Content-Type-Options","nosniff");
