@@ -1,17 +1,34 @@
-"""Reviewed pinned-Azalea compatibility fixes; removed before final delivery."""
+"""Finite diagnostic corrections; never part of the normal training executable."""
 from pathlib import Path
-p=Path('learning/src/control.rs')
-s=p.read_text().replace('pub policy:Arc<Model>,identity:PolicyId,pub course:Curriculum,','pub policy:Arc<Model>,pub course:Curriculum,')
-assert s.count('identity:PolicyId') == 1
-p.write_text(s)
-for name in ['app/sensor.rs','tests/live-client.rs']:
-    p=Path(name);s=p.read_text()
-    for menu in ['Crafting','Furnace','Generic9x3','Generic9x6']:
-        s=s.replace(f'Menu::{menu}(_)',f'Menu::{menu}{{..}}')
-    s=s.replace('Menu::Crafting(Default::default())','Menu::Crafting{result:Default::default(),grid:Default::default(),player:Default::default()}')
-    s=s.replace('Menu::Furnace(Default::default())','Menu::Furnace{ingredient:Default::default(),fuel:Default::default(),result:Default::default(),player:Default::default()}')
-    old='if s.observer{let text=format!("{packet:?}");if text.starts_with("SetChunkCacheRadius"){eprintln!("OBSERVER {text}");if text.contains("12"){s.view12=true;}if text.contains("16"){s.view16=true;}}}'
-    new='if s.observer{if let azalea::protocol::packets::game::ClientboundGamePacket::SetChunkCacheRadius(p)=packet.as_ref(){eprintln!("OBSERVER cache radius={}",p.radius);s.view12|=p.radius==12;s.view16|=p.radius==16;}}'
-    s=s.replace(old,new)
+p=Path('tests/live-client.rs');s=p.read_text()
+if 'let mut control=f.clone();' not in s:
+    start=s.index('        let mut a=IDLE;\n        if let Some(op)=self.ops.front_mut()')
+    end=s.index('\n        act::apply(bot,&a,bot.menu().slots().len());',start)
+    body=s[start:end].replace('&f,','&control,').replace('f.position','control.position')
+    body=body.replace('if l.goal[2]-control.position[2]>0.55{a[0]=1;}', 'if l.goal[2]-control.position[2]>0.55 && self.ticks%16==0{a[0]=1;}')
+    body=body.replace('if dist>0.55{if aim(&control,l.goal,false,&mut a){a[0]=1;}if self.stage==4{a[3]=1;}}', 'if dist>0.55{if aim(&control,l.goal,false,&mut a) && (dist>2.0 || self.ticks%16==0){a[0]=1;}if self.stage==4 && dist>1.5{a[3]=1;}}')
+    prefix='''        // A diagnostic controller may use the current client input-device view.
+        // Success STILL comes exclusively from the preceding authoritative gate.
+        // Near a stop target use four-tick pulses, then allow twelve ticks to settle.
+        let mut control=f.clone();let p=bot.position();let direction=bot.direction();
+        control.position=[p.x,p.y,p.z];control.yaw=direction.y_rot();control.pitch=direction.x_rot();
+'''
+    body+='''
+        if self.stage<=4 && f.tick<240 && self.ticks%16==0 {
+            eprintln!("DIAGNOSTIC TRACE task={} client_tick={} server_tick={} server={:?} client={:?} yaw={:.2} input={:?}",self.stage,self.ticks,f.tick,f.position,control.position,control.yaw,a);
+        }'''
+    s=s[:start]+prefix+body+s[end:]
+    old='if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}act::tick_camera(&bot,&s.last);'
+    new='if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}if s.stage==0 && s.ticks%16==4 && s.last[0]!=0{act::stop(&bot);s.last=IDLE;}act::tick_camera(&bot,&s.last);'
+    assert old in s;s=s.replace(old,new)
     p.write_text(s)
-print('Pinned struct menu variants and bounded observer radius diagnostics applied.')
+
+# Keep observer acceptance independent: a fixture failure must not suppress its
+# commands/network checks, but the combined diagnostic still exits nonzero.
+p=Path('tests/live-fixtures.py');s=p.read_text()
+if 'failed_modes=[]' not in s:
+    s=s.replace("    for mode in ['fixtures','observer']:","    failed_modes=[]\n    for mode in ['fixtures','observer']:")
+    s=s.replace("        if test.returncode:raise RuntimeError(f'{mode} failed with exit {test.returncode}')","        if test.returncode:failed_modes.append(f'{mode} exited {test.returncode}')")
+    s=s.replace("    result=0\nfinally:","    if failed_modes:raise RuntimeError('; '.join(failed_modes))\n    result=0\nfinally:")
+    p.write_text(s)
+print('Updated only scripted diagnostic feedback/pulses and independent observer coverage; learning actions and success criteria unchanged.')
