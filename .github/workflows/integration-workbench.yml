@@ -2,7 +2,7 @@ name: Integration workbench
 on:
   push:
     branches: ['work/rl64-integration-20260923']
-    paths: ['.maintenance/promote.py', '.github/workflows/integration-workbench.yml']
+    paths: ['.maintenance/**', '.github/workflows/integration-workbench.yml']
 permissions:
   contents: write
 concurrency:
@@ -14,16 +14,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Promote reviewed plaintext sources on the work branch
+      - name: Apply reviewed transformations on the isolated work branch
         run: |
           set -euo pipefail
-          python3 .maintenance/promote.py
+          if [ ! -d learning/src/next ]; then python3 .maintenance/promote.py; fi
+          if [ -f .maintenance/patch.py ]; then python3 .maintenance/patch.py; fi
           git diff --stat
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add learning experimental scripts/build.sh
-          git commit -m 'refactor: share canonical RL-next mechanisms with the native learning tree'
-          git push origin HEAD:work/rl64-integration-20260923
+          git add learning experimental scripts app launcher bridge tests .env.example
+          if ! git diff --cached --quiet; then
+            git commit -m 'refactor: apply reviewed native integration transformations'
+            git push origin HEAD:work/rl64-integration-20260923
+          fi
       - name: Compile and test promoted shared modules
         run: |
           set -euo pipefail
@@ -31,7 +34,8 @@ jobs:
           rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o /tmp/core-tests
           /tmp/core-tests
           rustup run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release
-      - name: Inspect remaining population and protocol boundaries
+      - name: Inspect integration boundaries
         if: always()
         run: |
-          grep -RnE '(32|BCMCLAB2|curriculum::Curriculum|academy/)' scripts launcher bridge/src app/settings.rs | head -n 160 || true
+          git log -1 --format='%H %s'
+          grep -RnE '(BOTS.*32|bots>32|bots<=32|1\.\.=32|id>=32|BCMCLAB2|curriculum::Curriculum|academy/)' scripts launcher bridge/src app/settings.rs | head -n 100 || true
