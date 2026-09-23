@@ -10,29 +10,54 @@ concurrency:
   group: rl64-workbench
   cancel-in-progress: false
 jobs:
-  core:
+  full:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply reviewed integration migration
-        run: python3 .github/rl64/prepare.py
-      - name: Apply integration corrections
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Apply reviewed source integration
         run: |
-          if test -f .github/rl64/fixes.py; then python3 .github/rl64/fixes.py; fi
-      - name: Compile and test actual runtime learning core
+          mkdir -p "$RUNNER_TEMP/evidence"
+          python3 .github/rl64/prepare.py
+          python3 .github/rl64/fixes.py
+          python3 .github/rl64/bridge.py
+      - name: Core, launcher and actual Azalea adapter build
         run: |
-          rustup toolchain install nightly-2026-02-04 --profile minimal
-          rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o "$RUNNER_TEMP/core-tests"
-          "$RUNNER_TEMP/core-tests" --test-threads=1
-      - name: Show failed source boundary
+          set -o pipefail
+          ./scripts/build.sh > "$RUNNER_TEMP/evidence/build.log" 2>&1 || { tail -160 "$RUNNER_TEMP/evidence/build.log"; exit 1; }
+          grep -E 'test result:|Finished|error' "$RUNNER_TEMP/evidence/build.log" | tail -20
+      - name: Host, fixture and lifecycle regression suites
+        run: |
+          ./scripts/build-host-tools.sh
+          ./scripts/test-bridge.sh
+          python3 tests/package_checks.py
+          python3 tests/bootstrap_checks.py
+          python3 tests/recovery_checks.py
+      - name: Compile the actual Folia environment plugin
+        run: |
+          set -o pipefail
+          trap 'rm -f .botsclustersmc-academy-v2' EXIT
+          printf 'botsclustersmc-academy-v2\nbots=64\ncampus=8x16\n' > .botsclustersmc-academy-v2
+          BOTS=64 BCMC_ROOT="$PWD" bin/botsclustersmc-run check-bridge > "$RUNNER_TEMP/evidence/bridge-api.log" 2>&1 || { tail -120 "$RUNNER_TEMP/evidence/bridge-api.log"; exit 1; }
+          tail -12 "$RUNNER_TEMP/evidence/bridge-api.log"
+      - name: Diagnostic source boundaries on failure
         if: failure()
         run: |
-          echo '===== ORIGINAL NETWORK ====='
-          git show 720d989b3999d07437185fc407609d1c90d9fbc9:learning/src/network.rs | head -105
-          echo '===== ORIGINAL PPO ====='
-          git show 720d989b3999d07437185fc407609d1c90d9fbc9:learning/src/ppo.rs | head -160
-          echo '===== GEOMETRY SIGNATURES ====='
-          grep -nE 'fn |struct |enum ' learning/src/curriculum.rs | head -30
+          for f in learning/src/lib.rs launcher/academy_audit.rs app/settings.rs scripts/build.sh bridge/ProtocolTest.java bridge/EnvironmentConfigTest.java; do
+            echo "===== $f ====="; head -100 "$f";
+          done
+          echo '===== remaining population and frame constraints ====='
+          grep -RnE 'BOTS.*32|bots.*32|1292|640|academy-v1' app launcher scripts academy.sh tests bridge | head -65 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rl64-integration-evidence
+          path: ${{ runner.temp }}/evidence
+          retention-days: 14
+          if-no-files-found: warn
