@@ -50,6 +50,12 @@ public final class TrainingEnvironment {
                 AimPractice.Pose pose=AimPractice.reset(lesson.kind(),d,yaw,pitch,targetYaw,targetPitch,rng);
                 yaw=pose.yaw();pitch=pose.pitch();
             }
+            if(HarvestPractice.applies(lesson.task())) {
+                double targetYaw=Math.toDegrees(Math.atan2(-(gx-sx),gz-sz));
+                double targetPitch=-Math.toDegrees(Math.atan2(gy+.5-(65+npc.entity.getEyeHeight()),Math.hypot(gx-sx,gz-sz)));
+                AimPractice.Pose pose=HarvestPractice.reset(lesson.task(),lesson.kind(),d,yaw,pitch,targetYaw,targetPitch,rng);
+                yaw=pose.yaw();pitch=pose.pitch();
+            }
             Goal goal=new Goal(lesson.task(),gx,gy,gz,lesson.serial(),d,lesson.task().horizon());
             Location spawn=new Location(world,sx,65,sz,yaw,pitch);
             npc.reset(goal,spawn,()->{
@@ -108,6 +114,12 @@ public final class TrainingEnvironment {
             case 17->Math.min(1,count(npc.broken,2))*.1+Math.min(1,count(npc.collected,2))*.1+Math.min(4,count(npc.pocket.crafted,3))*.05+Math.min(1,npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L))*.4;
             default->0;
         };
+    }
+    public static double harvestReward(Npc npc,Session session,Frame next,int ticks) {
+        boolean broken=count(npc.broken,2)>0;
+        return HarvestPractice.controlReward(npc.goal.task(),broken,next.yawError(),next.pitchError(),
+            Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z()),Math.hypot(next.vx(),next.vz()),
+            targetMining(npc,session),ticks);
     }
     public static boolean success(Npc npc,Session s,Npc.Applied previous,Frame next){
         int task=npc.goal.task().ordinal();int ticks=(int)(next.tick()-previous.frame().tick());

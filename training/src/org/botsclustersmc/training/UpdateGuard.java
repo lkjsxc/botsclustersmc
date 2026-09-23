@@ -23,8 +23,18 @@ public final class UpdateGuard {
     }
     public static List<Transition> observations(List<Trajectory> batch) {
         List<Transition> all=new ArrayList<>();for(Trajectory trajectory:batch)all.addAll(trajectory.steps());
-        int n=Math.min(128,all.size());List<Transition> selected=new ArrayList<>(n);
-        for(int i=0;i<n;i++)selected.add(all.get(i*all.size()/n));return selected;
+        int n=Math.min(128,all.size());if(all.size()<=n)return all;
+        BitSet selected=new BitSet(all.size());boolean[] seen=new boolean[TaskBalance.TASKS+1];
+        for(int i=0;i<all.size();i++) {
+            int task=TaskBalance.task(all.get(i).observation());
+            if(!seen[task]){selected.set(i);seen[task]=true;}
+        }
+        // Rare tasks must not disappear between evenly spaced guard samples.
+        for(int i=0;i<n&&selected.cardinality()<n;i++)selected.set(i*all.size()/n);
+        for(int i=0;selected.cardinality()<n;i++)selected.set(i);
+        List<Transition> result=new ArrayList<>(n);
+        for(int i=selected.nextSetBit(0);i>=0;i=selected.nextSetBit(i+1))result.add(all.get(i));
+        return result;
     }
     private static List<double[]> distributions(Policy policy,List<Transition> samples) {
         Policy.Workspace w=new Policy.Workspace();List<double[]> result=new ArrayList<>(samples.size());

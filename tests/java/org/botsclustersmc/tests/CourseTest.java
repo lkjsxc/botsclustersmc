@@ -18,10 +18,27 @@ public final class CourseTest {
         check(count==16+stage*4,"complete fixed exam denominator");
     }
     public static void main(String[] args)throws Exception{
+        LessonOutcomes outcomes=new LessonOutcomes();
+        outcomes.record(Task.BREAK_LOG,Course.Kind.PRACTICE,false);outcomes.record(Task.BREAK_LOG,Course.Kind.PROBE,true);
+        outcomes.record(Task.BREAK_LOG,Course.Kind.EXAM,true);LessonOutcomes.Totals result=outcomes.snapshot()[5];
+        check(result.trainingTrials()==2&&result.trainingSuccesses()==1,"exact outcomes, not an initialization prior");
+        check(result.probeTrials()==1&&result.probeSuccesses()==1,"probe outcomes separate from easy practice");
+        check(result.examTrials()==1&&result.examSuccesses()==1,"frozen exams never counted as training");
+        check(outcomes.snapshot()[0].trainingTrials()==0,"unused tasks have zero actual trials");
+        Thread[] writers=new Thread[4];for(int i=0;i<writers.length;i++){writers[i]=new Thread(()->{for(int n=0;n<1000;n++)outcomes.record(Task.COLLECT_LOG,Course.Kind.PRACTICE,n%2==0);});writers[i].start();}
+        for(Thread writer:writers)writer.join();result=outcomes.snapshot()[6];
+        check(result.trainingTrials()==4000&&result.trainingSuccesses()==2000,"concurrent outcomes counted exactly once");
         Course c=new Course(2,7);ready(c,0);check(c.stage(1)==0,"another actor has not been promoted");
         c.beginExam(0,7);Course.Lesson exam=c.issue(0);Course.Lesson other=c.issue(1);check(other.kind()!=Course.Kind.EXAM,"other actor still trains during exam");c.finish(1,other.serial(),false);c.finish(0,exam.serial(),true);
         while(c.examVersion(0)>=0){Course.Lesson l=c.issue(0);c.finish(0,l.serial(),true);}
         check(c.stage(0)==1&&c.stage(1)==0,"independent promotion, weak actor cannot hide in average");check(c.certifiedVersion(0,0)==7,"certificate records frozen version");
+        byte[] beforeMetrics=c.encode();Course.StageMetrics[] metrics=c.stageMetrics();
+        check(metrics.length==18&&metrics[0].actors()==1&&metrics[1].actors()==1,"stage population snapshot");
+        check(metrics[0].historicalCertificates()==1&&metrics[1].historicalCertificates()==0,"certificates are historical not current-policy passes");
+        check(metrics[0].trainingEpisodes()==1&&metrics[0].probes()==1,"probes are a subset of training trials");
+        check(metrics[2].trainingEma()==-1&&metrics[2].probeEma()==-1,"empty cohorts are absent, not failed");
+        check(Arrays.equals(beforeMetrics,c.encode()),"metrics cannot modify curriculum or random state");
+        metrics[0]=null;check(c.stageMetrics()[0]!=null,"metric arrays are independent snapshots");
         ready(c,0);exam(c,0,12,1,3);check(c.stage(0)==1,"13/16 cannot pass current task");
         ready(c,0);exam(c,0,13,0,2);check(c.stage(0)==1,"2/4 cannot pass a retained skill");
         ready(c,0);c.beginExam(0,14);Course.Lesson partial=c.issue(0);c.finish(0,partial.serial(),true);c.issue(0);
@@ -30,6 +47,10 @@ public final class CourseTest {
         fails(()->Course.decode(c.encode(),3));fails(()->new Course(0,1));fails(()->Course.decode(new byte[]{1,2},2));
         Course all=new Course(1,999);for(int task=0;task<18;task++){ready(all,0);exam(all,0,100+task,-1,0);check(all.stage(0)==Math.min(17,task+1),"all curriculum transitions reachable");}check(all.completed()&&all.completedAgents()==1,"all 18 independently certified");
         Course big=new Course(2048,3);for(int i=0;i<2048;i++){Course.Lesson l=big.issue(i);big.finish(i,l.serial(),i%2==0);}check(big.running()==0&&big.episodes()==2048,"population accounting");
+        Course.StageMetrics aggregate=big.stageMetrics()[0];
+        check(aggregate.actors()==2048&&aggregate.trainingEpisodes()==2048&&aggregate.probes()==2048,"cohort denominators");
+        check(Math.abs(aggregate.trainingEma()-.215)<1e-10&&Math.abs(aggregate.probeEma()-.05)<1e-10,"separate cohort EMAs");
+        for(Course.StageMetrics stage:all.stageMetrics())check(stage.historicalCertificates()==1,"all historical certificates reported");
         for(int population:new int[]{1,16,32,64,256,1024,2048,10000})for(int threads:new int[]{1,2,8,32}){
             int size=ArenaLayout.islandSize(population,threads);Set<String> positions=new HashSet<>();for(int i=0;i<population;i++){ArenaLayout a=ArenaLayout.forActor(i,population,size);check(positions.add(a.chunkX()+":"+a.chunkZ()),"unique physical cell");check(a.contains(a.x()+8,65,a.z()+8),"arena inside");check(!a.contains(a.x(),65,a.z()),"arena wall outside");}}
         System.out.println("PASS independent course checks="+checks);

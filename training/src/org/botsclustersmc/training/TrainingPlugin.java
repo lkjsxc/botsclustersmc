@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.*;
 
 /** Training-only entry point; never package this class into the deployment plugin. */
 public final class TrainingPlugin extends RuntimePlugin {
+    private final LessonOutcomes outcomes=new LessonOutcomes();
     private Course course;private Learner learner;private Adam restoredOptimizer;private int count,islandSize;
     private final Map<Long,ArenaLayout> arenas=new ConcurrentHashMap<>();private final AtomicInteger prepared=new AtomicInteger(),preparing=new AtomicInteger(),nextArena=new AtomicInteger();
     private final LongAdder buffered=new LongAdder(),episodesEnded=new LongAdder(),examTransitions=new LongAdder();
@@ -76,6 +77,7 @@ public final class TrainingPlugin extends RuntimePlugin {
             double angular=Math.max(Math.abs(Sensors.angle(next.yaw()-previous.frame().yaw())),Math.abs(next.pitch()-previous.frame().pitch()))/ticks;
             reward+=(float)AimPractice.controlReward(next.yawError(),next.pitchError(),angular,ticks);
         }
+        if(HarvestPractice.applies(npc.goal.task()))reward+=(float)TrainingEnvironment.harvestReward(npc,s,next,ticks);
         if(s.lesson.kind()!=Course.Kind.EXAM){
             s.fragment.add(new Transition(previous.frame().observation(),previous.frame().mask(),previous.result().actions(),previous.result().logProbability(),previous.result().policyVersion(),reward,ticks,next.observation(),next.mask(),terminal));buffered.increment();
             if(s.fragment.size()>=32||terminal)flush(npc,s);
@@ -83,7 +85,7 @@ public final class TrainingPlugin extends RuntimePlugin {
             if(previous.result().policyVersion()!=course.examVersion(npc.id))throw new IllegalStateException("exam policy changed");examTransitions.increment();
         }
         if(!terminal)return true;
-        course.finish(npc.id,s.lesson.serial(),success);episodesEnded.increment();s.lesson=null;if(course.examVersion(npc.id)<0)s.examPolicy=null;npc.discardPending();return false;
+        course.finish(npc.id,s.lesson.serial(),success);outcomes.record(s.lesson.task(),s.lesson.kind(),success);episodesEnded.increment();s.lesson=null;if(course.examVersion(npc.id)<0)s.examPolicy=null;npc.discardPending();return false;
     }
     @Override public void interrupted(Npc npc){
         if(npc.context instanceof TrainingEnvironment.Session s&&s.lesson!=null){if(s.lesson.kind()!=Course.Kind.EXAM)flush(npc,s);course.abandon(npc.id);s.lesson=null;s.examPolicy=null;}
@@ -101,16 +103,34 @@ public final class TrainingPlugin extends RuntimePlugin {
     }
     @Override public String observerAgent(long id){
         Course.Progress p=course.progress(id);
-        return String.format(Locale.ROOT,"stage %d | practice %d (EMA %.1f%%) | full probes %d (EMA %.1f%%) | %s",p.stage(),p.practiceEpisodes(),100*p.practiceSuccess(),p.probes(),100*p.probeSuccess(),p.exam()?"frozen exam "+p.examCases()+"/"+(16+4*p.stage())+" policy "+p.examPolicy():"practice");
+        return String.format(Locale.ROOT,"stage %d | training episodes %d (EMA %.1f%%) | full probes %d (EMA %.1f%%) | %s",p.stage(),p.practiceEpisodes(),100*p.practiceSuccess(),p.probes(),100*p.probeSuccess(),p.exam()?"frozen exam "+p.examCases()+"/"+(16+4*p.stage())+" policy "+p.examPolicy():"practice");
     }
     @Override public String observerHud(long id){Course.Progress p=course.progress(id);return String.format(Locale.ROOT,"stage %d | probe %.0f%% | %s",p.stage(),100*p.probeSuccess(),p.exam()?"EXAM "+p.examCases()+"/"+(16+4*p.stage()):"practice");}
     @Override public double observerRank(long id){Course.Progress p=course.progress(id);return p.stage()+p.probeSuccess()*.5;}
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
         Course.Metrics m=course.metrics();s.put("practice_success_ema",m.practiceMean());s.put("probe_success_ema",m.probeMean());s.put("best_probe_success_ema",m.bestProbe());s.put("exam_ready_agents",m.ready());s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
+        Course.StageMetrics[] stages=course.stageMetrics();
+        s.put("cohort_training_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::trainingEma).toArray()));
+        s.put("cohort_probe_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::probeEma).toArray()));
+        s.put("cohort_training_episodes",Arrays.toString(Arrays.stream(stages).mapToLong(Course.StageMetrics::trainingEpisodes).toArray()));
+        s.put("cohort_probes",Arrays.toString(Arrays.stream(stages).mapToLong(Course.StageMetrics::probes).toArray()));
+        s.put("historical_certified_actors",Arrays.toString(Arrays.stream(stages).mapToInt(Course.StageMetrics::historicalCertificates).toArray()));
+        LessonOutcomes.Totals[] done=outcomes.snapshot();
+        s.put("training_trials_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::trainingTrials).toArray()));
+        s.put("training_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::trainingSuccesses).toArray()));
+        s.put("probe_trials_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::probeTrials).toArray()));
+        s.put("probe_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::probeSuccesses).toArray()));
+        s.put("exam_trials_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examTrials).toArray()));
+        s.put("exam_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examSuccesses).toArray()));
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
         s.put("learner_offered_samples",learner.offered.sum());s.put("learner_rejected_samples",learner.rejected.sum());s.put("learner_stale_samples",learner.stale.sum());s.put("actor_buffered_samples",buffered.sum());s.put("exam_transitions",examTransitions.sum());
-        s.put("learner_algorithm","vtrace-guarded-adam");s.put("aim_curriculum","progressive-settling");s.put("update_samples",learner.updateSamples);s.put("update_learning_rate",learner.learningRate);s.put("update_mean_policy_kl",learner.meanPolicyKl);s.put("update_max_policy_kl",learner.maxPolicyKl);s.put("update_backtracks",learner.guardBacktracks.sum());s.put("update_rejected_samples",learner.guardRejectedSamples.sum());s.put("batch_wait_ns",learner.batchWaitNanos.sum());s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
+        s.put("task_balance","bounded-batch-loss");
+        s.put("learned_task_samples_this_process",Arrays.toString(learner.taskSamples()));
+        TaskBalance last=learner.updateBalance();
+        s.put("update_task_samples",Arrays.toString(last==null?new int[TaskBalance.TASKS+1]:last.counts()));
+        s.put("update_task_weights",Arrays.toString(last==null?new double[TaskBalance.TASKS+1]:last.weights()));
+        s.put("learner_algorithm","vtrace-guarded-adam");s.put("aim_curriculum","progressive-settling");s.put("harvest_curriculum","sustained-contact-cost");s.put("update_samples",learner.updateSamples);s.put("update_learning_rate",learner.learningRate);s.put("update_mean_policy_kl",learner.meanPolicyKl);s.put("update_max_policy_kl",learner.maxPolicyKl);s.put("update_backtracks",learner.guardBacktracks.sum());s.put("update_rejected_samples",learner.guardRejectedSamples.sum());s.put("batch_wait_ns",learner.batchWaitNanos.sum());s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
     }
     @Override protected void closing()throws Exception{
         closing=true;if(learner==null)return;learner.close();if(!learner.awaitTermination(30000))throw new IllegalStateException("Learner has not drained; last complete checkpoint retained");

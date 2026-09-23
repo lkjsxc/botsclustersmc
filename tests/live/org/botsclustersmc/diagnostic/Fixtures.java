@@ -41,6 +41,14 @@ public final class Fixtures extends RuntimePlugin {
     private void tick(Npc n){
         n.tick++;n.lastStepNanos=System.nanoTime();if(n.resetting||failed.get()!=null||passed.contains(n.id))return;
         Control c=(Control)n.context;TrainingEnvironment.Session session=sessions.get(n.id);
+        if(c.before==null&&c.step==0) {
+            Location original=n.entity.getLocation();n.entity.setRotation(0,89);
+            int[] rejected=Schema.IDLE.clone();rejected[4]=1;WorldActions.tick(n,rejected,true);
+            if(n.miningTicks!=0||n.mining!=null||!n.broken.isEmpty())
+                throw new IllegalStateException("A protected arena floor must not report mining progress");
+            n.entity.setRotation(original.getYaw(),original.getPitch());
+        }
+
         if(n.tick-n.episodeStart>2900)throw new IllegalStateException("fixture timeout task="+n.id+" menu="+n.pocket.menu()+" pos="+n.entity.getLocation()+" broken="+n.broken+" collected="+n.collected+" placed="+n.placed+" crafted="+n.pocket.crafted+" extracted="+n.pocket.extracted);
         boolean fresh=n.tick%4==0;
         if(fresh){Frame current=Sensors.capture(n);

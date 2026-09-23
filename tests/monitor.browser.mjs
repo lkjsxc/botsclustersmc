@@ -10,6 +10,7 @@ assert.equal((await page.request.get(new URL('/policy.bcmc',url).href)).status()
 await page.goto(url,{waitUntil:'networkidle'});
 await page.waitForFunction(()=>document.getElementById('state').textContent==='RUNNING');
 assert.equal(await page.locator('#population .row').count(),18);
+assert.equal(await page.locator('#population .stage-detail').count(),18);
 assert.equal(Number((await page.locator('#agents').textContent()).replaceAll(',','')),initial.active_agents);
 assert.equal(await page.locator('#error').textContent(),'');
 assert.ok((await page.locator('#speedchart .line').getAttribute('d')).length>0);

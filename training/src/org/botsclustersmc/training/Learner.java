@@ -22,6 +22,11 @@ public final class Learner implements AutoCloseable {
     private volatile boolean updating;
     public final LongAdder offered=new LongAdder(),rejected=new LongAdder(),stale=new LongAdder(),computeNanos=new LongAdder(),updates=new LongAdder();
     public volatile double gradientNorm,valueLoss,entropy,importance,meanPolicyKl,maxPolicyKl,learningRate;
+    private final long[] learnedByTask=new long[TaskBalance.TASKS+1];
+    private volatile long[] taskSampleSnapshot=learnedByTask.clone();
+    private volatile TaskBalance lastBalance;
+    public long[] taskSamples(){return taskSampleSnapshot.clone();}
+    public TaskBalance updateBalance(){return lastBalance;}
     public volatile int updateSamples;
     public final LongAdder guardBacktracks=new LongAdder(),guardRejectedSamples=new LongAdder(),batchWaitNanos=new LongAdder();
     public Learner(Policy policy,Adam optimizer,int threads,int capacity,int batchSamples,int maxLag,Consumer<Policy> publish,Consumer<Throwable> fatal) {
@@ -67,11 +72,12 @@ public final class Learner implements AutoCloseable {
                 }while(t!=null);
                 batchWaitNanos.add(System.nanoTime()-waiting);state="updating";long started=System.nanoTime();
                 if(!batch.isEmpty()) {
+                    TaskBalance balance=TaskBalance.forBatch(batch);lastBalance=balance;
                     int workers=Math.min(parallelism,batch.size());List<List<Trajectory>> groups=new ArrayList<>();
                     for(int i=0;i<workers;i++)groups.add(new ArrayList<>());
                     for(int i=0;i<batch.size();i++)groups.get(i%workers).add(batch.get(i));
                     List<Future<Gradient.Result>> futures=new ArrayList<>();
-                    for(List<Trajectory> group:groups)futures.add(kernels.submit(()->Gradient.compute(target,group)));
+                    for(List<Trajectory> group:groups)futures.add(kernels.submit(()->Gradient.compute(target,group,balance)));
                     float[] gradient=new float[Policy.PARAMETERS];int actual=0;double loss=0,ent=0,imp=0;
                     for(Future<Gradient.Result> f:futures){Gradient.Result g=f.get();actual+=g.samples();loss+=g.valueLoss();ent+=g.entropy();imp+=g.importance();for(int i=0;i<gradient.length;i++)gradient[i]+=g.weights()[i];}
                     UpdateGuard.Result checked=UpdateGuard.update(target,optimizer,gradient,actual,batch);
@@ -80,6 +86,9 @@ public final class Learner implements AutoCloseable {
                         Adam.Update update=checked.update();
                         synchronized(this){optimizer=update.optimizer();policy=update.policy();}
                         gradientNorm=update.gradientNorm();meanPolicyKl=checked.change().mean();maxPolicyKl=checked.change().maximum();learningRate=checked.learningRate();
+                        int[] taskCounts=balance.counts();
+                        for(int i=0;i<taskCounts.length;i++)learnedByTask[i]+=taskCounts[i];
+                        taskSampleSnapshot=learnedByTask.clone();
                         publish.accept(policy);updates.increment();
                     }else{guardRejectedSamples.add(actual);learningRate=0;}
                     valueLoss=loss/actual;entropy=ent/actual;importance=imp/actual;

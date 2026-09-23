@@ -1,5 +1,5 @@
 name: BotsClustersMC
-version: '0.7.0'
+version: '0.7.1'
 main: org.botsclustersmc.training.TrainingPlugin
 api-version: '1.21'
 folia-supported: true

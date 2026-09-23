@@ -59,6 +59,20 @@ public final class Course {
         for(Agent a:agents){practice+=a.ema[a.stage];probe+=a.probeEma[a.stage];best=Math.max(best,a.probeEma[a.stage]);if(eligible(a))ready++;}
         return new Metrics(practice/agents.length,probe/agents.length,best,ready);
     }
+    public record StageMetrics(int actors,long trainingEpisodes,long probes,double trainingEma,double probeEma,int historicalCertificates) {}
+    public synchronized StageMetrics[] stageMetrics() {
+        int[] population=new int[TASKS],certificates=new int[TASKS];long[] episodes=new long[TASKS],probes=new long[TASKS];
+        double[] training=new double[TASKS],probe=new double[TASKS];
+        for(Agent a:agents) {
+            int task=a.stage;population[task]++;episodes[task]+=a.episodes[task];probes[task]+=a.probes[task];
+            training[task]+=a.ema[task];probe[task]+=a.probeEma[task];
+            for(int i=0;i<TASKS;i++)if(a.certified[i]>=0)certificates[i]++;
+        }
+        StageMetrics[] result=new StageMetrics[TASKS];
+        for(int i=0;i<TASKS;i++)result[i]=new StageMetrics(population[i],episodes[i],probes[i],
+            population[i]==0?-1:training[i]/population[i],population[i]==0?-1:probe[i]/population[i],certificates[i]);
+        return result;
+    }
     public synchronized int stage(long actor){return agent(actor).stage;}
     public synchronized boolean completed(long actor){return agent(actor).complete;}
     public synchronized long certifiedVersion(long actor,int task){return agent(actor).certified[task];}

@@ -21,6 +21,8 @@ try {
  await until(()=>bot.entity&&bot.game.gameMode==='spectator','spectator join',60);bot.physicsEnabled=false;
  await until(()=>bot.entity.position.y>75,'automatic overview');
  await command('progress','Stages');await command('inspect 0','body=VILLAGER');
+ await until(()=>messages.some(m=>m.includes('mining_ticks='))&&messages.some(m=>m.includes('blocks_broken=')),'resource attempt diagnostics');
+ assert.ok(messages.some(m=>m.includes('move=')&&m.includes('interact=')),'Selected controls have readable names');
  await command('watch 0','Observing #0');await until(()=>bot.entity.position.y>68&&bot.entity.position.y<73,'tracking camera');
  assert.ok(particles>0,'Client received goal particles');
  const before=bot.entity.position.clone();

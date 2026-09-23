@@ -16,8 +16,9 @@ public final class FrozenPolicyExam extends RuntimePlugin {
     private final AtomicInteger prepared=new AtomicInteger();
     private final Map<Long,TrainingEnvironment.Session> sessions=new ConcurrentHashMap<>();
     private final Map<Long,Outcome> outcomes=new ConcurrentHashMap<>();
+    private final Map<Long,TrialTrace> traces=new ConcurrentHashMap<>();
     private final AtomicBoolean written=new AtomicBoolean();
-    private record Outcome(int task,long seed,boolean success,long ticks,double distance) {}
+    private record Outcome(int task,long seed,boolean success,long ticks,double distance,String diagnostics) {}
     private long started;
     @Override public boolean training(){return true;}
     @Override public Policy initialPolicy()throws Exception {
@@ -59,7 +60,7 @@ public final class FrozenPolicyExam extends RuntimePlugin {
         },1,1,TimeUnit.SECONDS);
     }
     @Override protected void spawned(Npc npc) {
-        TrainingEnvironment.Session session=sessions.get(npc.id);npc.context=session;
+        TrainingEnvironment.Session session=sessions.get(npc.id);npc.context=session;traces.put(npc.id,new TrialTrace());
         TrainingEnvironment.reset(this,npc,session,session.lesson);
     }
     @Override public boolean greedy(Npc npc){return false;}
@@ -73,11 +74,12 @@ public final class FrozenPolicyExam extends RuntimePlugin {
     @Override public boolean observed(Npc npc,Npc.Applied previous,Frame next) {
         if(previous.result().policyVersion()!=policy.updates())throw new IllegalStateException("Frozen policy identity changed");
         TrainingEnvironment.Session session=sessions.get(npc.id);
+        traces.get(npc.id).observe(npc,previous,next);
         boolean success=TrainingEnvironment.success(npc,session,previous,next);
         long elapsed=next.tick()-npc.episodeStart;
         boolean terminal=success||elapsed>=npc.goal.horizon()||!session.arena.contains(next.x(),next.y(),next.z());
         if(!terminal)return true;
-        Outcome result=new Outcome(npc.goal.task().ordinal(),session.lesson.seed(),success,elapsed,next.distance());
+        Outcome result=new Outcome(npc.goal.task().ordinal(),session.lesson.seed(),success,elapsed,next.distance(),traces.get(npc.id).json(npc));
         if(outcomes.putIfAbsent(npc.id,result)!=null)throw new IllegalStateException("Duplicate trial completion");
         npc.paused=true;npc.discardPending();return false;
     }
@@ -86,7 +88,7 @@ public final class FrozenPolicyExam extends RuntimePlugin {
         StringJoiner trials=new StringJoiner(","),summary=new StringJoiner(",");
         for(long actor=0;actor<count;actor++) {
             Outcome o=Objects.requireNonNull(outcomes.get(actor));if(o.success())passed.merge(o.task(),1,Integer::sum);
-            trials.add(String.format(Locale.ROOT,"{\"actor\":%d,\"task\":%d,\"seed\":%d,\"success\":%s,\"elapsed_ticks\":%d,\"distance\":%.6f}",actor,o.task(),o.seed(),o.success(),o.ticks(),o.distance()));
+            trials.add(String.format(Locale.ROOT,"{\"actor\":%d,\"task\":%d,\"seed\":%d,\"success\":%s,\"elapsed_ticks\":%d,\"distance\":%.6f,\"diagnostics\":%s}",actor,o.task(),o.seed(),o.success(),o.ticks(),o.distance(),o.diagnostics()));
         }
         for(int task:tasks)summary.add(String.format(Locale.ROOT,"{\"task\":%d,\"label\":\"%s\",\"passed\":%d,\"cases\":%d}",task,Task.at(task).label(),passed.get(task),cases));
         String report=String.format(Locale.ROOT,"{\"complete\":true,\"schema\":\"%s\",\"policy_updates\":%d,\"policy_trained_samples\":%d,\"new_training_samples\":0,\"stochastic\":true,\"cases_per_task\":%d,\"seed\":%d,\"epoch_millis\":%d,\"tasks\":[%s],\"trials\":[%s]}\n",Schema.ID,policy.updates(),policy.samples(),cases,examSeed,System.currentTimeMillis(),summary,trials);

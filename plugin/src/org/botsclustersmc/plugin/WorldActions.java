@@ -51,7 +51,7 @@ public final class WorldActions {
         Bukkit.getPluginManager().callEvent(event);return !event.isCancelled();
     }
     private static void mine(Npc npc){
-        Hit hit=trace(npc);if(hit==null){npc.mining=null;npc.miningTicks=0;return;}Block b=hit.block();Material type=b.getType();
+        Hit hit=trace(npc);if(hit==null||!npc.plugin.canChange(npc,hit.block())){npc.mining=null;npc.miningTicks=0;return;}Block b=hit.block();Material type=b.getType();
         int kind=Stack.kind(type.name());if(kind!=2&&kind!=3&&kind!=5&&kind!=8&&kind!=9&&kind!=11&&kind!=14&&kind!=15){npc.miningTicks=0;return;}
         String key=b.getX()+":"+b.getY()+":"+b.getZ()+":"+type.name()+":"+npc.pocket.held().item();
         if(!key.equals(npc.mining)){npc.mining=key;npc.miningTicks=0;}
