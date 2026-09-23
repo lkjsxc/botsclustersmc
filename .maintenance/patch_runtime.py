@@ -1,81 +1,82 @@
-"""Finite diagnostic corrections; never part of the normal training executable."""
+"""Bounded reset and independent diagnostic fixes; removed before final delivery."""
 from pathlib import Path
-p=Path('tests/live-client.rs');s=p.read_text()
-if 'let mut control=f.clone();' not in s:
-    start=s.index('        let mut a=IDLE;\n        if let Some(op)=self.ops.front_mut()')
-    end=s.index('\n        act::apply(bot,&a,bot.menu().slots().len());',start)
-    body=s[start:end].replace('&f,','&control,').replace('f.position','control.position')
-    body=body.replace('if l.goal[2]-control.position[2]>0.55{a[0]=1;}', 'if l.goal[2]-control.position[2]>0.55 && self.ticks%16==0{a[0]=1;}')
-    body=body.replace('if dist>0.55{if aim(&control,l.goal,false,&mut a){a[0]=1;}if self.stage==4{a[3]=1;}}', 'if dist>0.55{if aim(&control,l.goal,false,&mut a) && (dist>2.0 || self.ticks%16==0){a[0]=1;}if self.stage==4 && dist>1.5{a[3]=1;}}')
-    prefix='''        // Diagnostic control uses the current input-device view; scoring above
-        // still uses only the authoritative server frame and unchanged task gate.
-        // A four-tick movement pulse followed by twelve idle ticks avoids stale
-        // telemetry making the irreversible forward-only diagnostic overshoot.
-        let mut control=f.clone();let p=bot.position();let direction=bot.direction();
-        control.position=[p.x,p.y,p.z];control.yaw=direction.y_rot();control.pitch=direction.x_rot();
+
+p=Path('bridge/src/org/botsclustersmc/lab/BotsClustersMCLab.java');s=p.read_text()
+if 'private void clearTaskInventory(' not in s:
+    s=s.replace('p.setItemOnCursor(null);p.closeInventory();p.getInventory().clear();','clearTaskInventory(p);')
+    needle='    private void furnish(Player p,Session s){'
+    assert needle in s
+    helper='''    /** Reset environment only: no stale cursor, preview or personal recipe input. */
+    private void clearTaskInventory(Player p){
+        p.setItemOnCursor(null);p.closeInventory();p.getInventory().clear();
+        if(p.getOpenInventory().getTopInventory() instanceof CraftingInventory grid){
+            grid.setMatrix(new ItemStack[grid.getMatrix().length]);grid.setResult(null);
+        }
+        // Closing a screen may settle its carried stack. Clear AFTER close too.
+        p.setItemOnCursor(null);p.updateInventory();
+    }
 '''
-    body+='''
-        if self.stage<=4 && f.tick<240 && self.ticks%16==0 {
-            eprintln!("DIAGNOSTIC TRACE task={} client_tick={} server_tick={} server={:?} client={:?} yaw={:.2} input={:?}",self.stage,self.ticks,f.tick,f.position,control.position,control.yaw,a);
-        }'''
-    s=s[:start]+prefix+body+s[end:]
-    old='if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}act::tick_camera(&bot,&s.last);'
-    new='if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}if s.stage==0 && s.ticks%16==4 && s.last[0]!=0{act::stop(&bot);s.last=IDLE;}act::tick_camera(&bot,&s.last);'
-    assert old in s;s=s.replace(old,new)
-
-# Independent full-difficulty environments execute concurrently. A genuine task
-# failure remains a failure, but no longer prevents checking every other stage.
-if 'static FINISHED:' not in s:
-    s=s.replace('atomic::{AtomicBool,Ordering}', 'atomic::{AtomicBool,AtomicUsize,Ordering}')
-    s=s.replace('static DONE:AtomicBool=AtomicBool::new(false);','static DONE:AtomicBool=AtomicBool::new(false);\nstatic FINISHED:AtomicUsize=AtomicUsize::new(0);')
-    s=s.replace('struct Check{ticks:u64,ready:bool,stage:usize,','struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,')
-    s=s.replace('Self{ticks:0,ready:false,stage:0,','Self{ticks:0,ready:false,stage:0,actor:0,finished:false,')
-    s=s.replace('session:Session{run:11,actor:0,generation:1,','session:Session{run:11,actor:self.actor as u8,generation:1,')
-    s=s.replace('format!("BCMCLAB3 {} {} 0 {} ', 'format!("BCMCLAB3 {} {} {} {} ')
-    s=s.replace('RUN.get().unwrap(),l.token(),l.stage,l.start[0]', 'RUN.get().unwrap(),l.token(),self.actor,l.stage,l.start[0]')
-    s=s.replace('root().join(".runtime/lab/request-0.txt")', 'root().join(format!(".runtime/lab/request-{}.txt",self.actor))')
-    s=s.replace('root().join(".runtime/lab/frame-0.txt")', 'root().join(format!(".runtime/lab/frame-{}.txt",l.choice.session.actor))')
-    s=s.replace('if count(3)?!=0{', 'if count(3)?!=l.choice.session.actor as u32{')
-    s=s.replace('.step(0,&l,f.clone(),&self.last,0.997)', '.step(self.actor,&l,f.clone(),&self.last,0.997)')
-    start=s.index('                if !outcome.success{return Err(format!("fixture')
-    end=s.index('\n            }\n        }\n',start)
-    s=s[:start]+'''                if !outcome.success {
-                    let message=format!("fixture {} failed {}: frame={f:?} operation={:?} menu={:?}",self.stage,outcome.reason,self.ops.front(),bot.menu());
-                    eprintln!("DIAGNOSTIC TASK FAILURE: {message}");
-                    let mut error=ERROR.get().unwrap().lock().unwrap();if error.is_none(){*error=Some(message);}
-                } else {
-                    eprintln!("DIAGNOSTIC PASS stage={} ticks={} counters={:?} stock={:?} target_stock={} occupancy={}",self.stage,f.tick,f.evidence.counters,f.evidence.stock,f.evidence.target_stock,f.evidence.occupied_targets);
-                }
-                self.finished=true;
-                if FINISHED.fetch_add(1,Ordering::SeqCst)+1==18 {
-                    if ERROR.get().unwrap().lock().unwrap().is_none(){eprintln!("PASS: all 18 full-difficulty fixtures reached through separately scripted literal inputs; NOT learned behavior");}
-                    else{eprintln!("FAIL: all 18 fixtures completed; retain every failed task above");}
-                    DONE.store(true,Ordering::Relaxed);
-                }
-                return Ok(());''' + s[end:]
-    s=s.replace('if s.ready&&bot.exists(){s.ticks+=1;', 'if s.ready&&!s.finished&&bot.exists(){s.ticks+=1;')
-    old='let server=env::var("BOT_SERVER")?;let name=if observer{"bcmcObserver"}else{"bcmc00"};let state=State(Arc::new(Mutex::new(Check::new(observer))));'
-    assert old in s;s=s.replace(old,'let server=env::var("BOT_SERVER")?;')
-    old='let builder=SwarmBuilder::new_without_plugins()'
-    assert old in s;s=s.replace(old,'let mut builder=SwarmBuilder::new_without_plugins()')
-    old='.set_handler(handler).reconnect_after(None).add_account_with_state(Account::offline(name),state);'
-    new='''.set_handler(handler).reconnect_after(None).join_delay(Duration::from_millis(400));
-            for actor in 0..if observer{1}else{18}{
-                let name=if observer{"bcmcObserver".to_string()}else{format!("bcmc{actor:02}")};
-                let check=Check{actor,stage:actor,..Check::new(observer)};
-                builder=builder.add_account_with_state(Account::offline(&name),State(Arc::new(Mutex::new(check))));
-            }'''
-    assert old in s;s=s.replace(old,new)
-    # A real server inventory may arrive after the teleport acknowledgement.
-    old='let index=player_range(&menu).find(|&i|slots[i].kind()==*kind&&!slots[i].is_empty()).ok_or_else(||format!("missing raw test ingredient {kind:?}; menu={menu:?}"))?;'
-    new='let Some(index)=player_range(&menu).find(|&i|slots[i].kind()==*kind&&!slots[i].is_empty()) else{return Ok(false);};'
-    assert old in s;s=s.replace(old,new)
-p.write_text(s)
-
-p=Path('tests/live-fixtures.py');s=p.read_text()
-if 'failed_modes=[]' not in s:
-    s=s.replace("    for mode in ['fixtures','observer']:","    failed_modes=[]\n    for mode in ['fixtures','observer']:")
-    s=s.replace("        if test.returncode:raise RuntimeError(f'{mode} failed with exit {test.returncode}')","        if test.returncode:failed_modes.append(f'{mode} exited {test.returncode}')")
-    s=s.replace("    result=0\nfinally:","    if failed_modes:raise RuntimeError('; '.join(failed_modes))\n    result=0\nfinally:")
+    s=s.replace(needle,helper+needle)
+    s=s.replace('s.transferStock=containerStock(s);s.startedAge=p.getTicksLived();s.ready=true;', 'p.updateInventory();s.transferStock=containerStock(s);s.startedAge=p.getTicksLived();s.ready=true;')
     p.write_text(s)
-print('Full-difficulty diagnostic matrix and observer checks are independent; normal learned actors and task gates unchanged.')
+
+p=Path('tests/live-client.rs');s=p.read_text()
+if 'AwaitItem(ItemKind)' not in s:
+    s=s.replace('Close,Select,Wait(u8)}','Close,Select,Wait(u8),AwaitItem(ItemKind),AwaitCount(i32)}')
+    start=s.index('fn run_op(');end=s.index('\nfn read_frame(',start)
+    s=s[:start]+'''fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
+    let menu=bot.menu();let slots=menu.slots();let cursor=carried(bot);
+    match op.clone(){
+        Op::Take(kind)=>{
+            if !cursor.is_empty(){return Err(format!("diagnostic Take({kind:?}) has unexpected cursor {cursor:?}"));}
+            let Some(index)=player_range(&menu).find(|&i|slots[i].kind()==kind&&!slots[i].is_empty())else{return Ok(false);};
+            a[6]=1;a[7]=index;*op=Op::AwaitItem(kind);return Ok(false);
+        },
+        Op::Left(slot)=>{a[6]=1;a[7]=slot;*op=Op::AwaitCount(0);return Ok(false);},
+        Op::Right(slot)=>{
+            if cursor.is_empty(){return Err("diagnostic right-place has an empty cursor".into());}
+            a[6]=2;a[7]=slot;*op=Op::AwaitCount(cursor.count()-1);return Ok(false);
+        },
+        Op::Park=>{if !cursor.is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;*op=Op::AwaitCount(0);return Ok(false);}},
+        Op::Align(g)=>{if !aim(f,g,true,a){return Ok(false);}},
+        Op::Use=>a[4]=2,
+        Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting{..}),2=>matches!(menu,Menu::Furnace{..}),3=>matches!(menu,Menu::Generic9x3{..}),_=>false};if !ok{return Ok(false);}},
+        Op::Output(slot,kind)=>{
+            if slots.get(slot).is_none_or(|i|i.is_empty()||i.kind()!=kind){return Ok(false);}
+            if !cursor.is_empty(){return Err("diagnostic output click has a nonempty cursor".into());}
+            a[6]=1;a[7]=slot;*op=Op::AwaitItem(kind);return Ok(false);
+        },
+        Op::AwaitItem(kind)=>{if cursor.is_empty()||cursor.kind()!=kind{return Ok(false);}},
+        Op::AwaitCount(n)=>{let count=if cursor.is_empty(){0}else{cursor.count()};if count!=n{return Ok(false);}},
+        Op::Close=>a[6]=5,Op::Select=>a[5]=1,
+        Op::Wait(n)=>{if n>0{*op=Op::Wait(n-1);return Ok(false);}}
+    }Ok(true)
+}''' +s[end:]
+    s=s.replace('actor:usize,finished:bool,','actor:usize,finished:bool,reset_check:bool,')
+    s=s.replace('actor:0,finished:false,','actor:0,finished:false,reset_check:false,')
+    s=s.replace('lesson:self.stage as u64+1}', 'lesson:self.stage as u64+1+if self.reset_check{100}else{0}}')
+    old='if self.episode.is_none(){let p=bot.position();if(p.x-f.position[0]).abs()>0.5||(p.y-f.position[1]).abs()>0.5||(p.z-f.position[2]).abs()>0.5{return Ok(());}self.episode=Some(Episode::new(&l,f.clone())?);}'
+    new='''if self.episode.is_none(){
+            let p=bot.position();if(p.x-f.position[0]).abs()>0.5||(p.y-f.position[1]).abs()>0.5||(p.z-f.position[2]).abs()>0.5||!carried(bot).is_empty()||!matches!(bot.menu(),Menu::Player(_)){return Ok(());}
+            if self.reset_check && f.evidence.stock.iter().sum::<u32>()!=2{return Err(format!("reset retained old crafted output: {:?}",f.evidence.stock));}
+            self.episode=Some(Episode::new(&l,f.clone())?);
+        }'''
+    assert old in s;s=s.replace(old,new)
+    old='                self.finished=true;'
+    new='''                // The plank output is deliberately still on the cursor here.
+                // Reusing this client for sticks checks the real reset boundary.
+                if self.stage==8&&!self.reset_check {
+                    eprintln!("DIAGNOSTIC RESET CHECK: same actor, crafted plank cursor -> fresh two-plank stick task");
+                    self.reset_check=true;self.stage=9;self.lesson=None;self.episode=None;self.ops.clear();return Ok(());
+                }
+                self.finished=true;'''
+    assert old in s;s=s.replace(old,new)
+    old='if let Some(op)=self.ops.front_mut(){if run_op(bot,&control,op,&mut a)?{self.ops.pop_front();}}'
+    new='''if let Some(op)=self.ops.front_mut(){
+            let before=op.clone();let completed=run_op(bot,&control,op,&mut a)?;
+            if completed||a[6]!=0{eprintln!("DIAGNOSTIC GUI actor={} task={} tick={} op={before:?} input={:?} cursor={:?}",self.actor,self.stage,f.tick,a,carried(bot));}
+            if completed{self.ops.pop_front();}
+        }'''
+    assert old in s;s=s.replace(old,new)
+    p.write_text(s)
+print('Explicitly reset cursor/grid/preview state; diagnostic GUI steps await outcomes and test a dirty-cursor episode boundary.')
