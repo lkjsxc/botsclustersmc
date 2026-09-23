@@ -72,9 +72,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         if(failed.get()!=null)return;
         for(int i=0;i<8&&pendingSpawns.get()<16;i++){
             Spawn spawn=spawnQueue.poll();if(spawn==null)return;pendingSpawns.incrementAndGet();Location at=spawn.at();
-            at.getWorld().getChunkAtAsync(at.getBlockX()>>4,at.getBlockZ()>>4,true).whenComplete((chunk,failure)->{
-                if(failure!=null){pendingSpawns.decrementAndGet();released(spawn.id());fail(failure);return;}
-                Bukkit.getRegionScheduler().run(this,at,t->{try{
+            LoadedChunks.use(this,at,chunk->{try{
                     if(at.getWorld().getDifficulty()==Difficulty.PEACEFUL)throw new IllegalStateException("NPC bodies require a non-peaceful world; the plugin never changes your world difficulty.");
                     if(!issued.contains(spawn.id()))return;
                     leases.follow(spawn.id(),at);
@@ -87,8 +85,8 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
                     Npc npc=new Npc(this,spawn.id(),zombie,spawn.goal());npcs.put(spawn.id(),npc);
                     // Spawn registration finishes before the first owning-entity callback.
                     zombie.getScheduler().run(this,first->{try{if(!issued.contains(npc.id)){npcs.remove(npc.id);zombie.remove();released(npc.id);return;}if(!zombie.isValid())throw new IllegalStateException("NPC spawn was cancelled: "+npc.id);spawned(npc);startNpc(npc);}catch(Throwable e){fail(e);}},()->fail(new IllegalStateException("NPC retired before initialization: "+npc.id)));
-                }catch(Throwable e){released(spawn.id());fail(e);}finally{pendingSpawns.decrementAndGet();}});
-            });
+                }catch(Throwable e){released(spawn.id());fail(e);}finally{pendingSpawns.decrementAndGet();}
+            },failure->{pendingSpawns.decrementAndGet();released(spawn.id());fail(failure);});
         }
     }
     @EventHandler(ignoreCancelled=true) public void merging(ItemMergeEvent e){
