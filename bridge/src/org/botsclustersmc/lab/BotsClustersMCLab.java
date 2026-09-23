@@ -131,7 +131,7 @@ public final class BotsClustersMCLab extends JavaPlugin implements Listener {
         // produce drops, crafted output, fake success or a transition reward.
         p.getScheduler().run(this,task->{
             try{
-                if(sessions.get(r.id())!=s)return;p.setGameMode(GameMode.ADVENTURE);p.setItemOnCursor(null);p.closeInventory();p.getInventory().clear();
+                if(sessions.get(r.id())!=s)return;p.setGameMode(GameMode.ADVENTURE);clearTaskInventory(p);
                 int cx=CampusPlan.ox(r.id())>>4,cz=CampusPlan.oz(r.id())>>4;List<CampusPlan.Edit> edits=CampusPlan.reset(overlays.get(r.id()),r);int[] cursor={0};
                 getServer().getRegionScheduler().runAtFixedRate(this,world,cx,cz,t->{
                     try{
@@ -154,15 +154,24 @@ public final class BotsClustersMCLab extends JavaPlugin implements Listener {
                     p.getScheduler().runDelayed(this,ignored->{
                         try{
                             if(sessions.get(r.id())!=s||players.get(name(r.id()))!=p)return;requireCell(p,s);
-                            p.setVelocity(new Vector(0,0,0));p.setItemOnCursor(null);p.closeInventory();p.getInventory().clear();p.getInventory().setHeldItemSlot(0);
+                            p.setVelocity(new Vector(0,0,0));clearTaskInventory(p);p.getInventory().setHeldItemSlot(0);
                             p.setGameMode(r.stage()>=5?GameMode.SURVIVAL:GameMode.ADVENTURE);
                             furnish(p,s);String output=TaskFixtures.craftOutput(r.stage());s.craftBaseline=output==null?0:p.getStatistic(Statistic.CRAFT_ITEM,Material.valueOf(output));
-                            s.transferStock=containerStock(s);s.startedAge=p.getTicksLived();s.ready=true;
+                            p.updateInventory();s.transferStock=containerStock(s);s.startedAge=p.getTicksLived();s.ready=true;
                         }catch(Throwable error){fail(r.id(),error);}
                     },()->retired(p,s),8);
                 }).exceptionally(error->{if(!stopping())fail(r.id(),error);return null;});
             }catch(Throwable error){fail(r.id(),error);}
         },()->retired(p,s));
+    }
+    /** Reset environment only: no stale cursor, preview or personal recipe input. */
+    private void clearTaskInventory(Player p){
+        p.setItemOnCursor(null);p.closeInventory();p.getInventory().clear();
+        if(p.getOpenInventory().getTopInventory() instanceof CraftingInventory grid){
+            grid.setMatrix(new ItemStack[grid.getMatrix().length]);grid.setResult(null);
+        }
+        // Closing a screen may settle its carried stack. Clear AFTER close too.
+        p.setItemOnCursor(null);p.updateInventory();
     }
     private void furnish(Player p,Session s){
         Protocol.Request r=s.request;SplittableRandom random=new SplittableRandom(r.seed());List<Integer> slots=new ArrayList<>();for(int i=0;i<36;i++)slots.add(i);

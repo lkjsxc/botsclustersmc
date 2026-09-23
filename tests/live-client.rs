@@ -18,7 +18,7 @@ fn root()->&'static PathBuf{ROOT.get().unwrap()}
 fn fail(e:String){eprintln!("DIAGNOSTIC FAILURE: {e}");*ERROR.get().unwrap().lock().unwrap()=Some(e);DONE.store(true,Ordering::Relaxed);}
 fn carried(bot:&Client)->ItemStack{let v=bot.component::<azalea::entity::inventory::Inventory>();v.carried.clone()}
 fn player_range(menu:&Menu)->std::ops::Range<usize>{if matches!(menu,Menu::Player(_)){9..45}else{menu.slots().len()-36..menu.slots().len()}}
-#[derive(Clone,Debug)] enum Op{Take(ItemKind),Left(usize),Right(usize),Park,Align([f64;3]),Use,Menu(u8),Output(usize,ItemKind),Close,Select,Wait(u8)}
+#[derive(Clone,Debug)] enum Op{Take(ItemKind),Left(usize),Right(usize),Park,Align([f64;3]),Use,Menu(u8),Output(usize,ItemKind),Close,Select,Wait(u8),AwaitItem(ItemKind),AwaitCount(i32)}
 fn recipe(ops:&mut VecDeque<Op>,items:&[(ItemKind,usize)],output:ItemKind){for &(kind,slot) in items{ops.extend([Op::Take(kind),Op::Right(slot),Op::Park]);}ops.extend([Op::Output(0,output),Op::Park]);}
 fn operations(l:&Lesson)->VecDeque<Op>{
     use ItemKind::*;let mut q=VecDeque::new();
@@ -37,17 +37,31 @@ fn operations(l:&Lesson)->VecDeque<Op>{
 fn angular(error:f32,pitch:bool)->usize{if pitch{if error.abs()<2. {2}else if error< -20.{0}else if error<0.{1}else if error>20.{4}else{3}}else{if error.abs()<2.{3}else if error< -50.{0}else if error< -15.{1}else if error<0.{2}else if error>50.{6}else if error>15.{5}else{4}}}
 fn aim(f:&Frame,g:[f64;3],pitch:bool,a:&mut[usize;8])->bool{let e=angles(f.position,f.yaw,f.pitch,g);a[1]=angular(e[0],false);if pitch{a[2]=angular(e[1],true);}e[0].abs()<3.&&(!pitch||e[1].abs()<3.)}
 fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
-    let menu=bot.menu();let slots=menu.slots();
-    match op{
-        Op::Take(kind)=>{if !carried(bot).is_empty(){return Err("test attempted to acquire an ingredient with a nonempty cursor".into());}let Some(index)=player_range(&menu).find(|&i|slots[i].kind()==*kind&&!slots[i].is_empty()) else{return Ok(false);};a[6]=1;a[7]=index;},
-        Op::Left(slot)=>{a[6]=1;a[7]=*slot;},Op::Right(slot)=>{a[6]=2;a[7]=*slot;},
-        Op::Park=>{if !carried(bot).is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;}},
-        Op::Align(g)=>{if !aim(f,*g,true,a){return Ok(false);}},
+    let menu=bot.menu();let slots=menu.slots();let cursor=carried(bot);
+    match op.clone(){
+        Op::Take(kind)=>{
+            if !cursor.is_empty(){return Err(format!("diagnostic Take({kind:?}) has unexpected cursor {cursor:?}"));}
+            let Some(index)=player_range(&menu).find(|&i|slots[i].kind()==kind&&!slots[i].is_empty())else{return Ok(false);};
+            a[6]=1;a[7]=index;*op=Op::AwaitItem(kind);return Ok(false);
+        },
+        Op::Left(slot)=>{a[6]=1;a[7]=slot;*op=Op::AwaitCount(0);return Ok(false);},
+        Op::Right(slot)=>{
+            if cursor.is_empty(){return Err("diagnostic right-place has an empty cursor".into());}
+            a[6]=2;a[7]=slot;*op=Op::AwaitCount(cursor.count()-1);return Ok(false);
+        },
+        Op::Park=>{if !cursor.is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;*op=Op::AwaitCount(0);return Ok(false);}},
+        Op::Align(g)=>{if !aim(f,g,true,a){return Ok(false);}},
         Op::Use=>a[4]=2,
         Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting{..}),2=>matches!(menu,Menu::Furnace{..}),3=>matches!(menu,Menu::Generic9x3{..}),_=>false};if !ok{return Ok(false);}},
-        Op::Output(slot,kind)=>{if slots.get(*slot).is_none_or(|i|i.is_empty()||i.kind()!=*kind){return Ok(false);}a[6]=1;a[7]=*slot;},
+        Op::Output(slot,kind)=>{
+            if slots.get(slot).is_none_or(|i|i.is_empty()||i.kind()!=kind){return Ok(false);}
+            if !cursor.is_empty(){return Err("diagnostic output click has a nonempty cursor".into());}
+            a[6]=1;a[7]=slot;*op=Op::AwaitItem(kind);return Ok(false);
+        },
+        Op::AwaitItem(kind)=>{if cursor.is_empty()||cursor.kind()!=kind{return Ok(false);}},
+        Op::AwaitCount(n)=>{let count=if cursor.is_empty(){0}else{cursor.count()};if count!=n{return Ok(false);}},
         Op::Close=>a[6]=5,Op::Select=>a[5]=1,
-        Op::Wait(n)=>{if *n>0{*n-=1;return Ok(false);}}
+        Op::Wait(n)=>{if n>0{*op=Op::Wait(n-1);return Ok(false);}}
     }Ok(true)
 }
 fn read_frame(l:&Lesson)->Result<Option<Frame>,String>{
@@ -58,11 +72,11 @@ fn read_frame(l:&Lesson)->Result<Option<Frame>,String>{
     if count(3)?!=l.choice.session.actor as u32{return Err("wrong diagnostic actor".into());}let tick=f[4].parse::<u64>().map_err(|e|e.to_string())?;let mut stock=[0;ITEM_COUNT];for i in 0..ITEM_COUNT{stock[i]=count(11+i)?;}
     Ok(Some(Frame{tick,position:[number(5)?,number(6)?,number(7)?],yaw:number(8)? as f32,pitch:number(9)? as f32,grounded:f[10]=="true",evidence:Evidence{session:l.choice.session,tick,stock,counters:Counters{broken:count(24)?,picked_up:count(25)?,crafted:count(26)?,placed:count(27)?,smelted:count(28)?,deposited:count(29)?},target_stock:count(30)?,occupied_targets:count(31)? as u8,motor_hold_ticks:0}}))
 }
-struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool}
+struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,reset_check:bool,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool}
 impl Check{
-    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,actor:0,finished:false,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false}}
+    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,actor:0,finished:false,reset_check:false,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false}}
     fn begin(&mut self)->Result<(),String>{
-        let choice=Choice{session:Session{run:11,actor:self.actor as u8,generation:1,lesson:self.stage as u64+1},task:TASKS[self.stage],difficulty:1.,seed:8129+self.stage as u64,full_probe:true,evaluation:false,review:false,policy:PolicyId{version:0,signature:0}};
+        let choice=Choice{session:Session{run:11,actor:self.actor as u8,generation:1,lesson:self.stage as u64+1+if self.reset_check{100}else{0}},task:TASKS[self.stage],difficulty:1.,seed:8129+self.stage as u64,full_probe:true,evaluation:false,review:false,policy:PolicyId{version:0,signature:0}};
         let l=Lesson::from_choice(choice);let text=format!("BCMCLAB3 {} {} {} {} {:.8} {:.8} {:.8} {:.5} {:.5} {:.8} {:.8} {:.8} {} 1.0 true\n",RUN.get().unwrap(),l.token(),self.actor,l.stage,l.start[0],l.start[1],l.start[2],l.yaw,l.pitch,l.goal[0],l.goal[1],l.goal[2],l.choice.seed);
         learning::checkpoint::atomic_write(&root().join(format!(".runtime/lab/request-{}.txt",self.actor)),text.as_bytes(),0).map_err(|e|e.to_string())?;
         eprintln!("DIAGNOSTIC BEGIN stage={} name={} full=true start={:?} goal={:?}",l.stage,l.choice.task.spec().name,l.start,l.goal);
@@ -75,7 +89,11 @@ impl Check{
         if self.started.elapsed()>Duration::from_secs(200){return Err(format!("fixture {} timed out; pending operation {:?}",self.stage,self.ops.front()));}
         let Some(f)=read_frame(&l)? else{return Ok(());};
         if let Some(e)=&self.episode{if f.tick<=e.previous.tick{return Ok(());}}
-        if self.episode.is_none(){let p=bot.position();if(p.x-f.position[0]).abs()>0.5||(p.y-f.position[1]).abs()>0.5||(p.z-f.position[2]).abs()>0.5{return Ok(());}self.episode=Some(Episode::new(&l,f.clone())?);}
+        if self.episode.is_none(){
+            let p=bot.position();if(p.x-f.position[0]).abs()>0.5||(p.y-f.position[1]).abs()>0.5||(p.z-f.position[2]).abs()>0.5||!carried(bot).is_empty()||!matches!(bot.menu(),Menu::Player(_)){return Ok(());}
+            if self.reset_check && f.evidence.stock.iter().sum::<u32>()!=2{return Err(format!("reset retained old crafted output: {:?}",f.evidence.stock));}
+            self.episode=Some(Episode::new(&l,f.clone())?);
+        }
         else{
             let outcome=self.episode.as_mut().unwrap().step(self.actor,&l,f.clone(),&self.last,0.997)?;
             if outcome.done{
@@ -86,6 +104,12 @@ impl Check{
                     let mut error=ERROR.get().unwrap().lock().unwrap();if error.is_none(){*error=Some(message);}
                 } else {
                     eprintln!("DIAGNOSTIC PASS stage={} ticks={} counters={:?} stock={:?} target_stock={} occupancy={}",self.stage,f.tick,f.evidence.counters,f.evidence.stock,f.evidence.target_stock,f.evidence.occupied_targets);
+                }
+                // The plank output is deliberately still on the cursor here.
+                // Reusing this client for sticks checks the real reset boundary.
+                if self.stage==8&&!self.reset_check {
+                    eprintln!("DIAGNOSTIC RESET CHECK: same actor, crafted plank cursor -> fresh two-plank stick task");
+                    self.reset_check=true;self.stage=9;self.lesson=None;self.episode=None;self.ops.clear();return Ok(());
                 }
                 self.finished=true;
                 if FINISHED.fetch_add(1,Ordering::SeqCst)+1==18 {
@@ -103,7 +127,11 @@ impl Check{
         let mut control=f.clone();let p=bot.position();let direction=bot.direction();
         control.position=[p.x,p.y,p.z];control.yaw=direction.y_rot();control.pitch=direction.x_rot();
         let mut a=IDLE;
-        if let Some(op)=self.ops.front_mut(){if run_op(bot,&control,op,&mut a)?{self.ops.pop_front();}}
+        if let Some(op)=self.ops.front_mut(){
+            let before=op.clone();let completed=run_op(bot,&control,op,&mut a)?;
+            if completed||a[6]!=0{eprintln!("DIAGNOSTIC GUI actor={} task={} tick={} op={before:?} input={:?} cursor={:?}",self.actor,self.stage,f.tick,a,carried(bot));}
+            if completed{self.ops.pop_front();}
+        }
         else if self.stage<=4{
             if self.stage==2{aim(&control,l.goal,true,&mut a);}
             else if self.stage==0{if l.goal[2]-control.position[2]>0.55 && self.ticks%16==0{a[0]=1;}}
