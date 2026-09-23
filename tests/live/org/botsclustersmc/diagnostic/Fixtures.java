@@ -24,9 +24,8 @@ public final class Fixtures extends RuntimePlugin {
         if(!Boolean.getBoolean("bcmc.fixtures"))throw new IllegalStateException("diagnostics require explicit isolated-test flag");
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->{
             int actor=prepared.getAndIncrement();if(actor>=18)return;World w=Bukkit.getWorld("world");ArenaLayout a=ArenaLayout.forActor(actor,18,64);
-            w.getChunkAtAsync(a.chunkX(),a.chunkZ(),true).whenComplete((chunk,error)->{if(error!=null){fail(error);return;}
-                Location at=new Location(w,a.x()+8.5,65,a.z()+5.5);Bukkit.getRegionScheduler().run(this,at,r->{chunk.addPluginChunkTicket(this);TrainingEnvironment.build(w,a);sessions.put((long)actor,new TrainingEnvironment.Session(a));requestSpawn(actor,at,new Goal(Task.at(actor),at.getX(),65,at.getZ()+3,1,1,3000));});
-            });
+            Location at=new Location(w,a.x()+8.5,65,a.z()+5.5);
+            LoadedChunks.use(this,at,chunk->{chunk.addPluginChunkTicket(this);TrainingEnvironment.build(w,a);sessions.put((long)actor,new TrainingEnvironment.Session(a));requestSpawn(actor,at,new Goal(Task.at(actor),at.getX(),65,at.getZ()+3,1,1,3000));},this::fail);
         },1,1);
         io.scheduleAtFixedRate(()->{try{if(failed.get()!=null)Files.writeString(getDataFolder().toPath().resolve("fixtures-failed.txt"),failed.get().toString());else if(passed.size()==18){Files.writeString(getDataFolder().toPath().resolve("fixtures-passed.txt"),"PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.\n");Bukkit.getGlobalRegionScheduler().run(this,t->Bukkit.shutdown());}}catch(Exception e){fail(e);}},1,1,TimeUnit.SECONDS);
     }
