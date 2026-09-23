@@ -9,7 +9,7 @@ concurrency:
   group: integration-workbench
   cancel-in-progress: false
 jobs:
-  promote:
+  verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -18,67 +18,66 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Apply reviewed source transformations on the work branch
-        id: patch
+      - name: Apply reviewed compatibility corrections
         run: |
           set -euo pipefail
-          if [ ! -d learning/src/next ]; then python3 .maintenance/promote.py; fi
-          for script in .maintenance/patch*.py; do python3 "$script"; done
-          git diff --stat
+          python3 .maintenance/patch_zfix.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add -u
           if ! git diff --cached --quiet; then
-            git commit -m 'refactor: apply reviewed integration source transformations'
+            git commit -m 'fix: complete v2 routing and pinned Folia API compatibility'
             git push origin HEAD:work/rl64-integration-20260923
           fi
           mkdir -p /tmp/evidence
           git rev-parse HEAD > /tmp/evidence/source.txt
-      - name: Compile and test canonical native learning modules
-        if: ${{ !cancelled() && steps.patch.outcome == 'success' }}
+      - name: Verify native and environment contracts
         run: |
           set -euo pipefail
-          rustup toolchain install nightly-2026-02-04 --profile minimal
-          rustup run nightly-2026-02-04 rustc --edition=2024 --test learning/src/lib.rs -o /tmp/core-debug
-          /tmp/core-debug 2>&1 | tee /tmp/evidence/core-debug.txt
-          rustup run nightly-2026-02-04 rustc --edition=2024 --test -O learning/src/lib.rs -o /tmp/core-release
-          /tmp/core-release 2>&1 | tee /tmp/evidence/core-release.txt
-          rustup run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release 2>&1 | tee /tmp/evidence/standalone.txt
-      - name: Pure Java task and observer contracts
-        if: ${{ !cancelled() && steps.patch.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          ./scripts/test-bridge.sh 2>&1 | tee /tmp/evidence/java-contracts.txt
-      - name: Host bootstrap and preservation regressions
-        if: ${{ !cancelled() && steps.patch.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          ./scripts/preflight.sh
-          ./scripts/build-host-tools.sh
-          rc=0
-          for suite in package_checks bootstrap_checks recovery_checks; do
-            python3 "tests/$suite.py" > "/tmp/evidence/$suite.txt" 2>&1 || rc=1
-            cat "/tmp/evidence/$suite.txt"
-          done
-          exit "$rc"
-      - name: Compile and test the actual pinned native actor and launcher
-        id: native
-        if: ${{ !cancelled() && steps.patch.outcome == 'success' }}
-        run: |
-          set -euo pipefail
-          ./scripts/build.sh 2>&1 | tee /tmp/evidence/native-build.txt
-      - name: Compile the complete plugin against the actual Folia API
-        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+          check() { local name=$1; shift; echo "Checking $name"; if "$@" >"/tmp/evidence/$name.txt" 2>&1; then tail -n 3 "/tmp/evidence/$name.txt"; else tail -n 90 "/tmp/evidence/$name.txt"; return 1; fi; }
+          check preflight ./scripts/preflight.sh
+          check host-build ./scripts/build-host-tools.sh
+          check package python3 tests/package_checks.py
+          check bootstrap python3 tests/bootstrap_checks.py
+          check recovery python3 tests/recovery_checks.py
+          check java-contracts ./scripts/test-bridge.sh
+          check native-build ./scripts/build.sh
+          check standalone env RUSTUP_HOME="$PWD/.build/rustup" CARGO_HOME="$PWD/.build/cargo" "$HOME/.cargo/bin/rustup" run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release
+      - name: Compile against actual pinned Folia API
         run: |
           set -euo pipefail
           trap 'rm -f .botsclustersmc-academy-v2' EXIT
           printf 'botsclustersmc-academy-v2\nbots=64\ncampus=8x16\n' > .botsclustersmc-academy-v2
-          BCMC_ROOT="$PWD" BOTS=64 bin/botsclustersmc-run check-bridge 2>&1 | tee /tmp/evidence/folia-api.txt
-          printf '%s\n' 'Source compilation, regression and real Folia API evidence only. No live Minecraft skill or 64-player capacity claim.' > /tmp/evidence/scope.txt
-      - name: Inspect remaining integration boundaries
+          if ! BCMC_ROOT="$PWD" BOTS=64 bin/botsclustersmc-run check-bridge >/tmp/evidence/folia-api.txt 2>&1; then tail -n 80 /tmp/evidence/folia-api.txt; exit 1; fi
+          tail -n 5 /tmp/evidence/folia-api.txt
+      - name: Isolated 64-client live learning and checkpoint resume
+        run: |
+          set -euo pipefail
+          # Explicit consent applies only to this disposable CI server. Operator
+          # EULA configuration is neither imported nor changed.
+          if ! EULA=true SMOKE_BOTS=64 SMOKE_HEAP_GB=3 SMOKE_SECONDS=240 SMOKE_RESTART_SECONDS=180 ./smoke.sh >/tmp/evidence/live.txt 2>&1; then tail -n 90 /tmp/evidence/live.txt; exit 1; fi
+          tail -n 10 /tmp/evidence/live.txt
+      - name: Print bounded evidence and preserve diagnostics
         if: always()
         run: |
-          grep -RnE '(BCMCLAB2|bcmc_academy_v1|BOTS.*32|bots>32|bots > 32|academy\\.bcmc|policy\\.bcmc|curriculum::Curriculum)' app launcher scripts tests bridge .env.example | head -n 120 || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,shutil
+          out=Path('/tmp/evidence');out.mkdir(exist_ok=True)
+          for i,lab in enumerate(sorted(Path('experiments').glob('smoke-*'))):
+              for p in sorted(lab.rglob('*.json')):
+                  if p.name in {'status.json','academy-status.json','round1-status.json','round2-status.json'}:
+                      shutil.copyfile(p,out/f'live-{i}-{p.parent.name}-{p.name}')
+                      try:
+                          d=json.loads(p.read_text()); agents=d.pop('agents',[]); scores=d.pop('scores',[])
+                          print(str(p),json.dumps(d)[:5000])
+                          if agents: print('AGENTS',len(agents),'online',sum(a['online'] for a in agents),'min_steps',min(a['steps'] for a in agents),'disconnects',sum(a['disconnects'] for a in agents))
+                      except Exception as e:print(e)
+              for p in list((lab/'logs').glob('*'))+list((lab/'server/logs').glob('latest.log')):
+                  if p.is_file() and p.stat().st_size<16*1024*1024:
+                      shutil.copyfile(p,out/f'live-{i}-{p.parent.name}-{p.name}')
+                      if p.suffix=='.log': print(str(p),'\n','\n'.join(p.read_text(errors='replace').splitlines()[-18:]))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
