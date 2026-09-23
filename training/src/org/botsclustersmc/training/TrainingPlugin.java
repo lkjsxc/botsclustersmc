@@ -60,7 +60,7 @@ public final class TrainingPlugin extends RuntimePlugin {
     @Override public Policy policyFor(Npc npc){TrainingEnvironment.Session s=(TrainingEnvironment.Session)npc.context;return s.lesson!=null&&s.lesson.kind()==Course.Kind.EXAM?Objects.requireNonNull(s.examPolicy,"missing frozen actor policy"):policy;}
     @Override public boolean greedy(Npc npc){return false;}
     @Override public boolean canPickup(Npc npc,String token){return npc.token().equals(token);}
-    @Override public boolean pickupEnabled(Npc npc){int task=npc.goal.task().ordinal();return task==6||task==12||task==17;}
+    @Override public boolean pickupEnabled(Npc npc){return true;}
     @Override public boolean canChange(Npc npc,Block b){
         ArenaLayout a=arenas.get(npc.id);return a!=null&&b.getWorld()==npc.anchor.getWorld()&&b.getY()>=65&&b.getY()<70&&a.contains(b.getX()+.5,b.getY(),b.getZ()+.5)&&WorldActions.owned(b.getLocation());
     }

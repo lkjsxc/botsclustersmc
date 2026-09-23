@@ -21,7 +21,13 @@ public enum Task {
         if(id<5){only(mask,4,0);only(mask,5,0);only(mask,6,0);}
         else if(id<8){only(mask,6,0);only(mask,4,0,id==7?2:1);}
         if(!menuOpen){only(mask,6,id<8?new int[]{0}:new int[]{0,4});only(mask,7,0);}
-        else{int off=offset(7);for(int i=Math.max(1,availableSlots);i<Schema.HEADS[7];i++)mask[off+i]=false;}
+        else {
+            // Screen focus is mechanical, independent of which goal is being attempted.
+            // Even a changed non-GUI goal must allow the actor to close an existing menu.
+            Arrays.fill(mask,offset(6),offset(7),true);
+            int off=offset(7);for(int i=Math.max(1,availableSlots);i<Schema.HEADS[7];i++)mask[off+i]=false;
+            MenuFocus.restrict(mask);
+        }
         return mask;
     }
     public static int offset(int head){int n=0;for(int i=0;i<head;i++)n+=Schema.HEADS[i];return n;}

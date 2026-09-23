@@ -155,8 +155,8 @@ public final class Host {
         if(!Files.isRegularFile(marker)||!Files.readString(marker).equals("botsclustersmc-owned-training\n")||!Files.isRegularFile(checkpoint))throw new IOException("Evaluation requires an owned Academy with a complete checkpoint");
         build();Path tools=Files.createTempDirectory(ROOT.resolve(".build"),"evaluation-tools-");
         try {
-            try(FileChannel guard=FileChannel.open(ROOT.resolve(".build/build.lock"),StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);FileLock held=guard.tryLock()){
-                if(held==null)throw new IOException("Another build is publishing artifacts; retry evaluation");
+            try(FileChannel guard=FileChannel.open(ROOT.resolve(".build/build.lock"),StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);FileLock lock=guard.tryLock()){
+                if(lock==null)throw new IOException("Another build is publishing artifacts; retry evaluation");
             Files.copy(ROOT.resolve("dist/training.jar"),tools.resolve("runtime.jar"));Files.copy(ROOT.resolve("dist/botsclustersmc.jar"),tools.resolve("inference.jar"));
             Path src=ROOT.resolve("tests/holdout");
             for(Path file:sources("tests/holdout")){safe(file);Path dest=tools.resolve("holdout-src").resolve(src.relativize(file));Files.createDirectories(dest.getParent());Files.copy(file,dest);}
@@ -204,7 +204,7 @@ public final class Host {
         build();Path out=ROOT.resolve(".build/tests");Files.createDirectories(out);String cp=ROOT.resolve(".build/classes")+File.pathSeparator+classpath();
         List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","host"))args.add(p.toString());
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
-        for(String test:List.of("CoreTest","MechanicsTest","ControlTest","AimTest","HarvestTest","BalanceTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        for(String test:List.of("CoreTest","MechanicsTest","OwnershipTest","MenuFocusTest","ControlTest","AimTest","HarvestTest","BalanceTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}

@@ -42,6 +42,7 @@ public final class Fixtures extends RuntimePlugin {
         n.tick++;n.lastStepNanos=System.nanoTime();if(n.resetting||failed.get()!=null||passed.contains(n.id))return;
         Control c=(Control)n.context;TrainingEnvironment.Session session=sessions.get(n.id);
         if(c.before==null&&c.step==0) {
+            InputChecks.verify(n);
             Location original=n.entity.getLocation();n.entity.setRotation(0,89);
             int[] rejected=Schema.IDLE.clone();rejected[4]=1;WorldActions.tick(n,rejected,true);
             if(n.miningTicks!=0||n.mining!=null||!n.broken.isEmpty())
