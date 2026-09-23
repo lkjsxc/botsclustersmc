@@ -18,16 +18,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Apply reviewed compatibility corrections
+      - name: Apply reviewed source corrections
         run: |
           set -euo pipefail
           python3 .maintenance/patch_zfix.py
           python3 .maintenance/patch_runtime.py
+          python3 .maintenance/patch_acceptance.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -u
           if ! git diff --cached --quiet; then
-            git commit -m 'fix: preserve GUI observability and immutable policy/drop identities'
+            git commit -m 'fix: align live acceptance clients with documented runtime settings'
             git push origin HEAD:work/rl64-integration-20260923
           fi
           mkdir -p /tmp/evidence
@@ -44,7 +45,7 @@ jobs:
         id: native
         run: |
           set -euo pipefail
-          check() { local name=$1; shift; echo "Checking $name"; if "$@" >"/tmp/evidence/$name.txt" 2>&1; then tail -n 3 "/tmp/evidence/$name.txt"; else tail -n 90 "/tmp/evidence/$name.txt"; return 1; fi; }
+          check() { local name=$1; shift; echo "Checking $name"; if "$@" >"/tmp/evidence/$name.txt" 2>&1; then grep -E 'test result:|Ran [0-9]+ tests|PASS:|passed|^OK$' "/tmp/evidence/$name.txt" | tail -n 12 || true; else tail -n 100 "/tmp/evidence/$name.txt"; return 1; fi; }
           check preflight ./scripts/preflight.sh
           check host-build ./scripts/build-host-tools.sh
           check package python3 tests/package_checks.py
@@ -54,7 +55,7 @@ jobs:
           check native-build ./scripts/build.sh
           check standalone env RUSTUP_HOME="$PWD/.build/rustup" CARGO_HOME="$PWD/.build/cargo" "$HOME/.cargo/bin/rustup" run nightly-2026-02-04 cargo test --manifest-path experimental/rl-next/Cargo.toml --locked --release
       - uses: actions/cache/save@v4
-        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        if: ${{ !cancelled() }}
         with:
           path: |
             .build/cargo
@@ -68,38 +69,40 @@ jobs:
           printf 'botsclustersmc-academy-v2\nbots=64\ncampus=8x16\n' > .botsclustersmc-academy-v2
           if ! BCMC_ROOT="$PWD" BOTS=64 bin/botsclustersmc-run check-bridge >/tmp/evidence/folia-api.txt 2>&1; then tail -n 80 /tmp/evidence/folia-api.txt; exit 1; fi
           tail -n 5 /tmp/evidence/folia-api.txt
-      - name: Isolated 64-client live learning and checkpoint resume
-        run: |
-          set -euo pipefail
-          if ! EULA=true SMOKE_BOTS=64 SMOKE_HEAP_GB=3 SMOKE_SECONDS=240 SMOKE_RESTART_SECONDS=180 ./smoke.sh >/tmp/evidence/live.txt 2>&1; then tail -n 90 /tmp/evidence/live.txt; exit 1; fi
-          tail -n 10 /tmp/evidence/live.txt
-      - name: Scripted reachability of all fixtures and observer commands
+      - name: Scripted full-difficulty fixtures and real observer client
         if: ${{ !cancelled() && steps.native.outcome == 'success' }}
         run: |
           set -euo pipefail
-          if ! EULA=true ./scripts/test-live-fixtures.sh >/tmp/evidence/fixtures.txt 2>&1; then tail -n 100 /tmp/evidence/fixtures.txt; exit 1; fi
+          if ! EULA=true ./scripts/test-live-fixtures.sh >/tmp/evidence/fixtures.txt 2>&1; then tail -n 120 /tmp/evidence/fixtures.txt; exit 1; fi
           tail -n 50 /tmp/evidence/fixtures.txt
-      - name: Print bounded evidence and preserve diagnostics
+      - name: Fresh public entrypoints with 64 actors and normal training batches
+        if: ${{ !cancelled() && steps.native.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          if ! EULA=true BCMC_TEST_NEW_ACADEMY=true BCMC_EVIDENCE_DIR=/tmp/evidence python3 tests/public_entry_checks.py >/tmp/evidence/public-entry.txt 2>&1; then tail -n 100 /tmp/evidence/public-entry.txt; exit 1; fi
+          cat /tmp/evidence/public-entry.txt
+      - name: Preserve bounded execution evidence
         if: always()
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import json,shutil
           out=Path('/tmp/evidence');out.mkdir(exist_ok=True)
-          for i,lab in enumerate(sorted(Path('experiments').glob('*'))):
-              if not lab.is_dir(): continue
+          labs=sorted(Path('experiments').glob('*'))+[Path('academy-v2')]
+          for i,lab in enumerate(labs):
+              if not lab.is_dir():continue
               for p in sorted(lab.rglob('*.json')):
                   if p.name in {'status.json','academy-status.json','round1-status.json','round2-status.json'}:
                       shutil.copyfile(p,out/f'live-{i}-{p.parent.name}-{p.name}')
                       try:
-                          d=json.loads(p.read_text()); agents=d.pop('agents',[]); scores=d.pop('scores',[])
+                          d=json.loads(p.read_text());agents=d.pop('agents',[]);d.pop('scores',None)
                           print(str(p),json.dumps(d)[:5000])
-                          if agents: print('AGENTS',len(agents),'online',sum(a['online'] for a in agents),'min_steps',min(a['steps'] for a in agents),'disconnects',sum(a['disconnects'] for a in agents))
+                          if agents:print('AGENTS',len(agents),'online',sum(a['online'] for a in agents),'min_steps',min(a['steps'] for a in agents),'disconnects',sum(a['disconnects'] for a in agents))
                       except Exception as e:print(e)
               for p in list((lab/'logs').glob('*'))+list((lab/'server/logs').glob('latest.log')):
                   if p.is_file() and p.stat().st_size<16*1024*1024:
                       shutil.copyfile(p,out/f'live-{i}-{p.parent.name}-{p.name}')
-                      if p.suffix=='.log': print(str(p),'\n','\n'.join(p.read_text(errors='replace').splitlines()[-18:]))
+                      if p.suffix=='.log':print(str(p),'\n','\n'.join(p.read_text(errors='replace').splitlines()[-18:]))
           PY
       - uses: actions/upload-artifact@v4
         if: always()

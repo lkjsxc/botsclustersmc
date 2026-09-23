@@ -1,4 +1,34 @@
-# 0.4.0 — source-first clone-to-train runtime
+# Changelog
+
+## 0.5.0 — 2026-09-23 — integrated 64-actor Academy
+
+- Connect the canonical RL-next mechanisms to the real Minecraft actor/learner:
+  strict episode-boundary cohorts, policy/lesson leases, adaptive probes and
+  rehearsals, per-actor frozen exams, timed GAE and potential shaping.
+- Use the same conditional GUI distribution for sampling, old/new likelihood,
+  policy/entropy gradients and exams. Validate final whole-batch sampled KL and
+  retry weights, Adam and optimizer RNG as one transaction.
+- Integrate 18 task environments and authoritative outcome gates through real
+  Folia geometry, drops, inventory/cursor, crafting statistics, furnace extraction,
+  chest contents and current platform occupancy. This is not learned mastery.
+- Increase defaults and supported population to64, with 64 owned training cells
+  and 16 additional connection slots for humans. Keep port25565 and prefixbcmc.
+- Add observer-only 12-chunk viewing, configurable to16; keep actor view and
+  simulation at3. Add a two-page actor menu, room switching, whole-campus overview,
+  12-second tour, per-actor action bar and shared training status.
+- Separate personal inventory and workbench GUI identity despite equal slot counts.
+  Preserve individual episode drop provenance by disabling training-world merges.
+- Introduce a new Academy-v2 observation/context schema and one atomic checkpoint
+  binding model, optimizer, all sampling RNG states and adaptive course progress.
+  Preserve the old academy/ directory; never silently import incompatible weights.
+- Correct control-root routing, population guards, pinned API names and tests.
+  Record real 64-client update/save/resume evidence and retained failure reports.
+- Add separately built scripted fixture/observer diagnostics. These never initialize
+  a model, write demonstrations, or enter the normal learned actor executable.
+- Replace the obsolete component-only ZIP workflow with tests of canonical source.
+  Source-first clone/build/start remains the public delivery path.
+
+## 0.4.0 — source-first clone-to-train runtime
 
 - Restore the real Rust actor, CPU PPO learner, Folia bridge, launch scripts,
   tests and operating documentation to the repository, separate from RL-next.
@@ -10,8 +40,6 @@
   legacy-port rewrite. Preserve checkpoint/environment semantics.
 - Fail early for missing Linux/compiler/Java-JDK prerequisites.
 - Preserve operator data and report evidence separately from skill claims.
-
-# Changelog
 
 ## 0.3.1 — 2026-09-22 — runtime repair
 

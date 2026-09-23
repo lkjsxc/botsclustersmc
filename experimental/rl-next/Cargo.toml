@@ -3,7 +3,7 @@ name = "bcmc-rl-next"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-description = "Experimental, independently tested RL components; not an integrated Minecraft runtime"
+description = "Standalone numerical checks for the canonical integrated Minecraft RL modules"
 publish = false
 
 [lib]
