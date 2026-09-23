@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.*;
 public abstract class RuntimePlugin extends JavaPlugin implements Listener,CommandExecutor {
     public final ConcurrentHashMap<Long,Npc> npcs=new ConcurrentHashMap<>();
     public final AtomicReference<Throwable> failed=new AtomicReference<>();public final AtomicBoolean paused=new AtomicBoolean();
-    public final LongAdder transitions=new LongAdder(),abandoned=new LongAdder(),retired=new LongAdder(),sensorNanos=new LongAdder(),inferenceRejected=new LongAdder();
+    public final LongAdder transitions=new LongAdder(),abandoned=new LongAdder(),retired=new LongAdder(),sensorNanos=new LongAdder(),inferenceRejected=new LongAdder(),ambientCombustions=new LongAdder();
     public final String run=UUID.randomUUID().toString();public long seed;public NamespacedKey provenance;public InferencePool inference;
     private final Map<Long,Long> lastDecisions=new HashMap<>();private long lastStatusNanos,lastSamples,lastTransitions,lastCpu;
     protected volatile Policy policy;protected ScheduledExecutorService io;protected int maximum;protected final AtomicLong nextId=new AtomicLong();
@@ -90,6 +90,14 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
             },failure->{pendingSpawns.decrementAndGet();released(spawn.id());fail(failure);});
         }
     }
+    /** Some server builds ignore Zombie.shouldBurnInDay in their daylight tag path.
+     * Cancel only unattributed combustion for our bodies; block/entity fire remains real. */
+    @EventHandler(ignoreCancelled=true) public void ambientCombustion(EntityCombustEvent e){
+        if(e.getClass()==EntityCombustEvent.class&&e.getEntity() instanceof Zombie
+                &&run.equals(e.getEntity().getPersistentDataContainer().get(provenance,PersistentDataType.STRING))){
+            e.setCancelled(true);ambientCombustions.increment();
+        }
+    }
     @EventHandler(ignoreCancelled=true) public void merging(ItemMergeEvent e){
         if(e.getEntity().getPersistentDataContainer().has(provenance,PersistentDataType.STRING)||e.getTarget().getPersistentDataContainer().has(provenance,PersistentDataType.STRING))e.setCancelled(true);
     }
@@ -107,7 +115,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         status.put("ticking_agents",live);status.put("inference_wait_agents",waiting);status.put("resetting_agents",resetting);status.put("oldest_tick_age_seconds",oldest);status.put("min_agent_decisions",npcs.isEmpty()?0:min);status.put("max_agent_decisions",max);
         status.put("retired_agents",retired.sum());status.put("decision_transitions",transitions.sum());status.put("inference_completed",inference.completed.sum());status.put("inference_queue",inference.queued());
         status.put("inference_rejected",inferenceRejected.sum());status.put("inference_failed",inference.failed.sum());status.put("inference_compute_ns",inference.computeNanos.sum());status.put("inference_queue_ns",inference.queueNanos.sum());
-        status.put("sensor_ns",sensorNanos.sum());status.put("abandoned_actions",abandoned.sum());status.put("leased_chunks",leases.size());
+        status.put("suppressed_ambient_combustions",ambientCombustions.sum());status.put("sensor_ns",sensorNanos.sum());status.put("abandoned_actions",abandoned.sum());status.put("leased_chunks",leases.size());
         var os=java.lang.management.ManagementFactory.getOperatingSystemMXBean();status.put("available_processors",Runtime.getRuntime().availableProcessors());
         if(os instanceof com.sun.management.OperatingSystemMXBean o){long cpu=o.getProcessCpuTime();status.put("process_cpu_ns",cpu);double cores=interval==0?0:Math.max(0,(cpu-lastCpu)/interval/1e9);status.put("process_cpu_cores",cores);lastCpu=cpu;status.put("process_cpu_fraction",cores/Runtime.getRuntime().availableProcessors());}
         Runtime runtime=Runtime.getRuntime();status.put("heap_used_mib",(runtime.totalMemory()-runtime.freeMemory())/(1024L*1024));status.put("java_threads",java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount());status.put("epoch_millis",System.currentTimeMillis());status.putAll(extraStatus());

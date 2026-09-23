@@ -158,7 +158,7 @@ def fixtures(output, cache):
     finally:stop_direct(process)
 
 
-def inference(output, cache, deploy, count=64, seconds=15):
+def inference(output, cache, deploy, count=64, seconds=45):
     directory=output/'inference';server_dir(directory,cache,25580)
     data=directory/'plugins/BotsClustersMC';data.mkdir()
     shutil.copy2(deploy/'plugins/botsclustersmc.jar',directory/'plugins/botsclustersmc.jar')
@@ -217,7 +217,7 @@ def inference(output, cache, deploy, count=64, seconds=15):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=('train','fixtures','inference','all'));parser.add_argument('--output',type=Path,required=True);parser.add_argument('--count',type=int,default=1024);parser.add_argument('--seconds',type=int,default=45);parser.add_argument('--cache',type=Path,default=Path(os.environ.get('BCMC_SERVER_CACHE',ROOT/'.cache/server')));parser.add_argument('--deploy',type=Path);parser.add_argument('--inference-count',type=int,default=64);parser.add_argument('--inference-seconds',type=int,default=15)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=('train','fixtures','inference','all'));parser.add_argument('--output',type=Path,required=True);parser.add_argument('--count',type=int,default=1024);parser.add_argument('--seconds',type=int,default=45);parser.add_argument('--cache',type=Path,default=Path(os.environ.get('BCMC_SERVER_CACHE',ROOT/'.cache/server')));parser.add_argument('--deploy',type=Path);parser.add_argument('--inference-count',type=int,default=64);parser.add_argument('--inference-seconds',type=int,default=45)
     args=parser.parse_args()
     if not 1<=args.count<=10000 or not 1<=args.inference_count<=10000 or args.seconds<1 or args.inference_seconds<5:parser.error('counts must be 1..10000, training duration positive and inference duration at least 5 seconds')
     if os.environ.get('EULA')!='true':raise SystemExit('Explicit EULA=true is required for disposable real-server acceptance.')

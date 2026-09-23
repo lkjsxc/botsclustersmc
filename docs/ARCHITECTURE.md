@@ -121,3 +121,17 @@ of universal version compatibility, linear scaling, full vanilla player behavior
 thousands of cooperating settlers, indefinite uptime or completed learning of all
 18 tasks. Increasing CPU utilization is useful only when accepted experience and
 held-out skill outcomes improve under comparable conditions.
+
+## NPC daylight semantics
+
+Bodies request `setShouldBurnInDay(false)`. In the pinned Folia build, the actual
+Mob daylight-tag combustion path still burns them despite that setting. A scoped
+listener therefore cancels plain `EntityCombustEvent` for this run's tagged
+zombies. This covers natural/unattributed combustion, including third-party
+plugins that deliberately emit that same generic event; block-attributed and
+entity-attributed combustion are **not** cancelled. This is not invulnerability,
+world-wide daylight suppression, scripted navigation, or learned fire avoidance.
+The status counter `suppressed_ambient_combustions` makes the intervention visible.
+Real daylight inference now runs for at least 45 seconds by default and checks
+that every body remains active, ticking and making decisions. Separate fixtures
+check cancellation scope against actual server event classes.

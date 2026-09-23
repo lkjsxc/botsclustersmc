@@ -4,6 +4,7 @@ import org.botsclustersmc.core.*;
 import org.botsclustersmc.plugin.*;
 import org.botsclustersmc.training.*;
 import org.bukkit.*;
+import org.bukkit.event.entity.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,6 +31,10 @@ public final class Fixtures extends RuntimePlugin {
         io.scheduleAtFixedRate(()->{try{if(failed.get()!=null)Files.writeString(getDataFolder().toPath().resolve("fixtures-failed.txt"),failed.get().toString());else if(passed.size()==18){Files.writeString(getDataFolder().toPath().resolve("fixtures-passed.txt"),"PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.\n");Bukkit.getGlobalRegionScheduler().run(this,t->Bukkit.shutdown());}}catch(Exception e){fail(e);}},1,1,TimeUnit.SECONDS);
     }
     @Override protected void spawned(Npc n){
+        EntityCombustEvent ambient=new EntityCombustEvent(n.entity,8.0f);ambient.callEvent();
+        EntityCombustEvent block=new EntityCombustByBlockEvent(null,n.entity,8.0f);block.callEvent();
+        EntityCombustEvent attacker=new EntityCombustByEntityEvent(n.entity,n.entity,8.0f);attacker.callEvent();
+        if(!ambient.isCancelled()||block.isCancelled()||attacker.isCancelled())throw new IllegalStateException("NPC combustion protection scope");
         TrainingEnvironment.Session s=sessions.get(n.id);s.lesson=new Course.Lesson(1,Task.at((int)n.id),1,700+n.id,Course.Kind.PROBE);n.context=new Control();TrainingEnvironment.reset(this,n,s,s.lesson);
     }
     @Override protected void startNpc(Npc n){n.entity.getScheduler().runAtFixedRate(this,t->{try{tick(n);}catch(Throwable e){fail(e);}},()->{},1,1);}
