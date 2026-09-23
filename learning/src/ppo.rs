@@ -45,8 +45,9 @@ pub fn validate_transition(t:&Transition,m:&Model)->Result<(),String> {
     }
     if t.elapsed_ticks==0 || t.elapsed_ticks>1_000_000 || t.tick<u64::from(t.elapsed_ticks) || (t.terminal&&t.truncated) {return Err("invalid server transition duration/boundary".into());}
     let mut off=0;
-    for (&n,&a) in m.heads.iter().zip(&t.actions) {
-        if a>=n || !t.mask[off+a] || !t.mask[off..off+n].iter().any(|v|*v) {
+    for (h,(&n,&a)) in m.heads.iter().zip(&t.actions).enumerate() {
+        let ignored=m.heads.as_slice()==super::HEADS && h==7 && !(1..=3).contains(&t.actions[6]);
+        if a>=n || (!ignored && !t.mask[off+a]) || (ignored && a!=0) || !t.mask[off..off+n].iter().any(|v|*v) {
             return Err("illegal recorded action".into());
         }
         off+=n;
@@ -257,5 +258,16 @@ fn train_inner(model:&mut Model,adam:&mut Adam,rng:&mut Rng,batch:&[Sample],p:&P
         let p=Params{entropy:f32::NAN,..Params::default()};
         assert!(train(&mut m,&mut adam,&mut rng,&[],&p).is_err());
         assert_eq!(m.weights,before);assert_eq!(adam.step,0);assert_eq!(rng.0,7);
+    }
+}
+
+#[cfg(test)]mod conditional_tests{
+    use super::*;
+    #[test]fn canonical_inactive_slot_survives_native_ppo_validation(){
+        let m=Model::new(1,4,super::super::HEADS.to_vec(),1);let mut mask=vec![true;super::super::ACTIONS];
+        let parent=super::super::ACTIONS-90-6;for i in 1..6{mask[parent+i]=false;}mask[super::super::ACTIONS-90]=false;
+        let d=m.decide(&[0.2],&mask,&mut Rng(3),false);assert_eq!(d.actions[6],0);assert_eq!(d.actions[7],0);
+        let t=Transition{obs:vec![0.2],mask,actions:d.actions,old_logp:d.logp,value:d.value,next_value:0.,reward:1.,terminal:true,elapsed_ticks:4,truncated:false,episode:1,tick:4};
+        assert!(prepare(vec![Rollout{version:0,steps:vec![t]}],&m,&Params::default()).is_ok());
     }
 }

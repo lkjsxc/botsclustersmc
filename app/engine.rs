@@ -10,7 +10,7 @@ pub fn initialize(cfg:Settings)->Result<(Arc<Runtime>,thread::JoinHandle<Result<
     fs::create_dir_all(cfg.root.join("state")).map_err(|e|e.to_string())?;
     fs::create_dir_all(cfg.root.join("logs")).map_err(|e|e.to_string())?;
     let context_path=cfg.root.join("state/environment.txt");
-    let context="botsclustersmc-academy-v2-18tasks-conditional-gui-timed-gae\n";
+    let context="botsclustersmc-academy-v2-18tasks-conditional-gui-timed-gae-menu-types\n";
     if context_path.exists(){
         if fs::read_to_string(&context_path).map_err(|e|e.to_string())?!=context{return Err("incompatible observations/actions: preserve the old Academy and use a fresh academy-v2 directory".into());}
     }else{

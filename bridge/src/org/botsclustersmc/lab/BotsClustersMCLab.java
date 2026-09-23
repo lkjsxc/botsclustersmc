@@ -213,6 +213,8 @@ public final class BotsClustersMCLab extends JavaPlugin implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void dropped(PlayerDropItemEvent e){
         if(e.getPlayer().getWorld()!=world)return;Session s=sessions.get(id(e.getPlayer()));if(s==null||!s.ready)e.setCancelled(true);else tag(e.getItemDrop(),s,"inventory");
     }
+    // Each target pickup retains its individual episode provenance until removal.
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void merging(ItemMergeEvent e){if(e.getEntity().getWorld()==world)e.setCancelled(true);}
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void pickup(EntityPickupItemEvent e){
         if(e.getEntity().getWorld()!=world)return;if(!(e.getEntity() instanceof Player p)){e.setCancelled(true);return;}
         Session s=sessions.get(id(p));String actual=e.getItem().getPersistentDataContainer().get(itemTag,PersistentDataType.STRING);

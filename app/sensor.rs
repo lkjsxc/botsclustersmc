@@ -2,7 +2,7 @@
 //! server statistics, never a predicted or partially synchronized inventory.
 use std::collections::BTreeMap;
 use azalea::{Client,core::position::BlockPos,protocol::packets::game::ClientboundGamePacket};
-use azalea_inventory::ItemStack;
+use azalea_inventory::{ItemStack,Menu};
 use azalea::protocol::packets::game::c_award_stats::Stat;
 use azalea::physics::collision::BlockWithShape;
 use crate::{learning::{FRAME,OBS,ACTIONS,HEADS},metrics::{hash,now,AgentView}};
@@ -66,7 +66,7 @@ fn item_id(i:&ItemStack)->u32{(hash(&format!("{:?}",i.kind())) as u32).max(1)}
 fn features(h:u64)->[f32;2]{[(h as u16 as f32/32767.5)-1.0,((h>>16) as u16 as f32/32767.5)-1.0]}
 fn stack(i:&ItemStack,v:&mut Vec<f32>){if i.is_empty(){v.extend([0.0;3]);}else{v.extend(features(hash(&format!("{:?}",i.kind()))));v.push((i.count().max(0) as f32/64.0).min(1.0));}}
 
-pub struct Observation {pub frame:Vec<f32>,pub obs:Vec<f32>,pub mask:Vec<bool>,pub slots:usize,pub view:AgentView}
+pub struct Observation {pub frame:Vec<f32>,pub obs:Vec<f32>,pub mask:Vec<bool>,pub slots:usize,pub menu_kind:usize,pub view:AgentView}
 pub fn observe(bot:&Client,id:usize,name:&str,previous:&[f32],last_action:&[usize],old_position:Option<[f64;3]>,peers:&[AgentView])->Observation{
     let p=bot.position();let position=[p.x,p.y,p.z];let dir=bot.direction();let hunger=bot.hunger();
     let dim=hash(&format!("{:?}",bot.world_name()));let time=now();let extent=crate::engine::runtime().cfg.radius;let dim_features=features(dim);
@@ -75,7 +75,7 @@ pub fn observe(bot:&Client,id:usize,name:&str,previous:&[f32],last_action:&[usiz
     let delta=old_position.map(|o|[(p.x-o[0]) as f32,(p.y-o[1]) as f32,(p.z-o[2]) as f32]).unwrap_or([0.0;3]);
     let menu=bot.menu();let slots=menu.slots();let n=slots.len().min(90);
     let hit=bot.hit_result();let block_hit=hit.as_block_hit_result_if_not_miss();
-    f.extend([bot.health()/20.0,hunger.food as f32/20.0,hunger.saturation/20.0,yaw.sin(),yaw.cos(),pitch.sin(),pitch.cos(),(p.y as f32/320.0).clamp(-1.0,1.0),delta[0].clamp(-8.0,8.0)/8.0,delta[1].clamp(-8.0,8.0)/8.0,delta[2].clamp(-8.0,8.0)/8.0,bot.selected_hotbar_slot() as f32/8.0,if slots.len()!=46{1.0}else{0.0},if block_hit.is_some(){1.0}else{0.0},if hit.as_entity_hit_result().is_some(){1.0}else{0.0},(p.x as f32/extent).clamp(-1.0,1.0),(p.z as f32/extent).clamp(-1.0,1.0),dim_features[0],dim_features[1],1.0]);
+    f.extend([bot.health()/20.0,hunger.food as f32/20.0,hunger.saturation/20.0,yaw.sin(),yaw.cos(),pitch.sin(),pitch.cos(),(p.y as f32/320.0).clamp(-1.0,1.0),delta[0].clamp(-8.0,8.0)/8.0,delta[1].clamp(-8.0,8.0)/8.0,delta[2].clamp(-8.0,8.0)/8.0,bot.selected_hotbar_slot() as f32/8.0,if matches!(menu,Menu::Player(_)){0.0}else{1.0},if block_hit.is_some(){1.0}else{0.0},if hit.as_entity_hit_result().is_some(){1.0}else{0.0},(p.x as f32/extent).clamp(-1.0,1.0),(p.z as f32/extent).clamp(-1.0,1.0),dim_features[0],dim_features[1],1.0]);
     // A small local state-based voxel sensor, NOT a global map or path planner.
     // Stable hashed categories avoid an enormous one-hot block vocabulary.
     let world=bot.world();let world=world.read();
@@ -110,7 +110,7 @@ pub fn observe(bot:&Client,id:usize,name:&str,previous:&[f32],last_action:&[usiz
     for i in 0..90{mask[offset+i]=i<n.max(1);}
     // All goals remain policy-controlled. Only mechanically invalid slot indices
     // are masked; no "smart" masks suggest a recipe, block, direction or task.
-    Observation{frame:f,obs,mask,slots:n,view:AgentView{id,name:name.into(),online:true,dimension:dim,position,health:bot.health(),food:hunger.food,last_seen:time,..Default::default()}}
+    Observation{frame:f,obs,mask,slots:n,menu_kind:menu_kind(&menu),view:AgentView{id,name:name.into(),online:true,dimension:dim,position,health:bot.health(),food:hunger.food,last_seen:time,..Default::default()}}
 }
 
 #[cfg(test)]
@@ -139,9 +139,17 @@ mod tests {
     }
 }
 
-/// The prior sensor occupies exactly 617 values; curriculum uses its 23 padded
-/// values. The frame stack and recorded behavior distribution include the goal.
+/// The prior sensor occupies exactly 617 values; the expanded curriculum and GUI identity use its reserved
+/// tail values. The frame stack and recorded behavior distribution include the goal.
 pub fn academy_features(o:&mut Observation,features:&[f32;87]) {
     o.frame[617..704].copy_from_slice(features);
+    o.frame[687+o.menu_kind]=1.0;
     o.obs[..FRAME].copy_from_slice(&o.frame);
+}
+
+/// Observable GUI identity, never a recipe answer or teacher-selected slot.
+fn menu_kind(menu:&Menu)->usize{match menu{Menu::Player(_)=>0,Menu::Crafting(_)=>1,Menu::Furnace(_)=>2,Menu::Generic9x3(_)|Menu::Generic9x6(_)=>3,_=>4}}
+#[cfg(test)]mod menu_tests{
+    use super::*;
+    #[test]fn equal_length_menus_are_distinct_observations(){let a=Menu::Player(Default::default());let b=Menu::Crafting(Default::default());assert_eq!(a.slots().len(),b.slots().len());assert_ne!(menu_kind(&a),menu_kind(&b));assert_eq!(menu_kind(&Menu::Furnace(Default::default())),2);}
 }
