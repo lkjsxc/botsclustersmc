@@ -70,7 +70,9 @@ public final class TrainingPlugin extends RuntimePlugin {
     }
     @Override public boolean observed(Npc npc,Npc.Applied previous,Frame next){
         TrainingEnvironment.Session s=(TrainingEnvironment.Session)npc.context;if(s.lesson==null)throw new IllegalStateException("missing lesson");
-        int ticks=Math.toIntExact(next.tick()-previous.frame().tick());boolean success=TrainingEnvironment.success(npc,s,previous,next);
+        int ticks=Math.toIntExact(next.tick()-previous.frame().tick());
+        course.recordEffort(npc.id,s.lesson.serial(),ticks);
+        boolean success=TrainingEnvironment.success(npc,s,previous,next);
         boolean terminal=success||next.tick()-npc.episodeStart>=npc.goal.horizon()||!s.arena.contains(next.x(),next.y(),next.z());
         double potential=TrainingEnvironment.potential(npc,s);float reward=(float)((success?3:terminal?-.3:0)-.0005*ticks/4.0+VTrace.discount(ticks,terminal)*(terminal?0:potential)-s.potential);s.potential=potential;
         if(npc.goal.task()==Task.AIM_HOLD){
@@ -79,7 +81,6 @@ public final class TrainingPlugin extends RuntimePlugin {
         }
         if(HarvestPractice.applies(npc.goal.task()))reward+=(float)TrainingEnvironment.harvestReward(npc,s,next,ticks);
         if(s.lesson.kind()!=Course.Kind.EXAM){
-            course.recordWork(npc.id,s.lesson.serial(),ticks);
             s.fragment.add(new Transition(previous.frame().observation(),previous.frame().mask(),previous.result().actions(),previous.result().logProbability(),previous.result().policyVersion(),reward,ticks,next.observation(),next.mask(),terminal));buffered.increment();
             if(s.fragment.size()>=32||terminal)flush(npc,s);
         }else{
@@ -111,10 +112,6 @@ public final class TrainingPlugin extends RuntimePlugin {
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
         Course.Metrics m=course.metrics();s.put("practice_success_ema",m.practiceMean());s.put("probe_success_ema",m.probeMean());s.put("best_probe_success_ema",m.bestProbe());s.put("exam_ready_agents",m.ready());s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
-        Course.ReviewMetrics review=course.reviewMetrics();
-        s.put("review_schedule","elapsed-training-ticks");s.put("review_target_fraction",ReviewBudget.FRACTION);
-        s.put("review_current_ticks_this_process",review.currentTicks());s.put("review_older_ticks_this_process",review.olderTicks());
-        s.put("review_fraction_this_process",review.fraction());s.put("review_debt_ticks",review.debtTicks());
         Course.StageMetrics[] stages=course.stageMetrics();
         s.put("cohort_training_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::trainingEma).toArray()));
         s.put("cohort_probe_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::probeEma).toArray()));
@@ -130,6 +127,12 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("exam_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examSuccesses).toArray()));
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
         s.put("learner_offered_samples",learner.offered.sum());s.put("learner_rejected_samples",learner.rejected.sum());s.put("learner_stale_samples",learner.stale.sum());s.put("actor_buffered_samples",buffered.sum());s.put("exam_transitions",examTransitions.sum());
+        Course.Effort effort=course.effort();
+        s.put("review_allocation","observed-ticks");
+        s.put("foundation_ticks_this_process",effort.foundationTicks());
+        s.put("frontier_ticks_this_process",effort.frontierTicks());
+        s.put("review_ticks_this_process",effort.reviewTicks());
+        s.put("exam_ticks_this_process",effort.examTicks());
         s.put("task_balance","bounded-batch-loss");
         s.put("learned_task_samples_this_process",Arrays.toString(learner.taskSamples()));
         TaskBalance last=learner.updateBalance();

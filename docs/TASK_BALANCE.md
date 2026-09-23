@@ -2,12 +2,16 @@
 
 ## Episodes are not equal amounts of experience
 
-Curriculum review is selected by episode, but gradients are computed from
+The former curriculum selected review by episode, while gradients consumed
 transitions. A short successful motor review contributes fewer transitions than
 a long unsuccessful resource trial. For illustration, 20 ten-decision review
 episodes mixed with 80 three-hundred-decision trials would put only 0.83% of the
 transitions in review, despite a 20% review-episode rate. This arithmetic example
 is not a measured population statistic.
+
+The current [review scheduler](REVIEW_EFFORT.md) budgets actual non-exam decision ticks,
+addressing the supply imbalance separately from the within-batch loss objective.
+It does not promise that exactly 20% of accepted samples belong to past tasks.
 
 The learner now records actual accepted samples by task for the current process.
 It also exposes the counts and loss weights in the latest batch. Neither repeated
