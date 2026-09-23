@@ -76,9 +76,9 @@ fn read_frame(l:&Lesson)->Result<Option<Frame>,String>{
     if count(3)?!=l.choice.session.actor as u32{return Err("wrong diagnostic actor".into());}let tick=f[4].parse::<u64>().map_err(|e|e.to_string())?;let mut stock=[0;ITEM_COUNT];for i in 0..ITEM_COUNT{stock[i]=count(11+i)?;}
     Ok(Some(Frame{tick,position:[number(5)?,number(6)?,number(7)?],yaw:number(8)? as f32,pitch:number(9)? as f32,grounded:f[10]=="true",evidence:Evidence{session:l.choice.session,tick,stock,counters:Counters{broken:count(24)?,picked_up:count(25)?,crafted:count(26)?,placed:count(27)?,smelted:count(28)?,deposited:count(29)?},target_stock:count(30)?,occupied_targets:count(31)? as u8,motor_hold_ticks:0}}))
 }
-struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,reset_check:bool,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool}
+struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,reset_check:bool,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool,live_hud:bool,live_tab:bool}
 impl Check{
-    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,actor:0,finished:false,reset_check:false,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false}}
+    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,actor:0,finished:false,reset_check:false,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false,live_hud:false,live_tab:false}}
     fn begin(&mut self)->Result<(),String>{
         let choice=Choice{session:Session{run:11,actor:self.actor as u8,generation:1,lesson:self.stage as u64+1+if self.reset_check{100}else{0}},task:TASKS[self.stage],difficulty:1.,seed:8129+self.stage as u64,full_probe:true,evaluation:false,review:false,policy:PolicyId{version:0,signature:0}};
         let l=Lesson::from_choice(choice);let text=format!("BCMCLAB3 {} {} {} {} {:.8} {:.8} {:.8} {:.5} {:.5} {:.8} {:.8} {:.8} {} 1.0 true\n",RUN.get().unwrap(),l.token(),self.actor,l.stage,l.start[0],l.start[1],l.start[2],l.yaw,l.pitch,l.goal[0],l.goal[1],l.goal[2],l.choice.seed);
@@ -181,7 +181,10 @@ impl Check{
             440=>{let menu=bot.menu();let slots=menu.slots();if !matches!(menu,Menu::Generic9x6{..})||slots[18].is_empty()||!slots[19].is_empty(){return Err("observer page2 does not contain exactly the last 19 bots".into());}bot.get_inventory().left_click(18usize);},
             500=>{if(p.x-120.).abs()>1.||(p.z-120.).abs()>1.{return Err("observer menu click did not select bot63".into());}bot.chat("/academy view 16");},
             560=>{if !self.view12||!self.view16{return Err(format!("observer did not receive requested view radius packets: 12={} 16={}",self.view12,self.view16));}bot.chat("/academy tour");},
-            840=>{if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer automatic tour did not advance: {p:?}"));}bot.chat("/academy tour");eprintln!("PASS: real observer menu, page2, click, watch63, next/previous wrap, overview, tour and 12/16-chunk radius packets");DONE.store(true,Ordering::Relaxed);},
+            840=>{
+                if env::var("BCMC_OBSERVER_REQUIRE_STATUS").as_deref()==Ok("true") && (!self.live_hud||!self.live_tab){return Err(format!("observer did not receive live learner HUD/TAB: hud={} tab={}",self.live_hud,self.live_tab));}
+                if self.live_hud&&self.live_tab{eprintln!("PASS: observer received actual learner task/PPO action bar and trained-sample TAB packets");}
+                if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer automatic tour did not advance: {p:?}"));}bot.chat("/academy tour");eprintln!("PASS: real observer menu, page2, click, watch63, next/previous wrap, overview, tour and 12/16-chunk radius packets");DONE.store(true,Ordering::Relaxed);},
             _=>{}
         }Ok(())
     }
@@ -194,7 +197,15 @@ async fn handler(bot:Client,event:Event,state:State)->anyhow::Result<()>{
         Event::Death(_)=>return Err("diagnostic client died".into()),
         Event::Disconnect(reason)=>{if !DONE.load(Ordering::Relaxed){return Err(format!("diagnostic disconnected: {reason:?}"));}},
         Event::ConnectionFailed(e)=>return Err(format!("diagnostic connection failed: {e:?}")),
-        Event::Packet(packet)=>{if s.observer{if let azalea::protocol::packets::game::ClientboundGamePacket::SetChunkCacheRadius(p)=packet.as_ref(){eprintln!("OBSERVER cache radius={}",p.radius);s.view12|=p.radius==12;s.view16|=p.radius==16;}}},
+        Event::Packet(packet)=>{if s.observer{
+            use azalea::protocol::packets::game::ClientboundGamePacket as Packet;
+            match packet.as_ref(){
+                Packet::SetChunkCacheRadius(p)=>{eprintln!("OBSERVER cache radius={}",p.radius);s.view12|=p.radius==12;s.view16|=p.radius==16;},
+                Packet::SetActionBarText(p)=>{let text=p.text.to_string();s.live_hud|=text.contains("PPO ")&&text.contains("difficulty")&&text.contains("bcmc");},
+                Packet::TabList(p)=>{s.live_tab|=p.header.to_string().contains("64 RL actors")&&p.footer.to_string().contains("trained samples");},
+                _=>{}
+            }
+        }},
         Event::Tick=>{if DONE.load(Ordering::Relaxed){bot.exit();return Ok(());}if s.ready&&!s.finished&&bot.exists(){s.ticks+=1;if s.observer{s.observer(&bot)?;}else{if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}if s.stage==0 && s.ticks%16==4 && s.last[0]!=0{act::stop(&bot);s.last=IDLE;}act::tick_camera(&bot,&s.last);}}},_=>{}
     }Ok(())})();if let Err(e)=result{fail(e);}Ok(())
 }

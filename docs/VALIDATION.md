@@ -47,8 +47,10 @@ EULA=true ./scripts/test-live-fixtures.sh
 `tests/public_entry_checks.py` verifies normal start/status/console/stop and
 resume with64 actors,64-step fragments and4096-minimum batches. It explicitly
 requires a fresh checkout without `.env`, `academy/` or `academy-v2/`, already-built
-native binaries and both EULA=true and BCMC_TEST_NEW_ACADEMY=true. It refuses to
-run over an operator installation. Its test-only sentinel and example config
+native and isolated diagnostic-client binaries and both EULA=true and BCMC_TEST_NEW_ACADEMY=true. It refuses to
+run over an operator installation. The first run also connects a read-only observer alongside all 64 actors and
+checks actual HUD/TAB packets, viewing operations and continued PPO updates.
+Its test-only sentinel and example config
 check that legacy data and private config are preserved.
 
 ```sh
