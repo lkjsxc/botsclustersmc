@@ -52,7 +52,6 @@ academy/
   server/                          専用Minecraftワールド
     plugins/BotsClustersMC/
       training.bcmc                重み・Adam・個体別カリキュラム・乱数
-      policy.bcmc                  推論用の最後に保存した方策
       status.json                  学習量・CPU・キュー・個体の状態
   console.log
 ```
@@ -91,24 +90,26 @@ LEARNER_THREADS=auto
 | `inference_queue` / `inference_rejected` | 推論待ち・キューの容量不足 |
 | `course_task_population` | 各課題にいるNPCの人数 |
 
-CPU100%自体は目標ではありません。Minecraftのtick待ち、I/O、学習処理を分け、TPSや全個体の行動継続と実サンプル数を一緒に比較します。単一CPUスレッドの表示をJVM全体の負荷と混同しないでください。現在の規模試験は[検証記録](docs/VALIDATION.md)に条件付きで記載しています。数千体が一つの密集地で複雑な共同生活をする性能保証ではありません。
+`process_cpu_cores` と `process_cpu_fraction` は同じ測定区間から計算します。CPU100%自体は目標ではありません。Minecraftのtick待ち、I/O、学習処理を分け、TPSや全個体の行動継続と実サンプル数を一緒に比較します。単一CPUスレッドの表示をJVM全体の負荷と混同しないでください。現在の規模試験は[検証記録](docs/VALIDATION.md)に条件付きで記載しています。数千体が一つの密集地で複雑な共同生活をする性能保証ではありません。
 
 ## JAR＋学習データを実ワールドへ持ち出す
 
-学習側を正常停止してから:
+学習側を正常停止し、起動端末で終了したことを確認してから:
 
 ```sh
 ./export.sh
 ```
 
-次の2ファイルが作られます。
+実行中のAcademyからの書き出しは拒否します。`export.sh` は現行ソースをビルドし、保存済みの **`training.bcmc` から直接**推論用の方策を取り出します。別に残っている `policy.bcmc` を保存元として信用しないため、学習再開に使うモデルと書き出すモデルが食い違いません。チェックポイントが破損・欠落していれば停止し、ランダム方策や古い方策には置き換えません。
+
+コマンドが正常終了すると、次の2ファイルが作られます。
 
 ```text
 dist/deploy/plugins/botsclustersmc.jar
 dist/deploy/plugins/BotsClustersMC/policy.bcmc
 ```
 
-対象Paper/Foliaサーバーを停止し、この配置のまま `plugins/` にコピーして通常どおり起動します。**`training.jar` はコピーしません。同じサーバーに両方のJARを入れないでください。** 外部プロセス、APIキー、Python、ネイティブライブラリは不要です。サーバーの `online-mode`・ポート・ワールド設定はプラグインから変更しません。
+書き出しの正常終了を確認した後、対象Paper/Foliaサーバーを停止し、この配置のまま `plugins/` にコピーして通常どおり起動します。**`training.jar` はコピーしません。同じサーバーに両方のJARを入れないでください。** 外部プロセス、APIキー、Python、ネイティブライブラリは不要です。サーバーの `online-mode`・ポート・ワールド設定はプラグインから変更しません。
 
 初回は安全のため自動生成人数が0です。非Peacefulのワールドで、管理者が立っている場所から:
 

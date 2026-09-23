@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.1 — 2026-09-23
+
+- Save one authoritative training checkpoint and derive deployment weights from
+  it under the Academy run lock. Rebuild current JARs before export; refuse live,
+  missing or corrupt-state exports rather than copying an older cached policy.
+- Reject symlinked ancestors before managed reads or directory creation, including
+  the plugin configuration path. Do not modify files behind rejected links.
+- Give each inference submission a non-reused reply ticket so delayed responses
+  and failures from cancelled goals cannot overwrite or poison current requests.
+- Use a common interval for JVM CPU-core and normalized-utilization measurements.
+- Add actual-filesystem and source-launcher export regressions, deterministic
+  inverted callback completion tests, exact resume-counter checks and real-server
+  rapid-goal-replacement acceptance. Live CI always requires affirmative dispatch.
+
+Artifact names and the current observation/action schema are unchanged. There
+are no legacy loaders, alternate generations or automatic state migrations.
+
 ## 0.6.0 — 2026-09-23
 
 Breaking Java-only redesign. Logged-in Azalea players are replaced by public-API

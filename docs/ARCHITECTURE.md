@@ -57,7 +57,10 @@ Inference drains immediately available requests into batches of at most32; it
 never waits artificially to fill a batch. Fixed workers share an immutable model,
 reuse workspaces, and group requests with the same model identity. There is at most
 one pending request per NPC. The last selected motor is held while waiting; elapsed
-ticks and previous input are observed. Results return through per-actor mailboxes.
+ticks and previous input are observed. Each submitted request captures its own
+non-reused reply ticket. Replacing a goal, pausing or resetting discards that
+ticket; an old result or error cannot overwrite the next request's reply. Polling
+is nonblocking. An obsolete in-flight computation may finish, but is never applied.
 Admission, queues and loaded chunks have explicit upper bounds and failure counters.
 
 Moving chunk leases are reference counted. Old tickets are released on movement,
@@ -77,19 +80,29 @@ The observation/action schema has a descriptive identity, dimensions and explici
 numeric bounds. Same-sized incompatible weights are not accepted. Policy files
 have checksums, finite-value checks, size limits and exact trailing-byte checks;
 Java object deserialization is not used. Writes use temporary files, fsync and
-atomic rename. Managed symlinks are rejected. Checkpoints are not world transactions.
+atomic rename. Every managed path component, not only the final filename, is
+checked for symlinks before reading or creating directories. This rejects static
+misconfigured links; it is not a security boundary against a concurrent malicious
+process with the same filesystem permissions. Checkpoints are not world transactions.
 
 The full training checkpoint binds weights, Adam moments/step, individual course
 and random state. Actor count must match. A corrupt/incompatible checkpoint never
-silently initializes a new policy. Inference exports use the last fully written
-policy snapshot, not an optimizer checkpoint, and contain no promise of mastery.
+silently initializes a new policy. `training.bcmc` is the single save authority;
+training does not maintain a second independently committed policy file. The
+stopped-Academy exporter holds the run lock, rebuilds current artifacts, validates
+the complete checkpoint and derives the small deployable `policy.bcmc` from it.
+A leftover loose policy is neither trusted nor migrated. Export does not ship Adam
+or the course, and contains no promise of mastery. Wait for successful export
+before copying the two files; two destination files are not one filesystem-wide
+atomic transaction, and an interrupted export must be rerun before deployment.
 
 The launcher uses strict key/value configuration, exclusive run/build file locks,
 port checks, explicit EULA consent and authenticated loopback console control.
 It refuses to initialize a nonempty unowned Academy or overwrite old configuration
 through a migration shim. Public server ports, worlds and auth are untouched by
 the separately deployed inference plugin. Training logs/status are observational;
-status snapshots after stopping are not live-health claims.
+status snapshots after stopping are not live-health claims. CPU core equivalents
+and normalized CPU fraction use the same process-time/wall-time interval.
 
 ## References and what is not claimed
 

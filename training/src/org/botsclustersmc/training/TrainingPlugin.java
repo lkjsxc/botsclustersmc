@@ -27,6 +27,8 @@ public final class TrainingPlugin extends RuntimePlugin {
         if(Files.exists(checkpoint,LinkOption.NOFOLLOW_LINKS)){
             TrainingState state=TrainingState.read(checkpoint);course=Course.decode(state.course(),count);restoredOptimizer=state.optimizer();getLogger().info("Restored exact optimizer/model: updates="+state.policy().updates()+", samples="+state.policy().samples()+", optimizer-step="+restoredOptimizer.step());return state.policy();
         }
+        if(Files.exists(getDataFolder().toPath().resolve("policy.bcmc"),LinkOption.NOFOLLOW_LINKS))
+            throw new IllegalStateException("Missing training.bcmc in a directory containing a policy; restore a complete stopped backup or use a fresh Academy.");
         course=new Course(count,seed);restoredOptimizer=new Adam();return Policy.initialize(seed);
     }
     @Override protected void initialize(){
@@ -87,7 +89,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         long now=System.nanoTime();if(policy.updates()!=savedUpdate&&(now-lastSave)>TimeUnit.SECONDS.toNanos(30)){save();lastSave=now;}
     }
     private void save()throws Exception{
-        synchronized(saveLock){TrainingState state=learner.snapshot(course.encode());state.write(getDataFolder().toPath().resolve("training.bcmc"));PolicyFile.write(getDataFolder().toPath().resolve("policy.bcmc"),state.policy());savedUpdate=state.policy().updates();}
+        synchronized(saveLock){TrainingState state=learner.snapshot(course.encode());state.write(getDataFolder().toPath().resolve("training.bcmc"));savedUpdate=state.policy().updates();}
     }
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
@@ -98,7 +100,7 @@ public final class TrainingPlugin extends RuntimePlugin {
     }
     @Override protected void closing()throws Exception{
         closing=true;if(learner==null)return;learner.close();if(!learner.awaitTermination(30000))throw new IllegalStateException("Learner has not drained; last complete checkpoint retained");
-        if(failed.get()==null){save();writeStatus();getLogger().info("Saved training.bcmc and policy.bcmc: updates="+policy.updates()+", samples="+policy.samples()+", buffered-untrained="+buffered.sum()+", unfinished-episodes="+course.running());}
+        if(failed.get()==null){save();writeStatus();getLogger().info("Saved canonical training.bcmc: updates="+policy.updates()+", samples="+policy.samples()+", buffered-untrained="+buffered.sum()+", unfinished-episodes="+course.running());}
     }
     @EventHandler public void joined(PlayerJoinEvent event){event.getPlayer().getScheduler().run(this,t->{event.getPlayer().setGameMode(GameMode.SPECTATOR);event.getPlayer().setViewDistance(12);event.getPlayer().sendMessage("Training observer: /bots status | /bots watch <id>. NPCs are not logged-in players.");},null);}
     @EventHandler public void blockBreak(BlockBreakEvent event){event.setCancelled(true);}

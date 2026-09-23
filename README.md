@@ -39,11 +39,18 @@ a hardware-capacity guarantee**. See the measured tests before increasing count.
 
 ## Export and deploy
 
+Stop the Academy cleanly and confirm process exit first.
+
 ```sh
 ./export.sh
 ```
 
-Copy only these files to a stopped, tested Paper/Folia server:
+Export holds the Academy run lock, rebuilds the current JARs and derives the
+policy directly from the single canonical `training.bcmc`. It never trusts a
+loose cached `policy.bcmc` or falls back to an older/random model. Missing or
+corrupt checkpoints stop export before deployment files are replaced.
+
+After the command succeeds, copy only these files to a stopped, tested Paper/Folia server:
 
 ```text
 plugins/botsclustersmc.jar

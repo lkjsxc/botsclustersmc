@@ -36,7 +36,9 @@ public final class PolicyFile {
     public static Policy read(Path path) throws IOException { return decode(readBounded(path,Schema.MAX_MODEL_BYTES)); }
     public static void write(Path path,Policy policy) throws IOException { atomicWrite(path,encode(policy)); }
     public static byte[] readBounded(Path path,int maximum) throws IOException {
-        if(Files.isSymbolicLink(path) || !Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS)) throw new IOException("not a regular owned data file: "+path);
+        if(maximum<1 || maximum==Integer.MAX_VALUE) throw new IllegalArgumentException("invalid data bound");
+        path=managedPath(path);
+        if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS)) throw new IOException("not a regular owned data file: "+path);
         try(InputStream in=Files.newInputStream(path,LinkOption.NOFOLLOW_LINKS)) {
             byte[] data=in.readNBytes(maximum+1);
             if(data.length>maximum) throw new IOException("data file exceeds bound"); return data;
@@ -53,11 +55,16 @@ public final class PolicyFile {
         if(crc.getValue()!=ByteBuffer.wrap(bytes,n,8).getLong()) throw new IOException("data checksum mismatch");
         return java.util.Arrays.copyOf(bytes,n);
     }
+    /** Check the whole lexical path, including nonexistent descendants, before any I/O. */
+    public static Path managedPath(Path destination) throws IOException {
+        Path path=destination.toAbsolutePath().normalize();
+        for(Path p=path;p!=null;p=p.getParent()) if(Files.isSymbolicLink(p)) throw new IOException("symlinked managed path: "+p);
+        return path;
+    }
     public static void atomicWrite(Path destination,byte[] bytes) throws IOException {
-        Path path=destination.toAbsolutePath().normalize(),parent=path.getParent();
+        Path path=managedPath(destination),parent=path.getParent();
         Files.createDirectories(parent);
-        for(Path p=parent;p!=null;p=p.getParent()) if(Files.isSymbolicLink(p)) throw new IOException("symlinked data directory: "+p);
-        if(Files.isSymbolicLink(path)) throw new IOException("symlinked destination");
+        managedPath(path);
         Path temporary=Files.createTempFile(parent,".write-",".tmp");
         try {
             try(FileChannel ch=FileChannel.open(temporary,StandardOpenOption.WRITE)) {

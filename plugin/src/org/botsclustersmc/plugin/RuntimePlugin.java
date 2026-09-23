@@ -34,6 +34,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
     public boolean training(){return false;}
     @Override public final void onEnable(){
         try {
+            PolicyFile.managedPath(getDataFolder().toPath().resolve("config.yml"));
             saveDefaultConfig();seed=getConfig().getLong("seed",7);provenance=new NamespacedKey(this,"provenance");
             maximum=bounded("max-agents",4096,1,10000);maxChunks=bounded("max-loaded-chunks",2048,1,10000);leases=new ChunkLeases(this,maxChunks);
             RuntimeBudget budget=RuntimeBudget.automatic(Runtime.getRuntime().availableProcessors());
@@ -108,7 +109,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
         status.put("inference_rejected",inferenceRejected.sum());status.put("inference_failed",inference.failed.sum());status.put("inference_compute_ns",inference.computeNanos.sum());status.put("inference_queue_ns",inference.queueNanos.sum());
         status.put("sensor_ns",sensorNanos.sum());status.put("abandoned_actions",abandoned.sum());status.put("leased_chunks",leases.size());
         var os=java.lang.management.ManagementFactory.getOperatingSystemMXBean();status.put("available_processors",Runtime.getRuntime().availableProcessors());
-        if(os instanceof com.sun.management.OperatingSystemMXBean o){long cpu=o.getProcessCpuTime();status.put("process_cpu_ns",cpu);status.put("process_cpu_cores",interval==0?0:(cpu-lastCpu)/interval/1e9);lastCpu=cpu;status.put("process_cpu_fraction",o.getProcessCpuLoad());}
+        if(os instanceof com.sun.management.OperatingSystemMXBean o){long cpu=o.getProcessCpuTime();status.put("process_cpu_ns",cpu);double cores=interval==0?0:Math.max(0,(cpu-lastCpu)/interval/1e9);status.put("process_cpu_cores",cores);lastCpu=cpu;status.put("process_cpu_fraction",cores/Runtime.getRuntime().availableProcessors());}
         Runtime runtime=Runtime.getRuntime();status.put("heap_used_mib",(runtime.totalMemory()-runtime.freeMemory())/(1024L*1024));status.put("java_threads",java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount());status.put("epoch_millis",System.currentTimeMillis());status.putAll(extraStatus());
         PolicyFile.atomicWrite(getDataFolder().toPath().resolve("status.json"),json(status).getBytes(StandardCharsets.UTF_8));
     }

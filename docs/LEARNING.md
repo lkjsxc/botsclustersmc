@@ -79,7 +79,10 @@ Pause/restart abandons the affected actor's whole unfinished exam rather than
 keeping a favorable partial subset. Completed certificates/statistics and RNG
 persist. In-flight world actions are not replayed. Shutdown records buffered
 untrained samples and unfinished actions; accepted learner work is drained before
-final checkpoint when graceful shutdown succeeds.
+final checkpoint when graceful shutdown succeeds. The single canonical file is
+`training.bcmc`; stopped-state export derives a policy directly from that file
+instead of depending on a separately committed policy copy. This is not an atomic
+transaction with the Minecraft world, and export is not a learned-skill claim.
 
 ## Real-server task catalogue
 

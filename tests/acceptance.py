@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Opt-in, disposable real-server tests. Python is a developer dependency only."""
 from __future__ import annotations
-import argparse, json, os, shutil, subprocess, time, zipfile
+import argparse, json, os, re, shutil, subprocess, time, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,6 +85,7 @@ def train(output, count, seconds):
     status_path = academy/'server/plugins/BotsClustersMC/status.json'
     previous = None
     for phase in ('fresh', 'resume'):
+        restore_expected = previous
         started = int(time.time()*1000)
         process = subprocess.Popen([JAVA, 'host/Host.java', 'start'], cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=open(output/f'train-{phase}.log','w'), stderr=subprocess.STDOUT)
         try:
@@ -104,14 +105,24 @@ def train(output, count, seconds):
             host('status',env); host('console',env,'bots','status'); host('stop',env)
             process.wait(timeout=75); assert process.returncode==0
             previous=read_status(status_path)
+            assert previous and previous['state'] != 'failed', previous
             (output/f'{phase}-stopped.json').write_text(json.dumps(previous,indent=2))
+            assert not (status_path.parent/'policy.bcmc').exists(), 'training must save one canonical checkpoint, not a second policy copy'
             if phase=='resume':
-                assert 'Restored exact optimizer/model' in (output/'train-resume.log').read_text(errors='replace')
+                restored = re.search(r'Restored exact optimizer/model: updates=(\d+), samples=(\d+), optimizer-step=(\d+)', (output/'train-resume.log').read_text(errors='replace'))
+                assert restored, 'missing exact resume receipt'
+                assert tuple(map(int,restored.groups())) == (restore_expected['policy_updates'], restore_expected['trained_samples'], restore_expected['policy_updates']), (restored.groups(),restore_expected)
+                (output/'resume-identity.json').write_text(json.dumps({'expected_updates':restore_expected['policy_updates'],'expected_samples':restore_expected['trained_samples'],'restored':list(map(int,restored.groups()))},indent=2))
         finally:
             if process.poll() is None:
                 try: host('stop',env); process.wait(timeout=60)
                 except Exception: process.kill(); process.wait()
+    # A leftover/corrupt derived file must not become the export authority.
+    obsolete=status_path.parent/'policy.bcmc';obsolete.write_bytes(b'obsolete-derived-policy-is-not-a-checkpoint\n')
     host('export',env,str(output/'deploy'))
+    run([JAVA,'-cp',ROOT/'dist/training.jar','org.botsclustersmc.training.CheckpointTool','verify-export',status_path.parent/'training.bcmc',output/'deploy/plugins/BotsClustersMC/policy.bcmc'])
+    assert obsolete.read_bytes()==b'obsolete-derived-policy-is-not-a-checkpoint\n'
+    obsolete.unlink()
     elapsed=(last['epoch_millis']-first['epoch_millis'])/1000
     print(f'PASS real training + exact-state resume + export: {count} actual NPCs; final phase trained/s={(last["trained_samples"]-first["trained_samples"])/elapsed:.2f}',flush=True)
 
@@ -147,27 +158,44 @@ def fixtures(output, cache):
     finally:stop_direct(process)
 
 
-def inference(output, cache, deploy):
+def inference(output, cache, deploy, count=64, seconds=15):
     directory=output/'inference';server_dir(directory,cache,25580)
     data=directory/'plugins/BotsClustersMC';data.mkdir()
     shutil.copy2(deploy/'plugins/botsclustersmc.jar',directory/'plugins/botsclustersmc.jar')
     shutil.copy2(deploy/'plugins/BotsClustersMC/policy.bcmc',data/'policy.bcmc')
-    (data/'config.yml').write_text('count: 64\nmax-agents: 128\nmax-loaded-chunks: 128\ninference-threads: 1\nworld: world\norigin: {x: 4.5, y: 65, z: 4.5}\ngoal: {x: 4.5, y: 65, z: 60.5}\ntask: 0\nspacing: 2\nworld-edits: false\n')
+    (data/'config.yml').write_text(f'count: {count}\nmax-agents: {max(128,count)}\nmax-loaded-chunks: {max(128,count)}\ninference-threads: 1\nworld: world\norigin: {{x: 4.5, y: 65, z: 4.5}}\ngoal: {{x: 4.5, y: 65, z: 60.5}}\ntask: 0\nspacing: 2\nworld-edits: false\n')
     sentinel=directory/'operator-sentinel.txt';sentinel.write_bytes(b'operator-owned settings remain unchanged\n')
     started=int(time.time()*1000);process=direct(directory,cache,output/'inference.log')
     def send(text):process.stdin.write(text+'\n');process.stdin.flush()
     try:
-        first=wait_status(process,data/'status.json',lambda s:s['active_agents']==64 and s['progressed_agents_since_status']==64,started)
-        time.sleep(10)
-        last=wait_status(process,data/'status.json',lambda s:s['decision_transitions']>first['decision_transitions']+1000,started)
+        first=wait_status(process,data/'status.json',lambda s:s['active_agents']==count and s['progressed_agents_since_status']==count,started)
+        series=[first];deadline=time.monotonic()+seconds
+        while time.monotonic()<deadline:
+            last=wait_status(process,data/'status.json',lambda s:s['epoch_millis']>series[-1]['epoch_millis'],started,30)
+            assert last['active_agents']==count and last['ticking_agents']==count and last['progressed_agents_since_status']==count, last
+            assert last['inference_failed']==0 and last['retired_agents']==0, last
+            series.append(last)
+        last=series[-1]
+        assert last['decision_transitions']>first['decision_transitions']+count*16, last
+        (output/'inference-series.json').write_text(json.dumps(series,indent=2))
         assert last['moved_agents']>0, last
         assert last['trained_samples']==first['trained_samples'] and last['policy_updates']==first['policy_updates']
         (output/'inference-active.json').write_text(json.dumps(last,indent=2))
         send('bots pause');wait_status(process,data/'status.json',lambda s:s['state']=='paused',started,30)
         send('bots resume');wait_status(process,data/'status.json',lambda s:s['state']=='running',started,30)
+        # Rapid goal replacement invalidates request tickets without letting old replies
+        # overwrite a current result. Check EVERY actor resumes useful decisions.
+        for index in range(24):
+            send(f'bots goal all 3 {4.5 + index % 2 * 8} 65 60.5')
+            if index % 4 == 0:send('bots pause');send('bots resume')
+            time.sleep(.03)
+        boundary=int(time.time()*1000)
+        healthy=wait_status(process,data/'status.json',lambda s:s['active_agents']==count and s['progressed_agents_since_status']==count,boundary,45)
+        assert healthy['inference_failed']==0 and healthy['retired_agents']==0, healthy
+        (output/'inference-after-replacement.json').write_text(json.dumps(healthy,indent=2))
         send('bots remove all');wait_status(process,data/'status.json',lambda s:s['active_agents']==0 and s['pending_agents']==0 and s['leased_chunks']==0,started,30)
-        send('bots spawn 64 world 260.5 65 260.5')
-        again=wait_status(process,data/'status.json',lambda s:s['active_agents']==64 and s['progressed_agents_since_status']==64,started,60)
+        respawn=min(64,count);send(f'bots spawn {respawn} world 260.5 65 260.5')
+        again=wait_status(process,data/'status.json',lambda s:s['active_agents']==respawn and s['progressed_agents_since_status']==respawn,started,60)
         assert again['state']=='running'
         send('bots remove all');wait_status(process,data/'status.json',lambda s:s['active_agents']==0 and s['leased_chunks']==0,started,30)
         assert sentinel.read_bytes()==b'operator-owned settings remain unchanged\n'
@@ -185,17 +213,18 @@ def inference(output, cache, deploy):
         assert 'Ready: in-JVM NPC inference' not in log and 'Disabling BotsClustersMC' in log
         assert policy.read_bytes()==bad and not (data/'training.bcmc').exists()
     finally:stop_direct(process);policy.write_bytes(valid)
-    print('PASS plugin + policy only; 64 actual NPCs, pause/resume, ticket release, respawn, corrupt-model fail-closed without server shutdown',flush=True)
+    print(f'PASS plugin + policy only; {count} actual NPCs, pause/resume, rapid goal replacement, ticket release, respawn, corrupt-model fail-closed without server shutdown',flush=True)
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=('train','fixtures','inference','all'));parser.add_argument('--output',type=Path,required=True);parser.add_argument('--count',type=int,default=1024);parser.add_argument('--seconds',type=int,default=45);parser.add_argument('--cache',type=Path,default=Path(os.environ.get('BCMC_SERVER_CACHE',ROOT/'.cache/server')));parser.add_argument('--deploy',type=Path)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=('train','fixtures','inference','all'));parser.add_argument('--output',type=Path,required=True);parser.add_argument('--count',type=int,default=1024);parser.add_argument('--seconds',type=int,default=45);parser.add_argument('--cache',type=Path,default=Path(os.environ.get('BCMC_SERVER_CACHE',ROOT/'.cache/server')));parser.add_argument('--deploy',type=Path);parser.add_argument('--inference-count',type=int,default=64);parser.add_argument('--inference-seconds',type=int,default=15)
     args=parser.parse_args()
+    if not 1<=args.count<=10000 or not 1<=args.inference_count<=10000 or args.seconds<1 or args.inference_seconds<5:parser.error('counts must be 1..10000, training duration positive and inference duration at least 5 seconds')
     if os.environ.get('EULA')!='true':raise SystemExit('Explicit EULA=true is required for disposable real-server acceptance.')
     output=args.output.resolve();output.mkdir(parents=True,exist_ok=False)
     cache=args.cache.resolve();assert (cache/'server.jar').is_file(), cache
     if args.mode in ('train','all'):train(output,args.count,args.seconds)
     if args.mode in ('fixtures','all'):fixtures(output,cache)
-    if args.mode in ('inference','all'):inference(output,cache,args.deploy.resolve() if args.deploy else output/'deploy')
+    if args.mode in ('inference','all'):inference(output,cache,args.deploy.resolve() if args.deploy else output/'deploy',args.inference_count,args.inference_seconds)
     print('PASS acceptance mode='+args.mode,flush=True)
 if __name__=='__main__':main()

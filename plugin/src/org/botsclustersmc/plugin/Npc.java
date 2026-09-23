@@ -13,7 +13,7 @@ public final class Npc {
     public final Map<String,Long> broken=new HashMap<>(),collected=new HashMap<>(),placed=new HashMap<>();
     public final float[] previousKinematics=new float[16];public final RandomSource rng;
     public final AtomicReference<Goal> requestedGoal=new AtomicReference<>();public final AtomicBoolean remove=new AtomicBoolean();
-    private final AtomicReference<InferencePool.Result> mailbox=new AtomicReference<>();private final AtomicReference<Throwable> error=new AtomicReference<>();
+    private InferenceTicket pending;
     public Goal goal;public Location container;public String mining;public int miningTicks;public volatile long tick;public long episodeStart;
     public int[] action=Schema.IDLE.clone();public Object context;
     private boolean wasPaused;private int leasedX=Integer.MIN_VALUE,leasedZ=Integer.MIN_VALUE;private java.util.UUID leasedWorld;
@@ -33,11 +33,10 @@ public final class Npc {
             entity.setVelocity(new Vector(0,entity.getVelocity().getY(),0));status="paused";return;
         }
         wasPaused=false;
-        if(error.get()!=null)throw new IllegalStateException("inference worker failed",error.get());
         Goal requested=requestedGoal.getAndSet(null);
         if(requested!=null){plugin.abandoned.increment();discardPending();goal=requested;episodeStart=tick;Arrays.fill(previousKinematics,0);}
-        InferencePool.Result result=mailbox.getAndSet(null);boolean justApplied=false;
-        if(result!=null&&result.request()==requestId){waiting=false;applied=new Applied(requestFrame,result);action=result.actions();nextDecision=tick+Schema.DECISION_TICKS;justApplied=true;}
+        InferencePool.Result result=pending==null?null:pending.poll();boolean justApplied=false;
+        if(result!=null&&result.request()==requestId){pending=null;waiting=false;applied=new Applied(requestFrame,result);action=result.actions();nextDecision=tick+Schema.DECISION_TICKS;justApplied=true;}
         if(applied!=null&&tick>=nextDecision){
             Frame next=Sensors.capture(this);Applied completed=applied;applied=null;decisions++;plugin.transitions.increment();
             if(!plugin.observed(this,completed,next)){status="episode-boundary";return;}
@@ -47,13 +46,15 @@ public final class Npc {
             if(!ready){if(!plugin.ready(this)){status="waiting-for-lesson";return;}ready=true;}
             if(requestFrame==null)requestFrame=Sensors.capture(this);
             Policy policy=plugin.policyFor(this);long id=++requestId;requestedTick=requestFrame.tick();long seed=rng.nextLong();
-            waiting=plugin.inference.offer(new InferencePool.Request(id,policy,requestFrame.observation(),requestFrame.mask(),seed,plugin.greedy(this),mailbox::set,error::set,System.nanoTime()));
+            InferenceTicket ticket=new InferenceTicket(id);
+            waiting=plugin.inference.offer(new InferencePool.Request(id,policy,requestFrame.observation(),requestFrame.mask(),seed,plugin.greedy(this),ticket::deliver,ticket::fail,System.nanoTime()));
+            pending=waiting?ticket:null;
             if(!waiting)plugin.inferenceRejected.increment();
         }
         WorldActions.tick(this,action,justApplied);
         Location location=entity.getLocation();int cx=location.getBlockX()>>4,cz=location.getBlockZ()>>4;if(cx!=leasedX||cz!=leasedZ||!location.getWorld().getUID().equals(leasedWorld)){plugin.leases.follow(id,location);leasedX=cx;leasedZ=cz;leasedWorld=location.getWorld().getUID();}if(currentWorld==location.getWorld()){double distance=Math.hypot(location.getX()-x,location.getZ()-z);if(distance<4)horizontalTravel+=distance;}currentWorld=location.getWorld();x=location.getX();y=location.getY();z=location.getZ();status=waiting?"inference-wait":"acting";
     }
-    public void discardPending(){requestId++;waiting=false;mailbox.set(null);error.set(null);applied=null;requestFrame=null;action=Schema.IDLE.clone();ready=false;}
+    public void discardPending(){requestId++;waiting=false;if(pending!=null)pending.cancel();pending=null;applied=null;requestFrame=null;action=Schema.IDLE.clone();ready=false;}
     /** Callback and supplies run on the owning entity scheduler after teleport completion. */
     public void reset(Goal newGoal,Location target,Runnable supplies){
         resetting=true;discardPending();entity.setVelocity(new Vector());

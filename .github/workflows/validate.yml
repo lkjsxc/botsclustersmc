@@ -1,8 +1,8 @@
 name: Java runtime validation
 on:
   push:
-    branches: [main, work/runtime-separation-20260923]
-    paths-ignore: ['**.md', 'docs/**', '.github/workflows/workspace.yml']
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -52,9 +52,8 @@ jobs:
           retention-days: 14
   live:
     needs: source
-    # This work branch is the explicitly authorized disposable engineering trial.
-    # Main/PR live runs require an affirmative workflow-dispatch input.
-    if: github.ref == 'refs/heads/work/runtime-separation-20260923' || (github.event_name == 'workflow_dispatch' && inputs.eula_consent)
+    # Only an affirmative dispatch starts disposable Minecraft servers.
+    if: github.event_name == 'workflow_dispatch' && inputs.eula_consent
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:

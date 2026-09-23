@@ -48,13 +48,13 @@ public final class Host {
     static void text(Path path,String text)throws IOException{atomic(path,text.getBytes(StandardCharsets.UTF_8));}
     static String hash(Path path)throws Exception{MessageDigest digest=MessageDigest.getInstance("SHA-256");try(InputStream in=Files.newInputStream(path)){byte[] b=new byte[65536];int n;while((n=in.read(b))>=0)digest.update(b,0,n);}return HexFormat.of().formatHex(digest.digest());}
     void prepareCache()throws Exception{
-        safe(cache);Files.createDirectories(cache);Path server=cache.resolve("server.jar");
+        safe(cache);Files.createDirectories(cache);Path server=cache.resolve("server.jar");safe(server);
         if(Files.exists(server)&&!hash(server).equals(pin.getProperty("sha256")))throw new IOException("Cached server JAR does not match the official pin; remove only "+server+" and retry.");
         if(!Files.exists(server)){
             System.out.println("Downloading the pinned official "+pin.getProperty("project")+" server "+pin.getProperty("version")+" build "+pin.getProperty("build"));
             HttpClient client=HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).connectTimeout(Duration.ofSeconds(30)).build();Path partial=Files.createTempFile(cache,"download-",".tmp");
             try{
-                HttpRequest request=HttpRequest.newBuilder(URI.create(pin.getProperty("url"))).timeout(Duration.ofMinutes(5)).header("User-Agent","botsclustersmc-source-build/0.6.0 (https://github.com/lkjsxc/botsclustersmc)").GET().build();
+                HttpRequest request=HttpRequest.newBuilder(URI.create(pin.getProperty("url"))).timeout(Duration.ofMinutes(5)).header("User-Agent","botsclustersmc-source-build/0.6.1 (https://github.com/lkjsxc/botsclustersmc)").GET().build();
                 HttpResponse<Path> response=client.send(request,HttpResponse.BodyHandlers.ofFile(partial));if(response.statusCode()!=200)throw new IOException("Server download HTTP "+response.statusCode());
                 if(!hash(partial).equals(pin.getProperty("sha256")))throw new IOException("Official server download checksum mismatch");Files.move(partial,server,StandardCopyOption.ATOMIC_MOVE);
             }finally{Files.deleteIfExists(partial);}
@@ -69,14 +69,14 @@ public final class Host {
             if(lock==null)throw new IOException("Another build owns this checkout");prepareCache();Path classes=ROOT.resolve(".build/classes");deleteTree(classes);Files.createDirectories(classes);
             List<String> args=new ArrayList<>(List.of("--release","21","-encoding","UTF-8","-proc:none","-cp",classpath(),"-d",classes.toString()));for(Path source:sources("core/src","plugin/src","training/src"))args.add(source.toString());
             int exit=ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new));if(exit!=0)throw new IOException("Java compilation failed: "+exit);
-            Files.createDirectories(ROOT.resolve("dist"));jar(ROOT.resolve("dist/botsclustersmc.jar"),classes,List.of("org/botsclustersmc/core","org/botsclustersmc/plugin"),ROOT.resolve("plugin/resources"));
+            safe(ROOT.resolve("dist"));Files.createDirectories(ROOT.resolve("dist"));jar(ROOT.resolve("dist/botsclustersmc.jar"),classes,List.of("org/botsclustersmc/core","org/botsclustersmc/plugin"),ROOT.resolve("plugin/resources"));
             jar(ROOT.resolve("dist/training.jar"),classes,List.of("org"),ROOT.resolve("training/resources"));
             System.out.println("Built dist/botsclustersmc.jar (inference only) and dist/training.jar (isolated training).");
         }
     }
     static void deleteTree(Path path)throws IOException{if(!Files.exists(path))return;safe(path);try(var files=Files.walk(path)){for(Path p:files.sorted(Comparator.reverseOrder()).toList()){safe(p);Files.delete(p);}}}
     static void jar(Path dest,Path classes,List<String> roots,Path resources)throws IOException{
-        Path temporary=Files.createTempFile(dest.getParent(),"jar-",".tmp");try(JarOutputStream jar=new JarOutputStream(Files.newOutputStream(temporary))){
+        safe(dest);Path temporary=Files.createTempFile(dest.getParent(),"jar-",".tmp");try(JarOutputStream jar=new JarOutputStream(Files.newOutputStream(temporary))){
             Set<String> seen=new HashSet<>();entry(jar,ROOT.resolve("LICENSE"),"META-INF/LICENSE",seen);entry(jar,ROOT.resolve("NOTICE"),"META-INF/NOTICE",seen);for(String root:roots){try(var stream=Files.walk(classes.resolve(root))){for(Path file:stream.filter(Files::isRegularFile).sorted().toList())entry(jar,file,classes.relativize(file).toString(),seen);}}
             try(var stream=Files.walk(resources)){for(Path file:stream.filter(Files::isRegularFile).sorted().toList())entry(jar,file,resources.relativize(file).toString(),seen);}
         }catch(Throwable e){Files.deleteIfExists(temporary);throw e;}Files.move(temporary,dest,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
@@ -86,7 +86,7 @@ public final class Host {
     Path academy(){return ROOT.resolve(value("ACADEMY","academy")).toAbsolutePath().normalize();}
     void ownAcademy()throws Exception{
         Path dir=academy();safe(dir);if(dir.equals(ROOT))throw new IOException("The checkout itself cannot be an Academy");
-        Path marker=dir.resolve(".botsclustersmc-academy");
+        Path marker=dir.resolve(".botsclustersmc-academy");safe(marker);
         if(!Files.exists(marker)){
             if(Files.exists(dir))try(var children=Files.list(dir)){if(children.findAny().isPresent())throw new IOException("Refusing a nonempty, unowned academy directory: "+dir+". Start in a new clone or select an empty ACADEMY.");}
             Files.createDirectories(dir);text(marker,"botsclustersmc-owned-training\n");
@@ -97,7 +97,7 @@ public final class Host {
     }
     void start()throws Exception{
         if(!bool("EULA",false))throw new IOException("Read the Minecraft EULA at https://aka.ms/MinecraftEULA. After personally accepting it, set EULA=true in .env or run EULA=true ./start.sh.");
-        ownAcademy();Path dir=academy();
+        ownAcademy();Path dir=academy();safe(dir.resolve("run.lock"));
         try(FileChannel channel=FileChannel.open(dir.resolve("run.lock"),StandardOpenOption.CREATE,StandardOpenOption.WRITE);FileLock lock=channel.tryLock()){
             if(lock==null)throw new IOException("This Academy is already running");build();
             int cpus=Runtime.getRuntime().availableProcessors();long total=4L<<30;var os=java.lang.management.ManagementFactory.getOperatingSystemMXBean();if(os instanceof com.sun.management.OperatingSystemMXBean m)total=m.getTotalMemorySize();
@@ -153,16 +153,34 @@ public final class Host {
         if(!Files.exists(academy().resolve("control.properties")))System.out.println("Supervisor is not running; this is the last saved status, not a live health claim.");
     }
     void export(Path destination)throws Exception{
-        if(!Files.isRegularFile(ROOT.resolve("dist/botsclustersmc.jar")))build();Path policy=academy().resolve("server/plugins/BotsClustersMC/policy.bcmc");
-        execute(List.of(java(),"-cp",ROOT.resolve("dist/botsclustersmc.jar").toString(),"org.botsclustersmc.core.PolicyTool","verify",policy.toString()),ROOT);
-        Path target=destination.toAbsolutePath().normalize();safe(target);atomic(target.resolve("plugins/botsclustersmc.jar"),Files.readAllBytes(ROOT.resolve("dist/botsclustersmc.jar")));atomic(target.resolve("plugins/BotsClustersMC/policy.bcmc"),Files.readAllBytes(policy));
-        text(target.resolve("README.txt"),"Copy plugins/botsclustersmc.jar and plugins/BotsClustersMC/policy.bcmc to a tested Paper/Folia server. Start it, then use /bots spawn <count> as an operator. No external process or native libraries are required. NPCs are ephemeral bodies, not logged-in players. World edits default to false. Read the repository README before enabling them.\n");System.out.println("Exported inference plugin and last completed policy snapshot to "+target);
+        Path dir=academy(),marker=dir.resolve(".botsclustersmc-academy"),runLock=dir.resolve("run.lock");
+        safe(marker);safe(runLock);
+        if(!Files.isRegularFile(marker,LinkOption.NOFOLLOW_LINKS)||!Files.readString(marker).equals("botsclustersmc-owned-training\n"))
+            throw new IOException("Export requires an existing owned Academy and a complete training checkpoint");
+        Path target=destination.toAbsolutePath().normalize();safe(target);
+        if(target.startsWith(dir)||dir.startsWith(target))throw new IOException("Export destination must be separate from the Academy");
+        try(FileChannel ch=FileChannel.open(runLock,StandardOpenOption.CREATE,StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);FileLock lock=ch.tryLock()){
+            if(lock==null)throw new IOException("Stop training cleanly before export; this Academy is still running");
+            build(); // Never pair weights with stale JARs left behind by a source update.
+            Path staging=Files.createTempDirectory(ROOT.resolve(".build"),"export-");
+            try {
+                Path checkpoint=dir.resolve("server/plugins/BotsClustersMC/training.bcmc"),policy=staging.resolve("policy.bcmc");
+                execute(List.of(java(),"-cp",ROOT.resolve("dist/training.jar").toString(),"org.botsclustersmc.training.CheckpointTool","export",checkpoint.toString(),policy.toString()),ROOT);
+                Path jarTarget=target.resolve("plugins/botsclustersmc.jar"),policyTarget=target.resolve("plugins/BotsClustersMC/policy.bcmc"),readme=target.resolve("README.txt");
+                safe(jarTarget);safe(policyTarget);safe(readme);
+                byte[] model=Files.readAllBytes(policy),jar=Files.readAllBytes(ROOT.resolve("dist/botsclustersmc.jar"));
+                atomic(jarTarget,jar);atomic(policyTarget,model);
+                text(readme,"Copy plugins/botsclustersmc.jar and plugins/BotsClustersMC/policy.bcmc to a STOPPED tested Paper/Folia server only after export succeeds. The policy was derived from the canonical training.bcmc, not a loose cached policy. No external process or native libraries are required. NPCs are ephemeral bodies, not logged-in players. World edits default to false. Read the repository README before enabling them.\n");
+                System.out.println("Export completed from canonical training.bcmc: "+target);
+            }finally{deleteTree(staging);}
+        }
     }
     void test()throws Exception{
         build();Path out=ROOT.resolve(".build/tests");Files.createDirectories(out);String cp=ROOT.resolve(".build/classes")+File.pathSeparator+classpath();
-        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java"))args.add(p.toString());
+        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host"))args.add(p.toString());
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
-        for(String test:List.of("CoreTest","MechanicsTest","CourseTest","LearningTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        for(String test:List.of("CoreTest","MechanicsTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}
         System.out.println("PASS inference artifact separation; all tests completed.");
     }
