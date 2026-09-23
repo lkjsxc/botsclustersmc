@@ -148,8 +148,8 @@ pub fn academy_features(o:&mut Observation,features:&[f32;87]) {
 }
 
 /// Observable GUI identity, never a recipe answer or teacher-selected slot.
-fn menu_kind(menu:&Menu)->usize{match menu{Menu::Player(_)=>0,Menu::Crafting(_)=>1,Menu::Furnace(_)=>2,Menu::Generic9x3(_)|Menu::Generic9x6(_)=>3,_=>4}}
+fn menu_kind(menu:&Menu)->usize{match menu{Menu::Player(_)=>0,Menu::Crafting{..}=>1,Menu::Furnace{..}=>2,Menu::Generic9x3{..}|Menu::Generic9x6{..}=>3,_=>4}}
 #[cfg(test)]mod menu_tests{
     use super::*;
-    #[test]fn equal_length_menus_are_distinct_observations(){let a=Menu::Player(Default::default());let b=Menu::Crafting(Default::default());assert_eq!(a.slots().len(),b.slots().len());assert_ne!(menu_kind(&a),menu_kind(&b));assert_eq!(menu_kind(&Menu::Furnace(Default::default())),2);}
+    #[test]fn equal_length_menus_are_distinct_observations(){let a=Menu::Player(Default::default());let b=Menu::Crafting{result:Default::default(),grid:Default::default(),player:Default::default()};assert_eq!(a.slots().len(),b.slots().len());assert_ne!(menu_kind(&a),menu_kind(&b));assert_eq!(menu_kind(&Menu::Furnace{ingredient:Default::default(),fuel:Default::default(),result:Default::default(),player:Default::default()}),2);}
 }

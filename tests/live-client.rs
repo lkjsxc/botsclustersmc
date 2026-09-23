@@ -43,7 +43,7 @@ fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
         Op::Park=>{if !carried(bot).is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;}},
         Op::Align(g)=>{if !aim(f,*g,true,a){return Ok(false);}},
         Op::Use=>a[4]=2,
-        Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting(_)),2=>matches!(menu,Menu::Furnace(_)),3=>matches!(menu,Menu::Generic9x3(_)),_=>false};if !ok{return Ok(false);}},
+        Op::Menu(expected)=>{let ok=match expected{1=>matches!(menu,Menu::Crafting{..}),2=>matches!(menu,Menu::Furnace{..}),3=>matches!(menu,Menu::Generic9x3{..}),_=>false};if !ok{return Ok(false);}},
         Op::Output(slot,kind)=>{if slots.get(*slot).is_none_or(|i|i.is_empty()||i.kind()!=*kind){return Ok(false);}a[6]=1;a[7]=*slot;},
         Op::Close=>a[6]=5,Op::Select=>a[5]=1,
         Op::Wait(n)=>{if *n>0{*n-=1;return Ok(false);}}
@@ -110,8 +110,8 @@ impl Check{
             220=>{if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer next/wrap position: {p:?}"));}bot.chat("/academy prev");},
             280=>{if(p.x-120.).abs()>1.||(p.z-120.).abs()>1.{return Err("observer previous/wrap failed".into());}bot.chat("/academy overview");},
             340=>{if(p.x-64.).abs()>1.||(p.z-64.).abs()>1.||(p.y-185.).abs()>1.{return Err(format!("observer overview position: {p:?}"));}bot.chat("/academy");},
-            400=>{if !matches!(bot.menu(),Menu::Generic9x6(_)){return Err(format!("observer menu did not open: {:?}",bot.menu()));}bot.get_inventory().left_click(53);},
-            440=>{let menu=bot.menu();let slots=menu.slots();if !matches!(menu,Menu::Generic9x6(_))||slots[18].is_empty()||!slots[19].is_empty(){return Err("observer page2 does not contain exactly the last 19 bots".into());}bot.get_inventory().left_click(18);},
+            400=>{if !matches!(bot.menu(),Menu::Generic9x6{..}){return Err(format!("observer menu did not open: {:?}",bot.menu()));}bot.get_inventory().left_click(53);},
+            440=>{let menu=bot.menu();let slots=menu.slots();if !matches!(menu,Menu::Generic9x6{..})||slots[18].is_empty()||!slots[19].is_empty(){return Err("observer page2 does not contain exactly the last 19 bots".into());}bot.get_inventory().left_click(18);},
             500=>{if(p.x-120.).abs()>1.||(p.z-120.).abs()>1.{return Err("observer menu click did not select bot63".into());}bot.chat("/academy view 16");},
             560=>{if !self.view12||!self.view16{return Err(format!("observer did not receive requested view radius packets: 12={} 16={}",self.view12,self.view16));}bot.chat("/academy tour");},
             840=>{if(p.x-8.).abs()>1.||(p.z-8.).abs()>1.{return Err(format!("observer automatic tour did not advance: {p:?}"));}bot.chat("/academy tour");eprintln!("PASS: real observer menu, page2, click, watch63, next/previous wrap, overview, tour and 12/16-chunk radius packets");DONE.store(true,Ordering::Relaxed);},
@@ -126,7 +126,7 @@ async fn handler(bot:Client,event:Event,state:State)->anyhow::Result<()>{
         Event::Death(_)=>return Err("diagnostic client died".into()),
         Event::Disconnect(reason)=>{if !DONE.load(Ordering::Relaxed){return Err(format!("diagnostic disconnected: {reason:?}"));}},
         Event::ConnectionFailed(e)=>return Err(format!("diagnostic connection failed: {e:?}")),
-        Event::Packet(packet)=>{if s.observer{let text=format!("{packet:?}");if text.starts_with("SetChunkCacheRadius"){eprintln!("OBSERVER {text}");if text.contains("12"){s.view12=true;}if text.contains("16"){s.view16=true;}}}},
+        Event::Packet(packet)=>{if s.observer{if let azalea::protocol::packets::game::ClientboundGamePacket::SetChunkCacheRadius(p)=packet.as_ref(){eprintln!("OBSERVER cache radius={}",p.radius);s.view12|=p.radius==12;s.view16|=p.radius==16;}}},
         Event::Tick=>{if DONE.load(Ordering::Relaxed){bot.exit();return Ok(());}if s.ready&&bot.exists(){s.ticks+=1;if s.observer{s.observer(&bot)?;}else{if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}act::tick_camera(&bot,&s.last);}}},_=>{}
     }Ok(())})();if let Err(e)=result{fail(e);}Ok(())
 }
