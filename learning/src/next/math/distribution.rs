@@ -1,7 +1,7 @@
 //! Factorized categorical policies with one optional conditional child head.
 //! For Minecraft, GUI slot is meaningful only for left/right/shift click. An
 //! unused sampled slot must not change PPO's likelihood ratio or entropy gradient.
-use super::super as shared_root;
+use super::super::{self as shared_root};
 use shared_root::{Result,Rng};
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq)]

@@ -8,7 +8,7 @@
 //!
 //! This module does not claim synchronous collection is always faster. Its
 //! throughput/straggler tradeoff must be measured in Folia before adoption.
-use super as shared_root;
+use super::{self as shared_root};
 use shared_root::Result;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

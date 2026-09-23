@@ -1,5 +1,5 @@
 //! Pure numerical components. They require adapter integration and live ablations.
-use super as shared_root;
+use super::{self as shared_root};
 mod distribution;
 mod time;
 mod trust;

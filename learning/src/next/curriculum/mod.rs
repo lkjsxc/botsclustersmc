@@ -1,7 +1,7 @@
 //! An explicitly custom, Syllabus/learning-progress-inspired scheduler.
 //! This is not a reproduction of Syllabus, RePPO, Dreamer or DiscoRL.
 //! Exam outcomes are curriculum validation, not an unbiased final benchmark.
-use super as shared_root;
+use super::{self as shared_root};
 mod checkpoint;
 use shared_root::{Result,Rng,tasks::{Task,TASK_COUNT,Session}};
 
