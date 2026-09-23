@@ -28,7 +28,7 @@ public final class WorldActions {
         return null;
     }
     public static void tick(Npc npc,int[] action,boolean justApplied){
-        Zombie mob=npc.entity;Location p=mob.getLocation();
+        Mob mob=npc.entity;Location p=mob.getLocation();
         float yaw=(p.getYaw()+new int[]{-8,-2,0,2,8}[action[1]])%360;
         float pitch=Math.max(-89,Math.min(89,p.getPitch()+new int[]{-4,-1,0,1,4}[action[2]]));mob.setRotation(yaw,pitch);
         double forward=switch(action[0]){case 1,5,6->1;case 2,7,8->-1;default->0;};

@@ -13,7 +13,7 @@ public enum Task {
     public String label(){return name().toLowerCase(java.util.Locale.ROOT).replace('_','-');}
     public boolean[] mask(int availableSlots,boolean menuOpen) {
         boolean[] mask=Schema.unrestrictedMask();int id=ordinal();
-        if(id==0){only(mask,0,0,1);only(mask,1,2);only(mask,2,2);}
+        if(id==0){only(mask,0,0,1,2);only(mask,1,2);only(mask,2,2);}
         if(id==1){only(mask,0,0,1);only(mask,2,2);}
         if(id==2)only(mask,0,0);
         if(id==3)only(mask,2,2);
