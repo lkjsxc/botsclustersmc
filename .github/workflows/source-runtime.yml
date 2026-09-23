@@ -21,7 +21,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Verify clean checkout and host prerequisites
+      - name: Verify fresh checkout and host prerequisites
         shell: bash
         run: |
           set -euo pipefail
@@ -29,25 +29,26 @@ jobs:
           git rev-parse HEAD > "$RUNNER_TEMP/evidence/source-commit.txt"
           for path in bin runtime .build academy academy-v2 server state .env; do test ! -e "$path"; done
           ./scripts/preflight.sh
-          ./scripts/build-host-tools.sh 2>&1 | tee "$RUNNER_TEMP/evidence/host-tools.log"
-          python3 tests/package_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/package.log"
-          python3 tests/bootstrap_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/bootstrap.log"
-          python3 tests/recovery_checks.py 2>&1 | tee "$RUNNER_TEMP/evidence/recovery.log"
+          ./scripts/build-host-tools.sh > "$RUNNER_TEMP/evidence/host-build.log" 2>&1
+          for suite in package_checks bootstrap_checks recovery_checks; do
+            python3 "tests/$suite.py" 2>&1 | tee "$RUNNER_TEMP/evidence/$suite.log"
+          done
           ./scripts/test-bridge.sh 2>&1 | tee "$RUNNER_TEMP/evidence/bridge-unit.log"
-      - name: Build and test pinned native application
+      - name: Build and test the actual pinned native application without a project cache
         shell: bash
         run: |
           set -euo pipefail
-          ./scripts/build.sh 2>&1 | tee "$RUNNER_TEMP/evidence/native-build.log"
+          ./scripts/build.sh > "$RUNNER_TEMP/evidence/native-build.log" 2>&1 || { tail -n 100 "$RUNNER_TEMP/evidence/native-build.log"; exit 1; }
           cp bin/build-manifest.txt "$RUNNER_TEMP/evidence/"
-      - name: Download Folia and compile its actual API bridge
+          grep -E 'test result:|Build and local' "$RUNNER_TEMP/evidence/native-build.log"
+      - name: Compile the actual 64-actor Folia bridge
         shell: bash
         run: |
           set -euo pipefail
-          trap 'rm -f .botsclustersmc-academy-v1 .botsclustersmc-academy-v2' EXIT
-          printf 'botsclustersmc-academy-v1\nbots=32\ncampus=8x16\n' > .botsclustersmc-academy-v1
-          BCMC_ROOT="$PWD" bin/botsclustersmc-run check-bridge 2>&1 | tee "$RUNNER_TEMP/evidence/folia-api.log"
-          printf '%s\n' 'Fresh source tests, builds and actual Folia API compilation. No live Minecraft server or skill-performance claim.' > "$RUNNER_TEMP/evidence/scope.txt"
+          trap 'rm -f .botsclustersmc-academy-v2' EXIT
+          printf 'botsclustersmc-academy-v2\nbots=64\ncampus=8x16\n' > .botsclustersmc-academy-v2
+          BCMC_ROOT="$PWD" BOTS=64 bin/botsclustersmc-run check-bridge 2>&1 | tee "$RUNNER_TEMP/evidence/folia-api.log"
+          printf '%s\n' 'Fresh source tests, native builds and actual Folia API compilation. No live Minecraft server, operator EULA acceptance or skill-performance claim.' > "$RUNNER_TEMP/evidence/scope.txt"
           git diff --exit-code
       - uses: actions/upload-artifact@v4
         if: always()
@@ -55,4 +56,4 @@ jobs:
           name: source-runtime-evidence
           path: ${{ runner.temp }}/evidence
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error

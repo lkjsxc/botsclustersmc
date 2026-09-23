@@ -1,113 +1,110 @@
-# botsclustersmc
+# botsclustersmc 0.5.0
 
-Source-first Minecraft reinforcement learning. Clone this repository, build the
-pinned Rust client, and train 32 bots inside separate Folia training cells.
-**This root application is runnable.** `experimental/rl-next/` remains a separate
-research library; its 18 task definitions are not 18 playable runtime stages.
+A source-first, mostly-Rust Minecraft/Folia reinforcement-learning Academy with
+64 default actors, 18 integrated task environments, and human-only observer tools.
+[日本語の起動手順](README.ja.md)
 
-Japanese installation and operation: [README.ja.md](README.ja.md).
+The real `app/` actors and learner use the canonical mechanisms in `learning/`.
+`experimental/rl-next` now re-exports that implementation for standalone numerical
+checks; it is not a separate update to install. No pretrained policy is included.
+Implemented tasks are not a claim of learned skills, retention, human likeness,
+open-world survival or cooperative living. Read [validation](docs/VALIDATION.md).
 
-## Start from a fresh clone
+## Clone and start on Linux
 
-Target: Linux x86_64 with a Java 21 JDK, 16 logical CPUs, 12 GiB RAM and a
-120 GB allocation. Reserve at least 20 GiB free for the initial source build.
-Linux aarch64 is a source-build path but is not a live-tested target.
-No Python, GPU, paid API, LLM, demonstrations or pretrained weights are needed
-for normal operation. Python 3 is used only by optional developer tests.
-
-On Ubuntu 24.04 (or an equivalent Linux distribution with Java 21):
+Linux x86_64 and a Java 21 JDK are the tested target. The operator allocation is
+16 logical CPUs, 12 GiB RAM and 120 GB storage, not a measured capacity guarantee.
+Reserve at least 20 GiB before the first Rust build and 10 GiB during operation.
+The runtime requires neither Python nor a GPU nor an LLM/API key.
 
 ```sh
 sudo apt-get update
 sudo apt-get install -y git curl ca-certificates build-essential pkg-config cmake unzip util-linux openjdk-21-jdk
-
 git clone https://github.com/lkjsxc/botsclustersmc.git
 cd botsclustersmc
 cp .env.example .env
-# Read https://aka.ms/MinecraftEULA and accept it yourself before this command.
+# Only after reading and personally accepting https://aka.ms/MinecraftEULA:
 EULA=true ./start.sh
 ```
 
-The first start obtains a pinned Rust toolchain and Azalea source, compiles/tests
-the actual Rust application, downloads pinned Gson/Folia dependencies, compiles
-the Java environment bridge against the real server API, and creates a new owned
-`academy/`. It builds and reads back every enclosed cell **before** joining bots.
-Nothing needs to be copied from an old ZIP, a GitHub Actions artifact, or a
-previous installation. Downloads require internet access on first use; artifacts
-and toolchains are cached locally. A failed download/build can be retried with
-the same command without deleting the directory.
+The initial source build fetches pinned Rust/Azalea dependencies, Gson, and
+Folia, compiles the actual native application and bridge, then creates a new
+owned `academy-v2/` world. Subsequent starts resume its checkpoint. No old ZIP,
+GitHub artifact or manually transferred binary is needed.
 
-Startup success messages:
-
-```text
-All 32 enclosed training cells verified.
-All 32 bots are online, spawned and making policy decisions.
-```
-
-These messages prove readiness and policy decisions, not skill mastery. Check
-`./status.sh` for increasing `policy_version` and `trained_samples` to verify PPO
-updates. The process stays in the foreground. Use another terminal for controls.
-
-## Connect and operate
-
-Use **Minecraft Java Edition 1.21.11**, TCP **25565**. Human visitors are spectators;
-`/academy watch 0` through `/academy watch 31` selects a training cell.
-The default identities are `bcmc00` through `bcmc31`.
+Default actors: `bcmc00` through `bcmc63`. Port: **25565**. Offline-mode binding:
+`0.0.0.0`, with explicit `OFFLINE_ACCESS_ACK=true`. This flag provides **no
+identity authentication or firewall protection**. Restrict connections to trusted
+LAN/VPN/firewall sources. Public unrestricted offline servers are not a safe
+operator configuration. The launcher does not configure DNS or port forwarding.
 
 ```sh
+# In another terminal at the same source root:
 ./status.sh
 ./console.sh "list"
 ./stop.sh
-# Wait for the original terminal to report a clean shutdown before restarting.
+# Wait for the foreground supervisor's clean-shutdown confirmation.
 ./start.sh
 ```
 
-The default `BIND_ADDRESS=0.0.0.0`, `OFFLINE_ACCESS_ACK=true` is intentional.
-**Offline mode has no account authentication.** Restrict TCP 25565 to trusted
-LAN/VPN/firewall sources. This application does not configure a firewall, DNS
-or router. Use `BIND_ADDRESS=127.0.0.1` for local-only access.
+Ctrl+C also requests checkpoint-first shutdown. Preserve the entire stopped
+`academy-v2/` directory for a backup. `state/training.bcmc` atomically binds the
+policy, Adam, trainer/actor RNG and adaptive curriculum. The Minecraft world and
+that file are not one atomic distributed transaction. In-flight experiences
+are counted, not invented as terminal rewards or replayed after restart.
 
-`academy/server/` holds the world and `academy/state/` the policy, optimizer and
-curriculum. Back up the **whole stopped `academy/`**, not only a weight file.
-Unowned directories, changed population markers, incomplete checkpoint pairs
-and incompatible observations fail rather than silently resetting training.
-Do not overwrite or delete an existing ZIP installation; a new clone starts
-independently unless you deliberately copy a complete compatible stopped Academy.
+## Watch with Minecraft Java Edition 1.21.11
 
-## What currently learns
+Observers join as spectators. `/academy` opens a two-page clickable actor list.
+`/academy watch 0..63`, `/academy next`, `/academy prev`, `/academy overview`,
+`/academy tour` and `/academy view 3..16` provide individual rooms, a whole-campus
+view and a 12-second automatic tour. The action bar shows task, state, difficulty,
+training-success EMA and policy version. The TAB footer shows the course stage,
+trained samples and collection barrier.
 
-Six real Minecraft tasks: move forward and stop, turn/navigate and stop, aim and
-hold, planar navigation, a one-block step, and destruction of the designated log.
-Gameplay inputs are sampled from a randomly initialized shared neural policy;
-CPU PPO updates it using server-grounded outcomes. The bridge constructs/reset
-fixtures and reports telemetry. It does not choose actions. No pathfinding,
-auto-aim, recipe macro, imitation or LLM controller is substituted for RL.
+Observer view distance defaults to **12 chunks**, independently of the actors'
+3-chunk view and the 3-chunk simulation distance. Set the human client's render
+distance at least as high as the requested server distance. Entity tracking is
+expanded for viewing the campus; the server reserves 16 extra connection slots.
+Observer controls do not change actor gameplay, curriculum or reward state.
 
-Every bot must qualify on the current skill and retain every earlier skill
-under a frozen evaluation policy; elapsed time alone never promotes a bot.
-See [docs/LEARNING.md](docs/LEARNING.md) for observations, engineered rewards,
-action masks, and evaluation semantics. Crafting, iron smelting, settlement and
-multi-agent cooperation are **not implemented runtime stages** in this version.
+## Existing 0.4.0 installations
 
-## Verification and development
+Stop the old process **before** updating its scripts. Run `git pull --ff-only`,
+and change an existing `.env` from `BOTS=32` to `BOTS=64` explicitly: Git does not
+overwrite private configuration. After personal EULA consent, start the new
+Academy using `EULA=true ./start.sh`.
 
-```sh
-./scripts/preflight.sh
-python3 tests/package_checks.py
-python3 tests/bootstrap_checks.py
-./scripts/build-host-tools.sh
-python3 tests/recovery_checks.py
-./scripts/test-bridge.sh
-./scripts/build.sh
-# Separate live test, only after the operator accepts the Minecraft EULA:
-EULA=true SMOKE_BOTS=32 SMOKE_HEAP_GB=6 ./smoke.sh
-```
+The old `academy/` world and split checkpoints remain untouched. v2 observations,
+GUI distribution and checkpoint schema are incompatible: start a new v2 policy,
+not silently imported v1 weights. Existing v2 population changes also fail closed.
+Use an independent source directory for another population or incompatible trial.
 
-The CI source build starts with no project binaries/runtime caches and compiles
-the bridge against downloaded, pinned Folia. Live smoke is a separate acceptance
-level. See [docs/VALIDATION.md](docs/VALIDATION.md) for measured evidence and limits.
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for failure recovery.
+## Learning contract
 
-Pins: Minecraft/Folia 1.21.11 build 14, protocol 774, Java 21,
-Azalea `f8ddefa70cc53e6385785fb56e7a688a389cf0ab`, Rust `nightly-2026-02-04`.
-Folia is not silently upgraded to a different Minecraft version or newest build.
+A randomly initialized shared 1420→64→64 MLP chooses eight categorical vanilla
+input heads. No pathfinding, auto-aim, recipe macro, demonstrations, imitation,
+LLM controller or scripted failure fallback drives the normal actors. This is
+privileged state/goal-conditioned RL, not pixels-only control.
+
+Strict bounded cohorts freeze the behavior policy until every actor reaches its
+quota and a real episode boundary. Collection never silently trains a partial
+population. PPO uses measured server-tick durations, conditional GUI likelihoods
+and entropy gradients, and a final whole-batch KL transaction that retries model,
+Adam and RNG together. Numerical guards do not establish improved learning speed.
+
+Adaptive practice and rehearsals feed separate full-difficulty probes. Frozen
+exams never enter the learner. Every actor must pass 14/16 current trials and 3/4
+for each previous skill. Merely letting time pass cannot promote a stage.
+
+The 18 environments cover motion, aiming, log breaking/collection, placement,
+planks/sticks/workbench, wooden and stone pickaxes, cobblestone, iron extraction,
+a designated chest, a three-block platform and a log-to-workbench chain. Furnished
+raw resources, tools and stations are disclosed initial conditions. Some easy
+training resets prefill recipe ingredients or open menus; full probes/exams do
+not. These are bounded exercises, not a free-living settlement.
+
+See [learning details](docs/LEARNING.md), [validation](docs/VALIDATION.md) and
+[troubleshooting](docs/TROUBLESHOOTING.md). Developer tests use Python 3; normal
+runtime does not. `tests/live-client.rs` is a separately built **scripted diagnostic**
+for reachability and observer commands, never linked into the learned actors.
