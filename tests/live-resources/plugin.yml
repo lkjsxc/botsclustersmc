@@ -1,0 +1,11 @@
+name: BotsClustersMC
+version: 'test'
+main: org.botsclustersmc.diagnostic.Fixtures
+api-version: '1.21'
+folia-supported: true
+commands:
+  bots:
+    permission: botsclustersmc.admin
+permissions:
+  botsclustersmc.admin:
+    default: op

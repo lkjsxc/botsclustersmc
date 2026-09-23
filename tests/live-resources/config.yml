@@ -1,0 +1,4 @@
+max-agents: 18
+max-loaded-chunks: 64
+inference-threads: 1
+world-edits: true

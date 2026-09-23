@@ -1,177 +1,126 @@
-# Integrated learning contract — Academy v2
+# Learning contract
 
-## What drives the real actors
+## Observations and primitive actions
 
-The normal `app/agent.rs` executes a randomly initialized shared 1420→64→64 MLP,
-with eight categorical heads: movement, yaw rate, pitch rate, jump/crouch,
-interaction, hotbar, GUI operation and GUI slot. Two 704-value frames, previous
-input and actor identity form the input. The bridge supplies state and goals,
-never policy actions. There is no pretrained model, pathfinder, teacher action,
-LLM, imitation data, task macro or fallback script in the normal executable.
+A shared immutable 384→64→64 tanh MLP has35,690 parameters and eight categorical
+heads: movement9, yaw5, pitch5, posture3, interaction4, hotbar9, GUI operation6 and
+GUI slot64. The output also includes a scalar critic. GUI slot probability is
+active only for click operations; sampling, likelihood, entropy and gradients
+use the same conditional distribution. Masks expose task-wide availability and
+mechanical slot legality, not the correct target, direction, tool or recipe.
 
-The numeric observations expose local blocks, inventory/cursor, peer state,
-authoritative position/orientation, task identity, goal displacement and angle,
-remaining finite-horizon time, measured speed, difficulty and confirmed progress.
-Player inventory and workbench menus both contain 46 slots; explicit GUI identity
-avoids conflating them. Train and exam observations have identical semantics and
-contain no exam flag. This is privileged state-based RL, not pixels-only learning.
+The numeric state includes local blocks, body velocity/orientation, pocket and
+menu contents, selected input, goal displacement, task, remaining finite horizon
+and selected environment progress. This is privileged state-based RL, not pixels
+or raw client inputs. Four actual body ticks are the nominal decision interval;
+queue/region delays extend a held action and are recorded, not relabelled as four
+ticks. Positions are authoritative Minecraft positions, not a lightweight simulator.
 
-## One canonical implementation, actually connected
+## Asynchronous actor-learner updates
 
-`learning/src/next` owns the shared cohort, curriculum, distribution, numerical
-and task contracts. `learning/src/control.rs` coordinates the actual actors.
-`app/engine.rs`, `app/agent.rs` and `app/academy.rs` call those modules directly.
-Standalone tests re-export the same source; there is no duplicate experimental
-implementation that must be manually installed.
+Actors publish consecutive episode fragments of at most32 transitions, with
+behavior policy version and log probability, elapsed ticks, genuine terminals
+and the final next observation. A fragment never crosses a reset/episode boundary.
+Learning starts on available bounded work instead of waiting for all actors or
+all episodes to terminate. Currently available trajectories form updates of up
+to512 samples; fixed gradient workers parallelize useful computation.
 
-A coordinator lock owns the published immutable policy identity, course,
-collection generation and actor RNG states. Every issued lesson is bound to run,
-actor, generation, serial, task and policy. Actor fragments must have the exact
-sequence and contiguous authoritative ticks for that lesson. No receiver channel
-silently drops fragments. Capacity is bounded by per-actor quota plus the maximum
-remaining episode. A disconnected/stalled actor cannot authorize a subset update.
+The learner computes V-trace targets with importance ratios clipped at1 for both
+rho and trace continuation. Discount is `0.997 ** (elapsed_ticks / 4)`, zero at
+real finite-horizon terminals. Fragment truncation bootstraps its actual next state
+but does not invent a terminal. Actor loss uses corrected next targets, entropy
+coefficient0.002, a Huber critic and Adam base rate0.0003. Global gradient norm is
+clipped at0.5. Model/optimizer publication is one checked immutable transaction;
+NaN/Inf never produces a new published version.
 
-The default quota is ceil(BATCH_SAMPLES/BOTS), where the default total is
-BOTS×ROLLOUT_STEPS: 4096 samples at 64 actors and 64-step fragments. Reaching quota
-is not enough: each actor completes its genuine current episode, seals, stops
-input and waits before the next reset. The learner only takes a fully sealed
-cohort. Each actor's fragments are concatenated in order; GAE never crosses actors.
-Earlier finishing actors wait for the slowest. This trades collection consistency
-against straggler latency; it is not guaranteed faster than every alternative.
+This is an IMPALA-inspired implementation of V-trace, not PPO or a reproduction
+of the whole IMPALA training system. It deliberately processes bounded stale
+experience with correction. Configured policy lag bounds reject excess-age data
+with explicit counters; never describe it as strictly on-policy or silently claim
+all offered experience was trained. Increasing the population also raises the
+explicit lag budget, rather than coupling admission to one global barrier.
 
-## Probability, elapsed time and update transactions
+Primary source: Espeholt et al., *IMPALA: Scalable Distributed Deep-RL with
+Importance Weighted Actor-Learner Architectures*, ICML2018:
+https://proceedings.mlr.press/v80/espeholt18a.html
 
-GUI slot is conditional on left, right or shift click (GUI operation 1–3). For
-other operations it is canonical zero and contributes no sampled log probability
-or score gradient. Sampling, behavior validation, PPO likelihood, policy gradient,
-normalized entropy and frozen inference use the same joint distribution. Entropy
-includes the parent's derivative of slot activation probability. Masks retain
-mechanical slot legality and task-wide availability, never the correct target,
-recipe, tool or movement direction.
+## Independent courses, frozen individual exams
 
-The Java bridge measures player age ticks on its owning entity scheduler. An
-action transition records the difference between its surrounding authoritative
-frames. With four ticks as one nominal decision interval:
+Each NPC owns stage, task statistics, random state and completed certificates.
+Other actors keep learning while one actor evaluates a fixed immutable snapshot.
+No actor's failure can be bypassed by a population-average score, but one weak
+actor also cannot stall the entire population. This avoids an all-thousands-must-
+pass-at-once probability bottleneck.
 
-```
-gamma_dt  = 0.997 ** (elapsed_ticks / 4)
-lambda_dt = 0.95  ** (elapsed_ticks / 4)
-delta     = reward + gamma_dt * next_value - value
-```
+Practice difficulty follows that actor/task's outcome moving average. Roughly20%
+of practice choices revisit an older skill; every fifth selection is a
+full-difficulty probe. **Probes still train**; they are a readiness heuristic,
+not an independent held-out evaluation. Easy practice may preposition a conserved
+subset of raw ingredients/cursor state at reset. Full probes and exams use the
+full initial raw stock, closed menus and no recipe/menu assistance. No reset
+provides crafted outputs or chooses an in-episode neural action.
 
-Genuine terminals kill bootstrap and GAE carry. Administrative truncation would
-bootstrap a final real state but cut the carry; normal training never pretends a
-reset is such a state. The task's visible finite horizon is a genuine terminal.
-Potential shaping uses the same duration convention and zero terminal potential.
-Time regularization scales with observed ticks; turn and input-change costs are
-small engineered penalties, not a model of human motion.
+Readiness requires at least40 current-task practice episodes, eight full probes,
+full-probe success EMA≥0.70, at least20 practice episodes since the last exam and
+four new probes. A completed-course actor uses a longer256-episode interval.
+A ready actor pins the currently published policy and tests16 current-task cases
+plus four cases for EACH previous task. It must pass14/16 and3/4 respectively.
+Only that actor advances on success. Exam transitions never enter the learner.
+The frozen model remains fixed while other actors update the shared live model.
 
-PPO uses three epochs, 64-sample minibatches, clip 0.2, Adam base learning rate
-0.0003, gradient norm clip 0.5, normalized entropy coefficient 0.002 and squared
-critic loss coefficient 0.5. Huber is an available numerical helper, **not enabled
-in the live value loss**. Advantages use stable f64 normalization.
+Completed certificates name the policy version actually examined. They do not
+certify the latest continually changing shared policy forever. Full-difficulty
+review failures can demote an actor to a forgotten earlier task. Population
+completion means individual historical passes, not proof that one exported latest
+model simultaneously passes every task for every actor. Export itself is never a
+mastery gate. Long-run held-out retention/generalization remains a separate study.
 
-After an update, sampled KL is measured on the entire old-policy batch. If it
-exceeds 0.03, the exact original model, Adam moments/step and optimizer RNG are
-restored and retried at half the learning rate, at most eight attempts. Invalid
-numerics fail closed. Only an accepted update increments version once, writes a
-complete checkpoint and releases the actors under the coordinator protocol.
-This is a PPO engineering guard, not a reproduction of TRPO, RePPO, Dreamer or
-DiscoRL. Unit tests do not prove faster real Minecraft learning.
+Pause/restart abandons the affected actor's whole unfinished exam rather than
+keeping a favorable partial subset. Completed certificates/statistics and RNG
+persist. In-flight world actions are not replayed. Shutdown records buffered
+untrained samples and unfinished actions; accepted learner work is drained before
+final checkpoint when graceful shutdown succeeds.
 
-## Adaptive tasks and trustworthy outcomes
+## Real-server task catalogue
 
-All rooms have a 12×12 enclosed interior in a single 16×16 owned chunk, arranged
-8×8 for 64 actors. Glass, illumination, reset resources, invulnerability and task
-masks are deliberate environment assistance. Minecraft 1.21.11 vanilla input
-semantics remain the actuator. The 18 task indices are:
-
-| Index | Task | Furnished initial resources / required outcome |
+| ID | Task | Reset resources and required outcome |
 | --- | --- | --- |
-| 0 | Forward-stop | No items; reach and settle |
-| 1 | Turn-stop | No items; rotate, reach and settle |
-| 2 | Aim-hold | Visible target; hold yaw/pitch |
-| 3 | Navigate-stop | Random planar goal; reach and settle |
-| 4 | Step-over | One-block obstacle; cross and settle |
-| 5 | Break-log | One target log; accepted removal |
-| 6 | Collect-log | One log; break and acquire its session-tagged drop |
-| 7 | Place-block | Raw planks; occupy a designated cell |
-| 8 | Craft-planks | One log item; acquire four crafted planks |
-| 9 | Craft-sticks | Two planks; acquire four crafted sticks |
-| 10 | Craft-workbench | Four planks; acquire a crafted table |
-| 11 | Craft-wood-pick | Furnished workbench, three planks, two sticks |
-| 12 | Mine-cobblestone | Furnished wooden pickaxe; mine stone and acquire its drop |
-| 13 | Craft-stone-pick | Furnished workbench, three cobblestone, two sticks |
-| 14 | Smelt-iron | Furnished furnace, raw iron and coal; extract and acquire iron |
-| 15 | Supply-chest | Furnished empty chest and logs; actor-attributed stock increase |
-| 16 | Build-platform | Planks; all three designated cells must currently be occupied |
-| 17 | Log-to-workbench | One log block, no items; break, collect, craft and acquire table |
+|0|Forward-stop|Reach and settle near a forward goal|
+|1|Turn-stop|Rotate, reach and settle|
+|2|Aim-hold|Hold target yaw and pitch|
+|3|Navigate-stop|Reach a random planar goal and settle|
+|4|Step-over|Cross a one-block obstacle and settle|
+|5|Break-log|Remove the designated log|
+|6|Collect-log|Break the log and acquire its own session-tagged drop|
+|7|Place-block|Use provided planks to occupy one target cell|
+|8|Craft-planks|Use a raw log; acquire four crafted planks|
+|9|Craft-sticks|Use two planks; acquire four sticks|
+|10|Craft-workbench|Use four planks; acquire a table|
+|11|Craft-wood-pick|Furnished table, three planks and two sticks|
+|12|Mine-cobblestone|Furnished wooden pick; acquire the mined stone's drop|
+|13|Craft-stone-pick|Furnished table, three cobblestone and two sticks|
+|14|Smelt-iron|Furnished furnace, raw iron and coal; extract iron after native cooking|
+|15|Supply-chest|Provided logs; increase actual contents of the furnished chest|
+|16|Build-platform|Provided planks; occupy all three designated cells|
+|17|Log-to-workbench|Start with a log block; break, collect and craft a table|
 
-Supplying a tool or station is not learning how to obtain it. The chest task is
-individual logistics, not cooperation. Completing the final chain does not release
-actors into an unimplemented settlement.
+Invulnerability, enclosed illuminated rooms, supplied goals/resources/stations,
+reset teleportation and shaped reward are explicit environment assistance.
+Supplying a pick does not teach how to obtain it. A chest task is not cooperation.
+Normal motion still comes from the policy. Arrival requires sustained physical
+settling, not entering a radius at full speed. Rewards use actual state changes
+and session-scoped drop provenance; old/foreign pickups are not new achievements.
 
-Success is based on authoritative context-tagged evidence. A block break needs
-uncancelled vanilla destruction and next-tick AIR readback. Drop pickups retain
-run/lesson/actor provenance; item merging is disabled in the training world so
-old or foreign items cannot borrow a new receipt. Craft statistics must agree
-with real acquired inventory/cursor output; crafting result previews are excluded.
-Furnace output requires actual extraction attributed to the actor. Chest and
-platform goals are read back as current contents, not historical event totals.
-Stale tokens, repeated snapshots, reversed counters and impossible stock fail.
+Primitive pocket crafting supports a bounded catalogue, not every vanilla recipe.
+The finite NPC actuator differs from a survival player (no hunger/durability or
+complete combat). Disabled mob awareness also disables some native autonomous
+behaviors; never present this as unmodified player physics or full Minecraft RL.
 
-Navigation success requires distance ≤0.65, speed ≤0.025 blocks/tick, angular
-speed ≤0.15 degrees/tick and ground contact for 20 observed ticks. Aim requires
-both angle errors ≤8 degrees with the same angular limit for 20 ticks. Gaps over
-8 ticks reset hold. Tasks have explicit finite horizons from 600 to 3000 ticks;
-leaving the cell fails. Failed episodes are experience, not mastery evidence.
+## Verification categories
 
-Difficulty adapts per actor/task using success windows. Initial states get easier
-or harder; full training probes use difficulty 1.0 with a separate seed domain
-from frozen exams. Approximately every fifth training choice rehearses an older
-skill, alternating mandatory round-robin coverage with a learning-progress/
-forgetting-weighted draw. This is a custom inspired scheduler, not a paper's exact
-reproduction. Some easy training resets partially fill raw recipe ingredients or
-open a workstation/container; **full probes and exams never do this**. Supplies
-are conserved during preparation and no desired crafted output is furnished.
-
-A frozen exam starts only at a drained cohort boundary after every actor has at
-least 40 current-task training episodes, eight full probes and current full-probe
-success EMA ≥0.70. Every actor needs 14/16 current successes and 3/4 for every
-previous task. Weak individual skills block promotion even if the mean is good.
-Exam trajectories are not trained. A final historical course pass is retained
-as history, not perpetual proof of mastery. Continued failures are reported.
-`BCMC_MODE=eval` uses a frozen checkpoint without changing training state;
-`BCMC_MODE=random` is an explicit diagnostic baseline, never a fallback.
-
-## Persistence and restart
-
-`academy-v2/state/training.bcmc` is one fsync/rename checkpoint containing weights,
-Adam, optimizer RNG, each actor's sampling RNG and the adaptive curriculum. Policy
-version/fingerprint bind its components. Corrupt, oversized or incompatible
-checkpoints fail closed. Actor count is exact. v1 weights and split checkpoints
-are deliberately not reused after the observation/action/context change.
-
-In-flight lessons cannot be resumed as replayable Minecraft trajectories. Issued
-serials remain persisted; a restart has a fresh run and generation. Partial exams
-restart at zero with the same frozen policy, not cherry-picked completed scores.
-Completed training statistics and random states are restored. World persistence
-is still separate: take a complete backup only after orderly shutdown.
-
-Status reports include buffered cohort transitions, actor-local untrained
-transitions and unfinished actions. These are not silently included in later
-updates. `dropped_rollouts=0` does **not** mean no in-flight work is abandoned at a
-requested shutdown. The explicit counts must accompany lifecycle evidence.
-
-## What tests establish
-
-Native tests check math, gradients, state binding, 64-actor barriers and negative
-cases. The actual bridge is compiled against libraries extracted from the pinned
-Folia jar. Live smoke tests check real clients, actual PPO updates and restart.
-Separate scripted fixture tests use production literal input translation and the
-same server outcome gate, but never initialize/save a policy or supply training
-data. Passing them establishes reachability, not learned competence.
-
-Skill learning, retention and generalization require long-run held-out trials,
-multiple seeds and controlled comparisons. See [validation](VALIDATION.md) for
-exact tested source revisions, settings, successes and failures.
+Numerical gradient tests, synthetic bandit improvement, real learner updates,
+scripted task reachability, learned task mastery, retention, generalization and
+multiplayer cooperation are different claims. The diagnostic driver is a separate
+plugin, uses explicitly scripted primitive inputs, and cannot generate normal
+training checkpoints. Its18 passes show that the implemented tasks are reachable;
+they are not demonstrations, training data or learned skill certificates.
