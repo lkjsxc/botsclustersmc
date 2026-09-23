@@ -2,6 +2,7 @@ name: Java runtime validation
 on:
   push:
     branches: [main, work/runtime-separation-20260923]
+    paths-ignore: ['**.md', 'docs/**', '.github/workflows/workspace.yml']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 concurrency:
   group: java-runtime-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   source:
     strategy:
@@ -51,8 +52,8 @@ jobs:
           retention-days: 14
   live:
     needs: source
-    # The work branch is this explicitly authorized disposable engineering trial.
-    # Future main/PR runs require a separate affirmative workflow-dispatch input.
+    # This work branch is the explicitly authorized disposable engineering trial.
+    # Main/PR live runs require an affirmative workflow-dispatch input.
     if: github.ref == 'refs/heads/work/runtime-separation-20260923' || (github.event_name == 'workflow_dispatch' && inputs.eula_consent)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
