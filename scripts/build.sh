@@ -68,6 +68,12 @@ fi
 git -C "$repo" checkout --detach "$AZALEA_REV"
 [[ $(git -C "$repo" rev-parse HEAD) == "$AZALEA_REV" ]]
 git -C "$repo" diff --exit-code -- Cargo.lock Cargo.toml azalea/Cargo.toml
+# Restore only this declared file in the disposable vendor checkout, then
+# apply the repository-owned protocol correction to the exact pinned revision.
+# The operator's checkout and data are never reset by this step.
+git -C "$repo" restore --source="$AZALEA_REV" --worktree -- azalea-client/src/plugins/packet/game/mod.rs
+git -C "$repo" apply --check "$BCMC_ROOT/pins/azalea-client.patch"
+git -C "$repo" apply "$BCMC_ROOT/pins/azalea-client.patch"
 # The example reuses the upstream workspace's exact Cargo.lock and dependency set.
 example="$repo/azalea/examples/botsclustersmc"
 mkdir -p "$example/core"
@@ -94,6 +100,7 @@ sha256sum bin/botsclustersmc-run bin/botsclustersmc-bots > "$stage/artifacts.sha
 {
   printf 'botsclustersmc source %s\n' "$(cat VERSION)"
   echo "Azalea=$AZALEA_REV"
+  echo "AzaleaPatch=pins/azalea-client.patch"
   echo 'Minecraft=1.21.11'
   echo "Rust=$TOOLCHAIN"
   echo "Source=$source_before"

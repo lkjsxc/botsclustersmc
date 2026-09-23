@@ -36,3 +36,5 @@ fn main()->Result<(),Box<dyn std::error::Error>>{
     engine::request_stop();let result=learner.join().map_err(|_|std::io::Error::other("learner thread panicked"))?;
     result.map_err(std::io::Error::other)?;Ok(())
 }
+
+#[cfg(test)] mod protocol_tests;

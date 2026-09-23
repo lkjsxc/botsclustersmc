@@ -12,7 +12,7 @@ bcmc_source_fingerprint() (
     printf '%s\n' "Azalea=$BCMC_AZALEA_REV" "Rust=$BCMC_TOOLCHAIN" \
       'release: debug=0 lto=false codegen-units=8; launcher rustc -O'
     {
-      printf '%s\0' learning/Cargo.toml
+      printf '%s\0' learning/Cargo.toml pins/azalea-client.patch
       find app launcher learning/src -type f -name '*.rs' -print0
     } | LC_ALL=C sort -zu | while IFS= read -r -d '' file; do
       sha256sum -- "$file" || exit
