@@ -8,6 +8,6 @@ public final class EnvironmentConfig {
             throw new IllegalArgumentException("BCMC_RUN_ID must be 1..80 ASCII letters, digits or hyphens");
         if(prefix==null||!prefix.matches("[a-zA-Z0-9_]{1,13}"))
             throw new IllegalArgumentException("BOT_PREFIX must be 1..13 ASCII letters, digits or underscores; use bcmc, not botsclustersmc");
-        if(bots<1||bots>32) throw new IllegalArgumentException("BOTS must be 1..32");
+        if(bots<1||bots>64) throw new IllegalArgumentException("BOTS must be 1..64");
     }
 }

@@ -45,7 +45,7 @@ public final class CampusPlan {
     public static String manifest(String run,int bots){
         if(!run.matches("[a-zA-Z0-9-]{1,80}")||bots<1||bots>64)throw new IllegalArgumentException("manifest envelope");
         StringBuilder b=new StringBuilder("BCMCCAMPUS1 "+run+" "+bots+" 8 16 96\n");
-        for(int id=0;id<bots;id++)b.append(id).append(' ').append(ox(id)).append(' ').append(oz(id)).append(' ').append(ox(id)+1).append(' ').append(oz(id)+1).append(' ').append(ox(id)+14).append(' ').append(oz(id)+14).append(" 96 104\n");
+        for(int id=0;id<bots;id++)b.append(id).append(' ').append(ox(id)).append(' ').append(oz(id)).append('\n');
         return b.toString();
     }
 }
