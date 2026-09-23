@@ -10,6 +10,9 @@
 - Give each inference submission a non-reused reply ticket so delayed responses
   and failures from cancelled goals cannot overwrite or poison current requests.
 - Use a common interval for JVM CPU-core and normalized-utilization measurements.
+- Suppress run-scoped unattributed combustion that killed deployed NPCs in daylight
+  on the pinned server despite its daylight flag. Preserve block/entity fire events,
+  expose the suppression counter, and extend real inference acceptance windows.
 - Add actual-filesystem and source-launcher export regressions, deterministic
   inverted callback completion tests, exact resume-counter checks and real-server
   rapid-goal-replacement acceptance. Live CI always requires affirmative dispatch.
