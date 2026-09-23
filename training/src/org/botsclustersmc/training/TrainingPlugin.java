@@ -38,13 +38,11 @@ public final class TrainingPlugin extends RuntimePlugin {
             if(failed.get()!=null||closing)return;World world=Bukkit.getWorld("world");if(world==null){fail(new IllegalStateException("owned world missing"));return;}
             for(int i=0;i<4&&preparing.get()<16;i++){
                 int actor=nextArena.getAndIncrement();if(actor>=count)return;ArenaLayout a=ArenaLayout.forActor(actor,count,islandSize);preparing.incrementAndGet();
-                world.getChunkAtAsync(a.chunkX(),a.chunkZ(),true).whenComplete((chunk,error)->{
-                    if(error!=null){preparing.decrementAndGet();fail(error);return;}
-                    Location at=new Location(world,a.x()+7.5,65,a.z()+3.5);
-                    Bukkit.getRegionScheduler().run(this,at,task->{try{chunk.addPluginChunkTicket(this);TrainingEnvironment.build(world,a);arenas.put((long)actor,a);
+                Location at=new Location(world,a.x()+7.5,65,a.z()+3.5);
+                LoadedChunks.use(this,at,chunk->{try{chunk.addPluginChunkTicket(this);TrainingEnvironment.build(world,a);arenas.put((long)actor,a);
                         requestSpawn(actor,at,new Goal(Task.FORWARD_STOP,at.getX(),65,at.getZ()+3,0,.2,600));prepared.incrementAndGet();
-                    }catch(Throwable e){fail(e);}finally{preparing.decrementAndGet();}});
-                });
+                    }catch(Throwable e){fail(e);}finally{preparing.decrementAndGet();}
+                },error->{preparing.decrementAndGet();fail(error);});
             }
         },1,1);
     }
