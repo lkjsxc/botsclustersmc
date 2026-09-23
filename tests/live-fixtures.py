@@ -38,15 +38,17 @@ try:
         if ready.exists() and ready.read_text()==f'BCMCLAB3 {run} ready\n':break
         time.sleep(0.25)
     else:raise RuntimeError('fixture campus readiness timeout')
+    failed_modes=[]
     for mode in ['fixtures','observer']:
         with (lab/f'logs/{mode}.log').open('w') as output:
             test=subprocess.run([sys.argv[1]],env=dict(env,BCMC_TEST_MODE=mode),cwd=lab,stdout=output,stderr=subprocess.STDOUT,timeout=1200 if mode=='fixtures' else 120)
         text=(lab/f'logs/{mode}.log').read_text(errors='replace')
         print(text[-24000:],flush=True)
-        if test.returncode:raise RuntimeError(f'{mode} failed with exit {test.returncode}')
+        if test.returncode:failed_modes.append(f'{mode} exited {test.returncode}')
         fatal=lab/'.runtime/lab/fatal.txt'
         if fatal.exists():raise RuntimeError(fatal.read_text())
     assert not (lab/'state/training.bcmc').exists(), 'diagnostic unexpectedly created a learner checkpoint'
+    if failed_modes:raise RuntimeError('; '.join(failed_modes))
     result=0
 finally:
     (lab/'.runtime/stop').write_text('stop\n')

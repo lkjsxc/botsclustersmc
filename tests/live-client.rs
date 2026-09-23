@@ -4,12 +4,13 @@
 //! No model is initialized, no demonstration is recorded, no training state is saved.
 #[allow(dead_code)] #[path="../botsclustersmc/core/lib.rs"] mod learning;
 #[path="../botsclustersmc/act.rs"] mod act;
-use std::{collections::VecDeque,env,fs,path::PathBuf,sync::{Arc,Mutex,OnceLock,atomic::{AtomicBool,Ordering}},time::{Duration,Instant}};
+use std::{collections::VecDeque,env,fs,path::PathBuf,sync::{Arc,Mutex,OnceLock,atomic::{AtomicBool,AtomicUsize,Ordering}},time::{Duration,Instant}};
 use azalea::{Client,Event,ecs::component::Component,account::Account,bot::DefaultBotPlugins,DefaultPlugins,swarm::{SwarmBuilder,DefaultSwarmPlugins},app::PluginGroup};
 use azalea::registry::builtin::ItemKind;
 use azalea_inventory::{Menu,ItemStack};
 use learning::{curriculum::{Lesson,Frame,Episode,IDLE,angles},next::{curriculum::{Lesson as Choice,PolicyId},tasks::{Session,Evidence,Counters,TASKS,ITEM_COUNT}}};
 static DONE:AtomicBool=AtomicBool::new(false);
+static FINISHED:AtomicUsize=AtomicUsize::new(0);
 static ERROR:OnceLock<Mutex<Option<String>>>=OnceLock::new();
 static ROOT:OnceLock<PathBuf>=OnceLock::new();
 static RUN:OnceLock<String>=OnceLock::new();
@@ -38,7 +39,7 @@ fn aim(f:&Frame,g:[f64;3],pitch:bool,a:&mut[usize;8])->bool{let e=angles(f.posit
 fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
     let menu=bot.menu();let slots=menu.slots();
     match op{
-        Op::Take(kind)=>{if !carried(bot).is_empty(){return Err("test attempted to acquire an ingredient with a nonempty cursor".into());}let index=player_range(&menu).find(|&i|slots[i].kind()==*kind&&!slots[i].is_empty()).ok_or_else(||format!("missing raw test ingredient {kind:?}; menu={menu:?}"))?;a[6]=1;a[7]=index;},
+        Op::Take(kind)=>{if !carried(bot).is_empty(){return Err("test attempted to acquire an ingredient with a nonempty cursor".into());}let Some(index)=player_range(&menu).find(|&i|slots[i].kind()==*kind&&!slots[i].is_empty()) else{return Ok(false);};a[6]=1;a[7]=index;},
         Op::Left(slot)=>{a[6]=1;a[7]=*slot;},Op::Right(slot)=>{a[6]=2;a[7]=*slot;},
         Op::Park=>{if !carried(bot).is_empty(){let index=player_range(&menu).find(|&i|slots[i].is_empty()).ok_or("no empty diagnostic inventory slot")?;a[6]=1;a[7]=index;}},
         Op::Align(g)=>{if !aim(f,*g,true,a){return Ok(false);}},
@@ -50,20 +51,20 @@ fn run_op(bot:&Client,f:&Frame,op:&mut Op,a:&mut[usize;8])->Result<bool,String>{
     }Ok(true)
 }
 fn read_frame(l:&Lesson)->Result<Option<Frame>,String>{
-    let path=root().join(".runtime/lab/frame-0.txt");let text=match fs::read_to_string(path){Ok(x)=>x,Err(e)if e.kind()==std::io::ErrorKind::NotFound=>return Ok(None),Err(e)=>return Err(e.to_string())};
+    let path=root().join(format!(".runtime/lab/frame-{}.txt",l.choice.session.actor));let text=match fs::read_to_string(path){Ok(x)=>x,Err(e)if e.kind()==std::io::ErrorKind::NotFound=>return Ok(None),Err(e)=>return Err(e.to_string())};
     let f:Vec<_>=text.split_whitespace().collect();if f.len()!=32||f[0]!="BCMCLAB3"{return Err("malformed diagnostic frame".into());}
     if f[1]!=RUN.get().unwrap()||f[2]!=l.token(){return Ok(None);}
     let number=|i:usize|f[i].parse::<f64>().map_err(|e|e.to_string());let count=|i:usize|f[i].parse::<u32>().map_err(|e|e.to_string());
-    if count(3)?!=0{return Err("wrong diagnostic actor".into());}let tick=f[4].parse::<u64>().map_err(|e|e.to_string())?;let mut stock=[0;ITEM_COUNT];for i in 0..ITEM_COUNT{stock[i]=count(11+i)?;}
+    if count(3)?!=l.choice.session.actor as u32{return Err("wrong diagnostic actor".into());}let tick=f[4].parse::<u64>().map_err(|e|e.to_string())?;let mut stock=[0;ITEM_COUNT];for i in 0..ITEM_COUNT{stock[i]=count(11+i)?;}
     Ok(Some(Frame{tick,position:[number(5)?,number(6)?,number(7)?],yaw:number(8)? as f32,pitch:number(9)? as f32,grounded:f[10]=="true",evidence:Evidence{session:l.choice.session,tick,stock,counters:Counters{broken:count(24)?,picked_up:count(25)?,crafted:count(26)?,placed:count(27)?,smelted:count(28)?,deposited:count(29)?},target_stock:count(30)?,occupied_targets:count(31)? as u8,motor_hold_ticks:0}}))
 }
-struct Check{ticks:u64,ready:bool,stage:usize,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool}
+struct Check{ticks:u64,ready:bool,stage:usize,actor:usize,finished:bool,lesson:Option<Lesson>,episode:Option<Episode>,last:[usize;8],ops:VecDeque<Op>,chain:bool,started:Instant,observer:bool,view12:bool,view16:bool}
 impl Check{
-    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false}}
+    fn new(observer:bool)->Self{Self{ticks:0,ready:false,stage:0,actor:0,finished:false,lesson:None,episode:None,last:IDLE,ops:VecDeque::new(),chain:false,started:Instant::now(),observer,view12:false,view16:false}}
     fn begin(&mut self)->Result<(),String>{
-        let choice=Choice{session:Session{run:11,actor:0,generation:1,lesson:self.stage as u64+1},task:TASKS[self.stage],difficulty:1.,seed:8129+self.stage as u64,full_probe:true,evaluation:false,review:false,policy:PolicyId{version:0,signature:0}};
-        let l=Lesson::from_choice(choice);let text=format!("BCMCLAB3 {} {} 0 {} {:.8} {:.8} {:.8} {:.5} {:.5} {:.8} {:.8} {:.8} {} 1.0 true\n",RUN.get().unwrap(),l.token(),l.stage,l.start[0],l.start[1],l.start[2],l.yaw,l.pitch,l.goal[0],l.goal[1],l.goal[2],l.choice.seed);
-        learning::checkpoint::atomic_write(&root().join(".runtime/lab/request-0.txt"),text.as_bytes(),0).map_err(|e|e.to_string())?;
+        let choice=Choice{session:Session{run:11,actor:self.actor as u8,generation:1,lesson:self.stage as u64+1},task:TASKS[self.stage],difficulty:1.,seed:8129+self.stage as u64,full_probe:true,evaluation:false,review:false,policy:PolicyId{version:0,signature:0}};
+        let l=Lesson::from_choice(choice);let text=format!("BCMCLAB3 {} {} {} {} {:.8} {:.8} {:.8} {:.5} {:.5} {:.8} {:.8} {:.8} {} 1.0 true\n",RUN.get().unwrap(),l.token(),self.actor,l.stage,l.start[0],l.start[1],l.start[2],l.yaw,l.pitch,l.goal[0],l.goal[1],l.goal[2],l.choice.seed);
+        learning::checkpoint::atomic_write(&root().join(format!(".runtime/lab/request-{}.txt",self.actor)),text.as_bytes(),0).map_err(|e|e.to_string())?;
         eprintln!("DIAGNOSTIC BEGIN stage={} name={} full=true start={:?} goal={:?}",l.stage,l.choice.task.spec().name,l.start,l.goal);
         self.ops=operations(&l);self.lesson=Some(l);self.episode=None;self.chain=false;self.last=IDLE;self.started=Instant::now();Ok(())
     }
@@ -76,29 +77,48 @@ impl Check{
         if let Some(e)=&self.episode{if f.tick<=e.previous.tick{return Ok(());}}
         if self.episode.is_none(){let p=bot.position();if(p.x-f.position[0]).abs()>0.5||(p.y-f.position[1]).abs()>0.5||(p.z-f.position[2]).abs()>0.5{return Ok(());}self.episode=Some(Episode::new(&l,f.clone())?);}
         else{
-            let outcome=self.episode.as_mut().unwrap().step(0,&l,f.clone(),&self.last,0.997)?;
+            let outcome=self.episode.as_mut().unwrap().step(self.actor,&l,f.clone(),&self.last,0.997)?;
             if outcome.done{
                 act::stop(bot);self.last=IDLE;
-                if !outcome.success{return Err(format!("fixture {} failed {}: frame={f:?} operation={:?} menu={:?}",self.stage,outcome.reason,self.ops.front(),bot.menu()));}
-                eprintln!("DIAGNOSTIC PASS stage={} ticks={} counters={:?} stock={:?} target_stock={} occupancy={}",self.stage,f.tick,f.evidence.counters,f.evidence.stock,f.evidence.target_stock,f.evidence.occupied_targets);
-                self.stage+=1;self.lesson=None;self.episode=None;
-                if self.stage==18{eprintln!("PASS: all 18 fixtures reached through scripted literal client inputs; NOT learned behavior");DONE.store(true,Ordering::Relaxed);}return Ok(());
+                if !outcome.success {
+                    let message=format!("fixture {} failed {}: frame={f:?} operation={:?} menu={:?}",self.stage,outcome.reason,self.ops.front(),bot.menu());
+                    eprintln!("DIAGNOSTIC TASK FAILURE: {message}");
+                    let mut error=ERROR.get().unwrap().lock().unwrap();if error.is_none(){*error=Some(message);}
+                } else {
+                    eprintln!("DIAGNOSTIC PASS stage={} ticks={} counters={:?} stock={:?} target_stock={} occupancy={}",self.stage,f.tick,f.evidence.counters,f.evidence.stock,f.evidence.target_stock,f.evidence.occupied_targets);
+                }
+                self.finished=true;
+                if FINISHED.fetch_add(1,Ordering::SeqCst)+1==18 {
+                    if ERROR.get().unwrap().lock().unwrap().is_none(){eprintln!("PASS: all 18 full-difficulty fixtures reached through separately scripted literal inputs; NOT learned behavior");}
+                    else{eprintln!("FAIL: all 18 fixtures completed; retain every failed task above");}
+                    DONE.store(true,Ordering::Relaxed);
+                }
+                return Ok(());
             }
         }
+        // Diagnostic control uses the current input-device view; scoring above
+        // still uses only the authoritative server frame and unchanged task gate.
+        // A four-tick movement pulse followed by twelve idle ticks avoids stale
+        // telemetry making the irreversible forward-only diagnostic overshoot.
+        let mut control=f.clone();let p=bot.position();let direction=bot.direction();
+        control.position=[p.x,p.y,p.z];control.yaw=direction.y_rot();control.pitch=direction.x_rot();
         let mut a=IDLE;
-        if let Some(op)=self.ops.front_mut(){if run_op(bot,&f,op,&mut a)?{self.ops.pop_front();}}
+        if let Some(op)=self.ops.front_mut(){if run_op(bot,&control,op,&mut a)?{self.ops.pop_front();}}
         else if self.stage<=4{
-            if self.stage==2{aim(&f,l.goal,true,&mut a);}
-            else if self.stage==0{if l.goal[2]-f.position[2]>0.55{a[0]=1;}}
+            if self.stage==2{aim(&control,l.goal,true,&mut a);}
+            else if self.stage==0{if l.goal[2]-control.position[2]>0.55 && self.ticks%16==0{a[0]=1;}}
             else{
-                let dist=(f.position[0]-l.goal[0]).hypot(f.position[2]-l.goal[2]);
-                if dist>0.55{if aim(&f,l.goal,false,&mut a){a[0]=1;}if self.stage==4{a[3]=1;}}
+                let dist=(control.position[0]-l.goal[0]).hypot(control.position[2]-l.goal[2]);
+                if dist>0.55{if aim(&control,l.goal,false,&mut a) && (dist>2.0 || self.ticks%16==0){a[0]=1;}if self.stage==4 && dist>1.5{a[3]=1;}}
             }
         }else if [5,6,12,17].contains(&self.stage){
-            let dist=(f.position[0]-l.goal[0]).hypot(f.position[2]-l.goal[2]);
-            if f.evidence.counters.broken==0{if aim(&f,l.goal,true,&mut a){if dist>2.2{a[0]=1;}else{a[4]=1;}}}
-            else if [6,12,17].contains(&self.stage)&&f.evidence.counters.picked_up==0{if aim(&f,l.goal,false,&mut a)&&dist>0.25{a[0]=1;}}
+            let dist=(control.position[0]-l.goal[0]).hypot(control.position[2]-l.goal[2]);
+            if f.evidence.counters.broken==0{if aim(&control,l.goal,true,&mut a){if dist>2.2{a[0]=1;}else{a[4]=1;}}}
+            else if [6,12,17].contains(&self.stage)&&f.evidence.counters.picked_up==0{if aim(&control,l.goal,false,&mut a)&&dist>0.25{a[0]=1;}}
             else if self.stage==17&&!self.chain{self.chain=true;recipe(&mut self.ops,&[(ItemKind::OakLog,1)],ItemKind::OakPlanks);recipe(&mut self.ops,&[(ItemKind::OakPlanks,1),(ItemKind::OakPlanks,2),(ItemKind::OakPlanks,3),(ItemKind::OakPlanks,4)],ItemKind::CraftingTable);}
+        }
+        if self.stage<=4 && f.tick<240 && self.ticks%16==0 {
+            eprintln!("DIAGNOSTIC TRACE task={} client_tick={} server_tick={} server={:?} client={:?} yaw={:.2} input={:?}",self.stage,self.ticks,f.tick,f.position,control.position,control.yaw,a);
         }
         act::apply(bot,&a,bot.menu().slots().len());self.last=a;Ok(())
     }
@@ -128,18 +148,23 @@ async fn handler(bot:Client,event:Event,state:State)->anyhow::Result<()>{
         Event::Disconnect(reason)=>{if !DONE.load(Ordering::Relaxed){return Err(format!("diagnostic disconnected: {reason:?}"));}},
         Event::ConnectionFailed(e)=>return Err(format!("diagnostic connection failed: {e:?}")),
         Event::Packet(packet)=>{if s.observer{if let azalea::protocol::packets::game::ClientboundGamePacket::SetChunkCacheRadius(p)=packet.as_ref(){eprintln!("OBSERVER cache radius={}",p.radius);s.view12|=p.radius==12;s.view16|=p.radius==16;}}},
-        Event::Tick=>{if DONE.load(Ordering::Relaxed){bot.exit();return Ok(());}if s.ready&&bot.exists(){s.ticks+=1;if s.observer{s.observer(&bot)?;}else{if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}act::tick_camera(&bot,&s.last);}}},_=>{}
+        Event::Tick=>{if DONE.load(Ordering::Relaxed){bot.exit();return Ok(());}if s.ready&&!s.finished&&bot.exists(){s.ticks+=1;if s.observer{s.observer(&bot)?;}else{if s.ticks%4==0&&s.ticks>12{s.fixture(&bot)?;}if s.stage==0 && s.ticks%16==4 && s.last[0]!=0{act::stop(&bot);s.last=IDLE;}act::tick_camera(&bot,&s.last);}}},_=>{}
     }Ok(())})();if let Err(e)=result{fail(e);}Ok(())
 }
 fn main()->Result<(),Box<dyn std::error::Error>>{
     let root_path=PathBuf::from(env::var("BCMC_ROOT")?);let observer=env::var("BCMC_TEST_MODE").as_deref()==Ok("observer");
     if !observer&&(!root_path.join(".bcmc-diagnostic-only").is_file()||root_path.join("state/training.bcmc").exists()){return Err("fixture diagnostics require their own explicitly marked, untrained directory".into());}
     ROOT.set(root_path).unwrap();RUN.set(env::var("BCMC_RUN_ID")?).unwrap();ERROR.set(Mutex::new(None)).unwrap();
-    let server=env::var("BOT_SERVER")?;let name=if observer{"bcmcObserver"}else{"bcmc00"};let state=State(Arc::new(Mutex::new(Check::new(observer))));
+    let server=env::var("BOT_SERVER")?;
     let executor=tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build()?;
     executor.block_on(async{
         let local=tokio::task::LocalSet::new();local.run_until(async{
-            let builder=SwarmBuilder::new_without_plugins().add_plugins((DefaultPlugins,DefaultBotPlugins.build().disable::<azalea::pathfinder::PathfinderPlugin>().disable::<azalea::accept_resource_packs::AcceptResourcePacksPlugin>(),DefaultSwarmPlugins)).set_handler(handler).reconnect_after(None).add_account_with_state(Account::offline(name),state);
+            let mut builder=SwarmBuilder::new_without_plugins().add_plugins((DefaultPlugins,DefaultBotPlugins.build().disable::<azalea::pathfinder::PathfinderPlugin>().disable::<azalea::accept_resource_packs::AcceptResourcePacksPlugin>(),DefaultSwarmPlugins)).set_handler(handler).reconnect_after(None).join_delay(Duration::from_millis(400));
+            for actor in 0..if observer{1}else{18}{
+                let name=if observer{"bcmcObserver".to_string()}else{format!("bcmc{actor:02}")};
+                let check=Check{actor,stage:actor,..Check::new(observer)};
+                builder=builder.add_account_with_state(Account::offline(&name),State(Arc::new(Mutex::new(check))));
+            }
             let run=builder.start(server.as_str());tokio::pin!(run);
             loop{tokio::select!{_=&mut run=>{if !DONE.load(Ordering::Relaxed){fail("diagnostic ECS exited early".into());}break;},_=tokio::time::sleep(Duration::from_millis(100))=>{if DONE.load(Ordering::Relaxed){break;}}}}
         }).await;
