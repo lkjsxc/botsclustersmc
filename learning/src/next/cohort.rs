@@ -232,7 +232,7 @@ mod tests {
         c.commit(Round { policy_version: 8, generation: 2 }).unwrap();
     }
     #[test] fn invalid_dimensions_and_missing_actors_never_pass() {
-        for n in [0, 33] { assert!(Cohort::<u8>::new(r(), n, 1, 1).is_err()); }
+        for n in [0, 65] { assert!(Cohort::<u8>::new(r(), n, 1, 1).is_err()); }
         assert!(Cohort::<u8>::new(r(), 1, usize::MAX, 2).is_err());
         let mut c = Cohort::new(r(), 2, 1, 1).unwrap();
         c.push(packet(0, 0, 1, true), |_| Ok(())).unwrap();
