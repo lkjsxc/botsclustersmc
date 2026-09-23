@@ -1,0 +1,10 @@
+count: 128
+max-agents: 4096
+max-loaded-chunks: 4096
+seed: 7
+inference-threads: 1
+learner-threads: 2
+rollout-queue: 512
+batch-samples: 512
+max-policy-lag: 64
+world-edits: true

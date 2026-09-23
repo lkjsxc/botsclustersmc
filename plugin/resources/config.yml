@@ -1,0 +1,15 @@
+# Supply policy.bcmc, then restart the server. No random-policy fallback.
+# NPCs are ephemeral non-player bodies. Back up a world before enabling edits.
+count: 0
+max-agents: 4096
+max-loaded-chunks: 2048
+seed: 7
+inference-threads: 1
+greedy: false
+world-edits: false
+edit-radius: 32
+world: world
+origin: {x: 0.5, y: 65, z: 0.5}
+goal: {x: 0.5, y: 65, z: 8.5}
+task: 3
+spacing: 2

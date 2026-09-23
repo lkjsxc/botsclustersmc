@@ -1,97 +1,85 @@
-# Validation — integrated Academy v2 (0.5.0)
+# Validation — current Java NPC runtime
 
-The actual source runtime connects the canonical RL mechanisms, 64 actors,
-all 18 task environments and the read-only observer UI. Implementation,
-scripted reachability and learned skill are different claims. No pretrained
-skill, learning-speed improvement or cooperative-living result is shipped.
+The [mainline acceptance record](verification/20260923-mainline-acceptance.md)
+records completed run [35847346541](https://github.com/lkjsxc/botsclustersmc/actions/runs/35847346541)
+against runtime source `4cfc06d9c43c2e94204dc948e3e4dd54d2232002`.
+All seven jobs passed. The Paper chunk-handoff failures from the preceding run
+were repaired and the same real deployment/fixture checks were rerun successfully.
 
-## Completed acceptance
+## Confirmed combinations
 
-[Final clean build and concurrent observer acceptance](verification/20260923-clean-concurrent-acceptance.md)
-records successful run 35817819877 and its actual tested source
-`c5aef6951fa104a4313a37cfb10ba7100ca81483`. It downloaded and built project
-dependencies without restored project caches, passed native/host/Java checks,
-started real Folia, reached all 18 full-difficulty tasks with separate scripted
-diagnostics, and ran the normal 64-actor learner with a simultaneous observer.
-The observer received actual task/PPO HUD and trained-sample TAB data while the
-learner continued. Normal start/status/console/stop and exact model-state resume
-passed: five total new PPO updates and 46,196 trained samples across two runs.
+| Server / operating system | Java | Completed real-server checks |
+| --- | --- | --- |
+| Folia 1.21.11 build 14 / Linux | 21 | 1,024-NPC learning, exact resume, export, 18 fixtures, independent 64-NPC inference |
+| Paper 1.21.1 build 133 / Linux | 21 | Exported inference JAR plus policy; lifecycle and all 18 fixtures |
+| Paper 1.21.11 build 132 / Linux | 21 | Exported inference JAR plus policy; lifecycle and all 18 fixtures |
+| Paper 26.2 build 128 / Linux | 25 | Exported inference JAR plus policy; lifecycle and all 18 fixtures |
+| Folia 1.21.11 build 14 / Windows | 21 | 32-NPC learning, exact resume, export, 18 fixtures, independent inference |
 
-[Complete integration and failure history](verification/20260923-rl64-integration.md)
-records the preceding independent successful cached-build run, all 18 task
-evidence cases, protocol corrections, observer execution and 64-actor resume.
-The [first cohort record](verification/20260923-first-64-cohort.md) describes an
-earlier intermediate smoke build and must not replace the final acceptance.
+Fresh source builds, real API compilation and numerical tests also passed on
+Linux and Windows. This table names tested combinations, not every release
+between them. No ARM64, macOS, arbitrary fork, desktop rendering or WAN connection
+claim is made. Inference can be installed without a training server or an external
+inference process; startup defaults to zero NPCs and disabled world edits.
 
-Native suites include overlapping core tests: 97 core tests (debug and optimized),
-118 launcher tests and 106 actual Azalea adapter tests. Package/bootstrap/recovery
-checks passed 19/8/24 respectively. Java syntax, pure fixtures, actual Folia API
-compilation and real plugin execution are separately identified in the records.
-The [research scope](RESEARCH.md) distinguishes foundations from empirical claims.
+The separate [local capacity record](verification/20260923-java-runtime.md)
+documents 2,048 actual ticking/acting NPCs over approximately 240 seconds. It
+retains its exact source binding, settings, scope and earlier failed attempts.
+It does not replace the final independent compatibility run.
 
-## Reproduce checks
+## Evidence categories
 
-Developer tests require Python 3 in addition to normal build prerequisites.
-Ordinary startup requires neither Python nor a GPU/LLM API.
+- Pure Java tests: model/distribution numerical gradients, batch/scalar parity,
+  bounded queues, atomic files and invalid-state rejection, primitive mechanics,
+  raw-material conservation, independent course/exam rules and optimizer resume.
+- Five-seed synthetic bandit learning: actual optimization, not Minecraft evidence.
+- Real training: all-agent ticks/actions plus real weight updates and persistence.
+- Scripted real-server 18-task reachability: separate diagnostic JAR, zero training.
+- Inference deployment: only plugin+policy, actual movement, commands, ticket cleanup,
+  and invalid-model rejection without shutting down an operator server.
+- Server/OS compatibility: only completed live jobs certify named combinations.
 
-```sh
-./scripts/preflight.sh
-./scripts/build-host-tools.sh
-python3 tests/package_checks.py
-python3 tests/bootstrap_checks.py
-python3 tests/recovery_checks.py
-./scripts/test-bridge.sh
-./scripts/build.sh
-```
+CI's `validate.yml` builds/tests on Linux and Windows. Opt-in live jobs run fresh
+Folia training and deployment, then test named Paper versions against the same
+inference artifact. Source-only main/PR runs do not silently accept an EULA or
+start Minecraft. Ordinary users must explicitly accept the EULA before startup.
 
-Only after personally accepting the Minecraft EULA:
+## Reproduce
 
-```sh
-# Actual neural learner; independent world and model, not academy-v2/.
-EULA=true SMOKE_BOTS=64 SMOKE_HEAP_GB=3 \
-  SMOKE_SECONDS=240 SMOKE_RESTART_SECONDS=180 ./smoke.sh
-
-# Separate scripted client: full-difficulty task reachability and observer UI.
-# No learner model, demonstrations or learned-skill claim.
-EULA=true ./scripts/test-live-fixtures.sh
-```
-
-`tests/public_entry_checks.py` exercises the normal start/status/console/stop
-entrypoints and resume with 64 actors, 64-step fragments and 4,096-minimum batches.
-It requires an otherwise fresh checkout without `.env`, `academy/` or `academy-v2/`,
-already-built native and diagnostic-client binaries, and both EULA=true and
-BCMC_TEST_NEW_ACADEMY=true. It refuses an existing operator installation.
-The first run adds a read-only observer to all 64 actors, checks real HUD/TAB and
-viewing operations, and requires continued PPO updates. A test-only legacy sentinel
-and private example config must remain unchanged.
+Normal build and startup need only a JDK and Git; opt-in acceptance additionally
+uses Python 3. After reading and personally accepting the Minecraft EULA:
 
 ```sh
-# Run after build.sh and test-live-fixtures.sh in an unused checkout only.
-EULA=true BCMC_TEST_NEW_ACADEMY=true python3 tests/public_entry_checks.py
+./test.sh
+EULA=true python3 tests/acceptance.py all --count 1024 --seconds 45 --output /tmp/bcmc-acceptance
+python3 tests/report.py /tmp/bcmc-acceptance
 ```
 
-To audit a stopped ordinary Academy:
+The output directory must not already exist. The test never uses an operator
+Academy. It starts real servers, checks all agents, stops/resumes and exports to
+its disposable `deploy/`. It does not set EULA consent for ordinary startup.
+The download cache defaults to `.cache/server`; `./test.sh` creates it.
+
+For a named Paper compatibility test, use the Java version required by that server:
 
 ```sh
-BCMC_ROOT="$PWD/academy-v2" ./bin/botsclustersmc-run verify-academy
-# Optional precise model/version/optimizer-count/sample resume baseline:
-BCMC_ROOT="$PWD/academy-v2" ./bin/botsclustersmc-run verify-academy /path/to/previous-status.json
+python3 tests/download_server.py 1.21.1 /tmp/paper-test-cache
+EULA=true python3 tests/acceptance.py inference --cache /tmp/paper-test-cache \
+  --deploy /tmp/bcmc-acceptance/deploy --output /tmp/paper-inference
+EULA=true python3 tests/acceptance.py fixtures --cache /tmp/paper-test-cache \
+  --output /tmp/paper-fixtures
 ```
 
-The permanent source-runtime CI uses a clean checkout and no restored project
-cache for native compilation and actual Folia API checking. It does not start
-Minecraft or accept an operator EULA. Standalone numerical CI checks the canonical
-modules; its synthetic bandit is not Minecraft evidence. The opt-in
-`live-acceptance.yml` workflow requires an affirmative EULA-consent input and runs
-the separate scripted fixtures plus normal 64-actor/concurrent-observer lifecycle.
-That manual workflow may reuse compilation caches; the final uncached acceptance
-is the separately identified completed run above.
+The downloader records exact stable build metadata and verifies the official
+checksum. It never falls back to a different Minecraft version. Model export
+contains only a short-trained test policy, not a certified all-skills policy.
 
 ## Limits
 
-Historical 20260922 records describe the six-task/32-actor runtime. No run here
-establishes human-like behavior, long-run reliability, ARM64 support, WAN human
-connectivity, rendered desktop-client FPS, hardware capacity, faster learning than
-the old algorithm or neural completion of all 18 tasks. Pending samples/actions
-at shutdown are explicitly accounted for; zero unexpected drops is not a claim
-that unfinished interactions were trained. Old weights are not silently migrated.
+Completed throughput measurements concern early navigation on disposable flat
+worlds. They do not prove indefinite operation, faster sample-efficient learning
+than old code, dense settlements, every later skill at that throughput, thousands
+of observers, or full survival. Historical records from the Rust/player runtime
+describe different software and cannot substitute for current evidence. No
+18-task neural mastery or generalization result is shipped. Bodies and pockets
+are ephemeral; the model and complete training state are separately persisted.
