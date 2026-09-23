@@ -1,4 +1,5 @@
 use super::rng::Rng;
+use super::next::math::{Distribution,Gate};
 
 #[derive(Clone, Debug)]
 pub struct Model {
@@ -12,6 +13,7 @@ pub struct Model {
 #[derive(Clone)]
 pub struct Forward {
     pub h1: Vec<f32>, pub h2: Vec<f32>, pub out: Vec<f32>, pub probs: Vec<f32>,
+    pub distribution: Distribution,
 }
 #[derive(Clone, Debug)]
 pub struct Decision {
@@ -58,8 +60,8 @@ impl Model {
     }
     pub fn validate(&self) -> bool {
         self.input > 0 && self.input <= 4096 && self.hidden > 0 && self.hidden <= 512
-            && !self.heads.is_empty() && self.heads.len() <= 32
-            && self.heads.iter().all(|&n| n > 0 && n <= 1024)
+            && !self.heads.is_empty() && self.heads.len() <= 16
+            && self.heads.iter().all(|&n| n > 0 && n <= 128)
             && self.weights.len() == self.layout().len
             && self.weights.iter().all(|v| v.is_finite())
     }
@@ -80,8 +82,16 @@ impl Model {
             let w = &self.weights[l.w3 + row * self.hidden..l.w3 + (row + 1) * self.hidden];
             *y = dot(w, &h2) + self.weights[l.b3 + row];
         }
-        let probs = masked_softmax(&out[..out.len() - 1], &self.heads, mask);
-        Forward { h1, h2, out, probs }
+        let mut logits=Vec::with_capacity(self.heads.len());
+        let mut masks=Vec::with_capacity(self.heads.len());let mut offset=0;
+        for &n in &self.heads {
+            logits.push(out[offset..offset+n].iter().map(|&v|v as f64).collect());
+            masks.push(mask[offset..offset+n].to_vec());offset+=n;
+        }
+        let gate=(self.heads.as_slice()==super::HEADS).then_some(Gate{parent:6,child:7,active_bits:0b1110,neutral:0});
+        let distribution=Distribution::new(&logits,&masks,gate).expect("invalid neural categorical distribution");
+        let probs=distribution.probabilities().iter().flatten().map(|&v|v as f32).collect();
+        Forward { h1, h2, out, probs, distribution }
     }
     /// Backpropagate an externally computed derivative with respect to each raw output.
     pub fn backward(&self, x: &[f32], f: &Forward, dout: &[f32], grad: &mut [f32]) {
@@ -110,21 +120,11 @@ impl Model {
         }
     }
     pub fn decide(&self, x: &[f32], mask: &[bool], rng: &mut Rng, greedy: bool) -> Decision {
-        let f = self.forward(x, mask); let mut offset = 0; let mut actions = vec![];
-        for &size in &self.heads {
-            let ps = &f.probs[offset..offset + size];
-            let chosen = if greedy {
-                ps.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).unwrap().0
-            } else {
-                let u = rng.uniform(); let mut sum = 0.0;
-                let mut selected = ps.iter().rposition(|p| *p > 0.0).unwrap();
-                for (i, p) in ps.iter().enumerate() { sum += p; if u < sum { selected = i; break; } }
-                selected
-            };
-            actions.push(chosen); offset += size;
-        }
-        let logp = log_probability(&f.probs, &self.heads, &actions);
-        Decision { actions, logp, value: *f.out.last().unwrap() }
+        let f=self.forward(x,mask);
+        let mut shared=super::next::Rng(rng.0);
+        let chosen=f.distribution.sample(&mut shared,greedy).expect("invalid policy distribution");
+        rng.0=shared.0;
+        Decision{actions:chosen.actions,logp:chosen.log_probability as f32,value:*f.out.last().unwrap()}
     }
 }
 fn dot(a: &[f32], b: &[f32]) -> f32 { a.iter().zip(b).map(|(x,y)| x*y).sum() }
@@ -143,7 +143,12 @@ pub fn masked_softmax(logits: &[f32], heads: &[usize], mask: &[bool]) -> Vec<f32
 }
 pub fn log_probability(p: &[f32], heads: &[usize], actions: &[usize]) -> f32 {
     assert_eq!(heads.len(), actions.len()); let mut offset = 0; let mut logp = 0.0;
-    for (&n, &a) in heads.iter().zip(actions) { assert!(a < n); logp += p[offset+a].max(1e-30).ln(); offset += n; }
+    for (h,(&n,&a)) in heads.iter().zip(actions).enumerate() {
+        assert!(a<n);
+        if heads==super::HEADS && h==7 && !(1..=3).contains(&actions[6]) { assert_eq!(a,0); }
+        else {logp+=p[offset+a].max(1e-30).ln();}
+        offset+=n;
+    }
     logp
 }
 #[cfg(test)] mod tests {

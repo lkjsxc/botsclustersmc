@@ -1,7 +1,7 @@
 //! An explicitly custom, Syllabus/learning-progress-inspired scheduler.
 //! This is not a reproduction of Syllabus, RePPO, Dreamer or DiscoRL.
 //! Exam outcomes are curriculum validation, not an unbiased final benchmark.
-use super::{self as shared_root};
+use super::super::next as shared_root;
 mod checkpoint;
 use shared_root::{Result,Rng,tasks::{Task,TASK_COUNT,Session}};
 
@@ -123,6 +123,13 @@ impl Curriculum {
         if self.actors.iter().any(|a|a.pending.is_some()){return Err("cannot freeze exam while a lesson is in flight");}
         let generation=self.generation.checked_add(1).ok_or("generation exhausted")?;
         self.phase=Phase::Exam{frozen:policy};self.generation=generation;
+        for a in &mut self.actors{a.exam_cursor=0;a.scores.fill(ExamScore::default());}
+        Ok(())
+    }
+    pub fn begin_evaluation(&mut self,policy:PolicyId)->Result<()> {
+        if self.actors.iter().any(|a|a.pending.is_some()){return Err("evaluation has pending lessons");}
+        self.generation=self.generation.checked_add(1).ok_or("generation exhausted")?;
+        self.phase=Phase::Exam{frozen:policy};
         for a in &mut self.actors{a.exam_cursor=0;a.scores.fill(ExamScore::default());}
         Ok(())
     }

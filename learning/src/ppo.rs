@@ -1,10 +1,12 @@
-use super::{network::{Model, log_probability}, rng::Rng};
+use super::{network::Model,rng::Rng,next::math};
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Transition {
     pub obs: Vec<f32>, pub mask: Vec<bool>, pub actions: Vec<usize>,
     pub old_logp: f32, pub value: f32, pub next_value: f32,
     pub reward: f32, pub terminal: bool,
+    /// Duration and end tick belong to the authoritative server episode.
+    pub elapsed_ticks:u32,pub truncated:bool,pub episode:u64,pub tick:u64,
 }
 #[derive(Clone)]
 pub struct Rollout { pub version: u64, pub steps: Vec<Transition> }
@@ -35,12 +37,13 @@ impl Params {
         Ok(())
     }
 }
-fn validate_transition(t:&Transition,m:&Model)->Result<(),String> {
+pub fn validate_transition(t:&Transition,m:&Model)->Result<(),String> {
     if t.obs.len()!=m.input || t.mask.len()+1!=m.layout().outputs || t.actions.len()!=m.heads.len()
         || !t.obs.iter().all(|x|x.is_finite())
         || ![t.value,t.next_value,t.reward,t.old_logp].iter().all(|x|x.is_finite()) {
         return Err("invalid transition shape or non-finite input".into());
     }
+    if t.elapsed_ticks==0 || t.elapsed_ticks>1_000_000 || t.tick<u64::from(t.elapsed_ticks) || (t.terminal&&t.truncated) {return Err("invalid server transition duration/boundary".into());}
     let mut off=0;
     for (&n,&a) in m.heads.iter().zip(&t.actions) {
         if a>=n || !t.mask[off+a] || !t.mask[off..off+n].iter().any(|v|*v) {
@@ -59,7 +62,7 @@ impl Adam {
         if !grad.iter().all(|g| g.is_finite()) { return Err("non-finite gradient; update rejected".into()); }
         let norm = grad.iter().map(|&g| (g as f64).powi(2)).sum::<f64>().sqrt() as f32;
         if !norm.is_finite() || !lr.is_finite() || lr<=0.0 || !clip.is_finite() || clip<=0.0 { return Err("invalid optimizer scale or overflowed gradient norm".into()); }
-        let scale = (clip / norm.max(1e-12)).min(1.0); self.step += 1;
+        let scale = (clip / norm.max(1e-12)).min(1.0); self.step = self.step.checked_add(1).ok_or("optimizer step overflow")?;
         let bc1 = 1.0-0.9_f64.powf(self.step as f64);
         let bc2 = 1.0-0.999_f64.powf(self.step as f64);
         for i in 0..w.len() {
@@ -77,20 +80,18 @@ pub struct Report {
     pub samples: usize, pub minibatches: usize, pub mean_reward: f32,
     pub policy_loss: f32, pub value_loss: f32, pub entropy: f32,
     pub kl: f32, pub clip_fraction: f32, pub grad_norm: f32,
+    pub attempts:usize,pub learning_rate:f32,
 }
 
 /// Tail bootstraps from next_value. terminal kills both bootstrap and GAE carry.
 /// Every call is ONE bot's contiguous rollout, never interleaved bot trajectories.
 pub fn advantages(steps: Vec<Transition>, p: &Params) -> Vec<Sample> {
-    let mut out = Vec::with_capacity(steps.len()); let mut carry = 0.0;
-    for t in steps.into_iter().rev() {
-        let live = if t.terminal { 0.0 } else { 1.0 };
-        let delta = t.reward + p.gamma * t.next_value * live - t.value;
-        carry = delta + p.gamma * p.lambda * live * carry;
-        let target = t.value + carry;
-        out.push(Sample { t, advantage: carry, target });
-    }
-    out.reverse(); out
+    let timed:Vec<_>=steps.iter().map(|t|math::TimedValue{
+        reward:t.reward as f64,value:t.value as f64,next_value:t.next_value as f64,ticks:t.elapsed_ticks,
+        boundary:if t.terminal{math::Boundary::Terminated}else if t.truncated{math::Boundary::Truncated}else{math::Boundary::Continuing}
+    }).collect();
+    let targets=math::gae(&timed,p.gamma as f64,p.lambda as f64,4).expect("validated timed trajectory");
+    steps.into_iter().zip(targets).map(|(t,a)|Sample{t,advantage:a.advantage as f32,target:a.target as f32}).collect()
 }
 pub fn prepare(rollouts: Vec<Rollout>, m: &Model, p: &Params) -> Result<Vec<Sample>,String> {
     p.validate()?;
@@ -103,7 +104,7 @@ pub fn prepare(rollouts: Vec<Rollout>, m: &Model, p: &Params) -> Result<Vec<Samp
             // A matching version number is necessary but not sufficient. Prove
             // the recorded behavior likelihood and critic match THIS snapshot.
             let f=m.forward(&t.obs,&t.mask);
-            let lp=log_probability(&f.probs,&m.heads,&t.actions);
+            let lp=f.distribution.log_probability(&t.actions).map_err(str::to_string)? as f32;
             let value=*f.out.last().unwrap();
             let agrees=|a:f32,b:f32| (a-b).abs()<=2e-4*(1.0+a.abs().max(b.abs()));
             if !agrees(lp,t.old_logp)||!agrees(value,t.value) {
@@ -114,10 +115,9 @@ pub fn prepare(rollouts: Vec<Rollout>, m: &Model, p: &Params) -> Result<Vec<Samp
     }
     if out.is_empty() { return Err("empty batch".into()); }
     if !out.iter().all(|s|s.advantage.is_finite()&&s.target.is_finite()) {return Err("non-finite GAE/target".into());}
-    let mean = out.iter().map(|s| s.advantage as f64).sum::<f64>() / out.len() as f64;
-    let var = out.iter().map(|s| (s.advantage as f64-mean).powi(2)).sum::<f64>() / out.len() as f64;
-    let sd = (var + 1e-8).sqrt();
-    for s in &mut out { s.advantage=((s.advantage as f64-mean)/sd) as f32; }
+    let mut normalized:Vec<_>=out.iter().map(|s|s.advantage as f64).collect();
+    math::normalize_advantages(&mut normalized).map_err(str::to_string)?;
+    for (sample,advantage) in out.iter_mut().zip(normalized) {sample.advantage=advantage as f32;}
     Ok(out)
 }
 /// Exact derivative of the clipped PPO objective with respect to log pi(a|s).
@@ -135,59 +135,68 @@ pub fn train(model: &mut Model, adam: &mut Adam, rng: &mut Rng, batch: &[Sample]
         validate_transition(&s.t,model)?;
         if !s.advantage.is_finite()||!s.target.is_finite(){return Err("non-finite training target".into());}
     }
-    let saved_model=model.clone(); let saved_adam=adam.clone(); let saved_rng=rng.clone();
-    let result=train_inner(model,adam,rng,batch,p);
-    if result.is_err() { *model=saved_model; *adam=saved_adam; *rng=saved_rng; }
-    result
+    // All mutated optimizer state, including shuffle RNG, is retried together.
+    let mut state=(model.clone(),adam.clone(),rng.clone(),Report::default());
+    let cfg=math::TrustConfig{learning_rate:p.lr as f64,maximum_kl:p.target_kl as f64,retries:8,shrink:0.5};
+    let mut detail=None;
+    let guard=math::guarded_update(&mut state,cfg,|state,lr|{
+        let mut params=p.clone();params.lr=lr as f32;
+        match train_inner(&mut state.0,&mut state.1,&mut state.2,batch,&params) {
+            Ok(report)=>{state.3=report;Ok(())},
+            Err(error)=>{detail=Some(error);Err("native optimizer update failed")}
+        }
+    },|state|{
+        let old:Vec<_>=batch.iter().map(|s|s.t.old_logp as f64).collect();
+        let mut new=Vec::with_capacity(batch.len());
+        for s in batch {new.push(state.0.forward(&s.t.obs,&s.t.mask).distribution.log_probability(&s.t.actions)?);}
+        math::sampled_kl(&old,&new)
+    }).map_err(|e|detail.unwrap_or_else(||e.to_string()))?;
+    state.0.version=model.version.checked_add(1).ok_or("policy version overflow")?;
+    state.3.kl=guard.final_kl as f32;
+    state.3.attempts=guard.attempts;
+    state.3.learning_rate=guard.learning_rate as f32;
+    *model=state.0;*adam=state.1;*rng=state.2;Ok(state.3)
 }
-fn train_inner(model: &mut Model, adam: &mut Adam, rng: &mut Rng, batch: &[Sample], p: &Params) -> Result<Report,String> {
-    let mut report=Report { samples: batch.len(), mean_reward: batch.iter().map(|s| s.t.reward).sum::<f32>()/batch.len() as f32, ..Report::default() };
-    let mut order: Vec<usize>=(0..batch.len()).collect(); let mut count=0usize;
-    'epochs: for _ in 0..p.epochs {
+fn train_inner(model:&mut Model,adam:&mut Adam,rng:&mut Rng,batch:&[Sample],p:&Params)->Result<Report,String>{
+    let mut report=Report{samples:batch.len(),mean_reward:batch.iter().map(|s|s.t.reward as f64).sum::<f64>() as f32/batch.len() as f32,..Report::default()};
+    let mut order:Vec<usize>=(0..batch.len()).collect();let mut count=0usize;
+    for _ in 0..p.epochs {
         rng.shuffle(&mut order);
         for ids in order.chunks(p.minibatch) {
-            let mut grad=vec![0.0;model.weights.len()]; let mut mb_kl=0.0;
+            let mut grad=vec![0.0;model.weights.len()];
             for &id in ids {
-                let s=&batch[id]; let f=model.forward(&s.t.obs,&s.t.mask);
-                let lp=log_probability(&f.probs,&model.heads,&s.t.actions);
-                let diff=(lp-s.t.old_logp).clamp(-20.0,20.0); let ratio=diff.exp();
-                let kl=(ratio-1.0)-diff; mb_kl+=kl;
-                let (actor_loss,dlp)=clipped_surrogate(s.advantage,ratio,p.clip);
-                let mut dout=vec![0.0;f.out.len()]; let mut off=0; let mut entropy=0.0;
-                for (&n,&action) in model.heads.iter().zip(&s.t.actions) {
-                    let ps=&f.probs[off..off+n];
-                    let h=-ps.iter().filter(|&&v| v>0.0).map(|v| v*v.ln()).sum::<f32>(); entropy+=h;
-                    for k in 0..n {
-                        // d(-entropy)/dz_j = p_j (log p_j + H); illegal p=0 contributes 0.
-                        dout[off+k]=dlp*((if k==action {1.0} else {0.0})-ps[k]);
-                        if ps[k]>0.0 { dout[off+k]+=p.entropy*ps[k]*(ps[k].ln()+h); }
-                    }
-                    off+=n;
+                let s=&batch[id];let f=model.forward(&s.t.obs,&s.t.mask);
+                let lp=f.distribution.log_probability(&s.t.actions).map_err(str::to_string)?;
+                let objective=math::clipped_objective(s.t.old_logp as f64,lp,s.advantage as f64,p.clip as f64).map_err(str::to_string)?;
+                let score=f.distribution.score_gradient(&s.t.actions,objective.d_log_probability).map_err(str::to_string)?;
+                let (entropy,entropy_grad)=f.distribution.entropy(true);
+                let mut dout=Vec::with_capacity(f.out.len());
+                for (gs,ge) in score.iter().zip(&entropy_grad) {
+                    for (&a,&e) in gs.iter().zip(ge) {dout.push((a-p.entropy as f64*e) as f32);}
                 }
-                let err=f.out[off]-s.target; dout[off]=p.value_coef*err;
+                let err=*f.out.last().unwrap()-s.target;
+                dout.push(p.value_coef*err);
                 model.backward(&s.t.obs,&f,&dout,&mut grad);
-                report.policy_loss+=actor_loss; report.value_loss+=0.5*err*err;
-                report.entropy+=entropy; report.kl+=kl;
-                report.clip_fraction+=if (ratio-1.0).abs()>p.clip {1.0} else {0.0}; count+=1;
+                report.policy_loss+=objective.loss as f32;report.value_loss+=0.5*err*err;
+                report.entropy+=entropy as f32;report.clip_fraction+=objective.clipped as u8 as f32;count+=1;
             }
-            // Do not apply a further optimizer step after divergence is observed.
-            if mb_kl/ids.len() as f32>p.target_kl && report.minibatches>0 { break 'epochs; }
-            for g in &mut grad { *g/=ids.len() as f32; }
+            for g in &mut grad {*g/=ids.len() as f32;}
             report.grad_norm+=adam.update(&mut model.weights,&grad,p.lr,p.grad_clip)?;
             report.minibatches+=1;
         }
     }
-    if !model.validate() { return Err("model validation failed; entire PPO update rolled back".into()); }
-    if report.minibatches==0 { return Err("no optimizer steps".into()); }
-    let d=count.max(1) as f32;
-    report.policy_loss/=d; report.value_loss/=d; report.entropy/=d; report.kl/=d; report.clip_fraction/=d;
-    report.grad_norm/=report.minibatches as f32; model.version+=1;
+    if !model.validate(){return Err("model validation failed".into());}
+    let n=count.max(1) as f32;
+    report.policy_loss/=n;report.value_loss/=n;report.entropy/=n;report.clip_fraction/=n;
+    report.grad_norm/=report.minibatches.max(1) as f32;
+    if ![report.mean_reward,report.policy_loss,report.value_loss,report.entropy,report.grad_norm].iter().all(|v|v.is_finite()){return Err("nonfinite optimizer report".into());}
     Ok(report)
 }
+
 #[cfg(test)] mod tests {
     use super::*;
     fn step(r:f32, value:f32, next:f32, terminal:bool)->Transition {
-        Transition { obs:vec![0.0],mask:vec![true,true],actions:vec![0],old_logp:-2.0_f32.ln(),value,next_value:next,reward:r,terminal }
+        Transition { obs:vec![0.0],mask:vec![true,true],actions:vec![0],old_logp:-2.0_f32.ln(),value,next_value:next,reward:r,terminal,elapsed_ticks:4,truncated:false,episode:0,tick:4 }
     }
     #[test] fn terminal_does_not_bootstrap() {
         let p=Params{gamma:0.9,lambda:1.0,..Params::default()};
@@ -223,7 +232,7 @@ fn train_inner(model: &mut Model, adam: &mut Adam, rng: &mut Rng, batch: &[Sampl
             for k in 0..128 {
                 let obs=if k%2==0 {vec![1.0,0.0]} else {vec![0.0,1.0]};
                 let d=m.decide(&obs,&[true,true],&mut rng,false);
-                steps.push(Transition{obs,mask:vec![true,true],actions:d.actions.clone(),old_logp:d.logp,value:d.value,next_value:0.0,reward:if d.actions[0]==k%2 {1.0} else {-1.0},terminal:true});
+                steps.push(Transition{obs,mask:vec![true,true],actions:d.actions.clone(),old_logp:d.logp,value:d.value,next_value:0.0,reward:if d.actions[0]==k%2 {1.0} else {-1.0},terminal:true,elapsed_ticks:4,truncated:false,episode:0,tick:4});
             }
             let batch=prepare(vec![Rollout{version:m.version,steps}],&m,&p).unwrap();
             train(&mut m,&mut adam,&mut rng,&batch,&p).unwrap();
@@ -236,7 +245,7 @@ fn train_inner(model: &mut Model, adam: &mut Adam, rng: &mut Rng, batch: &[Sampl
         let m=Model::new(1,4,vec![2],9); let mut rng=Rng(14);
         let d=m.decide(&[0.5],&[true,true],&mut rng,false);
         let mut t=Transition{obs:vec![0.5],mask:vec![true,true],actions:d.actions,
-            old_logp:d.logp,value:d.value,next_value:0.0,reward:1.0,terminal:true};
+            old_logp:d.logp,value:d.value,next_value:0.0,reward:1.0,terminal:true,elapsed_ticks:4,truncated:false,episode:0,tick:4};
         let check=|t:Transition|prepare(vec![Rollout{version:m.version,steps:vec![t]}],&m,&Params::default());
         assert!(check(t.clone()).is_ok());
         t.old_logp+=0.1;assert!(check(t.clone()).is_err());

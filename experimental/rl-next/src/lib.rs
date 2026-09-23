@@ -1,4 +1,4 @@
-//! Standalone checks re-export the exact canonical runtime implementation.
+//! Standalone checks use the canonical native implementation.
 #[path = "../../../learning/src/next/mod.rs"]
-mod shared;
-pub use shared::*;
+mod next;
+pub use next::*;

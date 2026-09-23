@@ -1,4 +1,4 @@
-use super::super::{self as shared_root};
+use super::super::super::next as shared_root;
 use shared_root::Result;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -1,5 +1,5 @@
 //! Task contracts and authoritative evidence gates shared with the Minecraft adapter.
-use super::{self as shared_root};
+use super::super::next as shared_root;
 use shared_root::Result;
 
 pub const TASK_COUNT:usize=18;
