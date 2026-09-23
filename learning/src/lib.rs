@@ -13,3 +13,5 @@ pub const ACTIONS: usize = 136;
 pub const SCHEMA: u32 = 1;
 
 pub mod curriculum;
+
+pub mod next;

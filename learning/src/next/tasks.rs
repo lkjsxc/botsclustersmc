@@ -1,7 +1,6 @@
-//! Task contracts and evidence gates, not a Minecraft environment implementation.
-//! Merely adding an enum/validator does not make a stage playable. The Java/Folia
-//! adapter must supply real geometry, reset states and confirmed transaction data.
-use crate::Result;
+//! Task contracts and authoritative evidence gates shared with the Minecraft adapter.
+use super as shared_root;
+use shared_root::Result;
 
 pub const TASK_COUNT:usize=18;
 pub const ITEM_COUNT:usize=13;
@@ -72,6 +71,9 @@ impl Task {
                 }
             }
         }
+        // Advanced tasks may furnish supplies outside the hotbar. Literal GUI
+        // actions remain available; no mask reveals a recipe or correct slot.
+        if self as usize >= 6 { m[6].fill(true); m[7].fill(true); }
         m
     }
 }
@@ -121,7 +123,7 @@ pub struct ProgressGate {
 }
 impl ProgressGate {
     pub fn new(task:Task,baseline:&Evidence)->Result<Self>{
-        if baseline.session.actor>=32 || baseline.stock.iter().any(|x|*x>5760) || baseline.target_stock>5760 {
+        if baseline.session.actor>=64 || baseline.stock.iter().any(|x|*x>5760) || baseline.target_stock>5760 {
             return Err("invalid evidence baseline");
         }
         Ok(Self{session:baseline.session,task,baseline:baseline.counters,last:baseline.counters,last_tick:baseline.tick,

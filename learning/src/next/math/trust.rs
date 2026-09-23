@@ -1,4 +1,5 @@
-use crate::Result;
+use super::super as shared_root;
+use shared_root::Result;
 
 /// Non-negative sampled KL estimator for actions drawn from the OLD policy:
 /// mean(exp(new_logp-old_logp)-1-(new_logp-old_logp)).
@@ -62,7 +63,7 @@ pub fn guarded_update<S:Clone>(state:&mut S, cfg:TrustConfig,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Rng;
+    use shared_root::Rng;
     #[derive(Clone,Debug,PartialEq)] struct State {weight:f64,moment:f64,step:u64,rng:Rng}
     fn state()->State {State{weight:1.0,moment:0.0,step:5,rng:Rng(7)}}
     #[test] fn identity_and_small_kl_are_stable() {

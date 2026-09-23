@@ -31,7 +31,7 @@ impl Curriculum {
     /// zero using the SAME frozen policy and new evaluation seeds, never partial
     /// cherry-picked successes. Completed training statistics remain intact.
     pub fn from_checkpoint(bytes:&[u8],expected:PolicyId,new_run:u64)->Result<Self>{
-        if bytes.len()<96 || bytes.len()>64*1024 || bytes.get(..8)!=Some(MAGIC.as_slice()){return Err("wrong curriculum checkpoint schema or size");}
+        if bytes.len()<96 || bytes.len()>256*1024 || bytes.get(..8)!=Some(MAGIC.as_slice()){return Err("wrong curriculum checkpoint schema or size");}
         let mut tail=bytes.len()-8;let claimed=read(bytes,&mut tail)?;
         if checksum(&bytes[..bytes.len()-8])!=claimed{return Err("curriculum checkpoint is corrupted");}
         let mut at=8;let policy=PolicyId{version:read(bytes,&mut at)?,signature:read(bytes,&mut at)?};
@@ -40,7 +40,7 @@ impl Curriculum {
         let generation=read(bytes,&mut at)?;let bots=usize::try_from(read(bytes,&mut at)?).map_err(|_|"actor count overflow")?;
         let examinations=read(bytes,&mut at)?;let ever_completed=flag(read(bytes,&mut at)?)?;
         let last_exam_passed=flag(read(bytes,&mut at)?)?;let exam=flag(read(bytes,&mut at)?)?;
-        if !(1..=32).contains(&bots) || frontier>=TASK_COUNT || generation==0 ||
+        if !(1..=64).contains(&bots) || frontier>=TASK_COUNT || generation==0 ||
             frontier as u64>examinations || (ever_completed && frontier+1!=TASK_COUNT){return Err("invalid curriculum checkpoint metadata");}
         let expected_len=8+10*8+bots*(5+TASK_COUNT*9)*8+8;
         if bytes.len()!=expected_len{return Err("curriculum checkpoint length mismatch");}

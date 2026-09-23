@@ -1,11 +1,12 @@
 //! Pure numerical components. They require adapter integration and live ablations.
+use super as shared_root;
 mod distribution;
 mod time;
 mod trust;
 pub use distribution::*;
 pub use time::*;
 pub use trust::*;
-use crate::Result;
+use shared_root::Result;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ClippedObjective { pub loss: f64, pub d_log_probability: f64, pub ratio: f64, pub clipped: bool }

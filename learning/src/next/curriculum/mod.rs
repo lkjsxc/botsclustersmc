@@ -1,8 +1,9 @@
 //! An explicitly custom, Syllabus/learning-progress-inspired scheduler.
 //! This is not a reproduction of Syllabus, RePPO, Dreamer or DiscoRL.
 //! Exam outcomes are curriculum validation, not an unbiased final benchmark.
+use super as shared_root;
 mod checkpoint;
-use crate::{Result,Rng,tasks::{Task,TASK_COUNT,Session}};
+use shared_root::{Result,Rng,tasks::{Task,TASK_COUNT,Session}};
 
 pub const MIN_TRAIN_EPISODES:u64=40;
 pub const MIN_FULL_PROBES:u64=8;
@@ -96,7 +97,7 @@ pub struct Curriculum {
 }
 impl Curriculum {
     pub fn new(seed:u64,bots:usize,run:u64)->Result<Self>{
-        if !(1..=32).contains(&bots){return Err("curriculum supports one to 32 actors");}
+        if !(1..=64).contains(&bots){return Err("curriculum supports one to 64 actors");}
         Ok(Self{seed,run,frontier:0,generation:1,phase:Phase::Training,actors:vec![Actor::default();bots],
             examinations:0,ever_completed:false,last_exam_passed:false})
     }

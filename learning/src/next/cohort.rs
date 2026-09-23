@@ -8,7 +8,8 @@
 //!
 //! This module does not claim synchronous collection is always faster. Its
 //! throughput/straggler tradeoff must be measured in Folia before adoption.
-use crate::Result;
+use super as shared_root;
+use shared_root::Result;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Round { pub policy_version: u64, pub generation: u64 }
@@ -56,7 +57,7 @@ pub struct Cohort<T> {
 }
 impl<T> Cohort<T> {
     pub fn new(round: Round, actors: usize, quota: usize, max_episode_samples: usize) -> Result<Self> {
-        if !(1..=32).contains(&actors) || quota == 0 || max_episode_samples == 0 {
+        if !(1..=64).contains(&actors) || quota == 0 || max_episode_samples == 0 {
             return Err("invalid cohort dimensions");
         }
         let cap = quota.checked_add(max_episode_samples).ok_or("cohort capacity overflow")?;

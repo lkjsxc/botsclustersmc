@@ -72,7 +72,7 @@ git -C "$repo" diff --exit-code -- Cargo.lock Cargo.toml azalea/Cargo.toml
 example="$repo/azalea/examples/botsclustersmc"
 mkdir -p "$example/core"
 cp app/*.rs "$example/"
-cp learning/src/*.rs "$example/core/"
+cp -a learning/src/. "$example/core/"
 (
   cd "$repo"
   rustup run "$TOOLCHAIN" cargo test --locked --release -p azalea \
