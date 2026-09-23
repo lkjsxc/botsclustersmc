@@ -91,10 +91,11 @@ not fabricate experience, include exam data, change V-trace targets or inflate
 `trained_samples`. Weighted loss/entropy/importance statistics describe this new
 objective. [Task balance](TASK_BALANCE.md) explains the bounds and exact tests.
 
-The distinction matters because review is selected by episode while gradients
-consume transitions: long failures can outnumber short successful reviews in the
-learner. Episode promotion remains independent and unchanged. Balanced updates
-are not themselves a guarantee that the latest model retains every earlier skill.
+Loss allocation cannot compensate for a task absent from a batch. The separate
+[elapsed-tick review allocator](REVIEW_EFFORT.md) budgets actual training exposure
+at episode boundaries; it does not guarantee a matching proportion of accepted
+samples or gradient mass. Episode promotion remains independent and unchanged.
+Neither allocation mechanism proves retention of every earlier skill.
 
 ## Independent courses, frozen individual exams
 
@@ -104,10 +105,15 @@ No actor's failure can be bypassed by a population-average score, but one weak
 actor also cannot stall the entire population. This avoids an all-thousands-must-
 pass-at-once probability bottleneck.
 
-Practice difficulty follows that actor/task's outcome moving average. Roughly20%
-of practice choices revisit an older skill; every fifth selection is a
-full-difficulty probe. **Probes still train**; they are a readiness heuristic,
-not an independent held-out evaluation. Easy practice may preposition a conserved
+Practice difficulty follows that actor/task's outcome moving average. After the
+first stage, observed training ticks are allocated approximately 80% to the
+current task and 20% to review, allowing whole-episode overshoot. Earlier tasks
+with the least reviewed time are selected first, with random tie breaking. No
+in-progress episode is truncated to satisfy the budget. Each task's first and
+every fifth subsequent completed-training-episode position is a full-difficulty
+probe; the cadence is per task, not coupled to the global review schedule.
+**Probes still train**; they are a readiness heuristic, not an independent
+held-out evaluation. Easy practice may preposition a conserved
 subset of raw ingredients/cursor state at reset. Full probes and exams use the
 full initial raw stock, closed menus and no recipe/menu assistance. No reset
 provides crafted outputs or chooses an in-episode neural action.
@@ -129,7 +135,9 @@ mastery gate. Long-run held-out retention/generalization remains a separate stud
 
 Pause/restart abandons the affected actor's whole unfinished exam rather than
 keeping a favorable partial subset. Completed certificates/statistics and RNG
-persist. In-flight world actions are not replayed. Shutdown records buffered
+persist. Process-local effort debt and review-time tallies restart from zero;
+pause without a process restart retains already observed effort. These are not
+persisted mastery statistics. In-flight world actions are not replayed. Shutdown records buffered
 untrained samples and unfinished actions; accepted learner work is drained before
 final checkpoint when graceful shutdown succeeds. The single canonical file is
 `training.bcmc`; stopped-state export derives a policy directly from that file
