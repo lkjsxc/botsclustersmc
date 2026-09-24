@@ -31,9 +31,9 @@ public final class StationTest {
         for(double difficulty:new double[]{.1,.2,.4,.6,.8,.99}) {
             Pocket p=new Pocket();p.open(Pocket.Menu.WORKBENCH);
             p.setStorage(0,new Stack("OAK_PLANKS",3));p.setStorage(1,new Stack("STICK",2));
-            InitialCrafting.prepare(p,11,difficulty,new RandomSource(3));
+            int missing=InitialCrafting.prepare(p,11,difficulty,new RandomSource(3));
             int grid=0;for(int slot=36;slot<45;slot++)grid+=p.get(slot,Pocket.NONE).count();
-            check(grid==5-(int)Math.ceil(5*difficulty));
+            check(grid==5-missing&&missing>=0&&missing<=(int)Math.ceil(5*difficulty));
             check(p.count("OAK_PLANKS")==3&&p.count("STICK")==2&&p.crafted.isEmpty());
         }
 
@@ -93,7 +93,9 @@ public final class StationTest {
         near(total,-potentials[0]);
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double d:new double[]{0,.2,.549,.55,.8,1}) {
             Course.Lesson lesson=new Course.Lesson(1,task,d,3,kind);
-            check(StationPractice.acquisition(lesson)==(StationPractice.applies(task)&&kind==Course.Kind.PRACTICE&&d<.55));
+            boolean assisted=StationPractice.applies(task)&&kind==Course.Kind.PRACTICE&&d<1;
+            check((StationPractice.acquisition(lesson)||StationPractice.operation(lesson))==assisted);
+            check(!(StationPractice.acquisition(lesson)&&StationPractice.operation(lesson)));
         }
         System.out.println("PASS station and menu-correct recipe checks="+checks);
     }

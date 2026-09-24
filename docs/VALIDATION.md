@@ -83,3 +83,22 @@ self-selected long-horizon goals or a cooperative settlement. Those remain
 unimplemented or unverified. Dense shared-world performance, arbitrary plugins,
 macOS/ARM64, hot reload and indefinite uptime are not certified by short flat-world
 trials. World edits default off; test inference on copied worlds first.
+
+## Offline observatory regression
+
+`./test.sh` / `test.cmd` also compile the real-server diagnostic sources against
+the pinned API. Compilation does not execute those fixtures or accept the EULA.
+To test the crafting dashboard without any Minecraft instance or network access
+from the browser, install Python Playwright and use an installed Chrome/Chromium
+(or `python -m playwright install chromium`), then run:
+
+```sh
+python -m pip install playwright==1.57.0
+python tests/crafting_monitor.py
+```
+
+`CHROME_BIN` can select an existing Chromium-family executable. The test injects
+synthetic metrics, keeps the browser offline, checks task/bucket labels, invalid
+counts, stale-state warnings and desktop/mobile layout, and writes screenshots
+and a JSON result under `.build/evidence/crafting-monitor`. It does not verify
+a live HTTP service, running learner, Minecraft GUI or learned skill.

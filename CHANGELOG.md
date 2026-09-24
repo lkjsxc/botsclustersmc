@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — reachable crafting practice
+
+- Interleave workstation opening with operation at every assisted difficulty;
+  opening successes no longer raise the completion-difficulty EMA.
+- Restore reachable output collection and every missing ingredient position,
+  mixing the current frontier with earlier reset states without teacher actions.
+- Expose process-local assisted outcomes by task and initial missing-cell count,
+  separately from opening, full probes, frozen exams and historical certificates.
+- Add composed curriculum tests, offline browser diagnostics and source-time
+  compilation of live fixtures. These are not a new learned-survival result.
+
 ## 0.7.3 — workstation progress and observable menus
 
 - Correct recipe progress and raw reset placement for physical 2x2/3x3 grids;
