@@ -50,6 +50,28 @@ jobs:
           name: source-${{ runner.os }}
           path: source-tests.log
           retention-days: 14
+  observatory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test client
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Offline synthetic observatory regression
+        run: python tests/crafting_monitor.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: observatory-evidence
+          path: .build/evidence/crafting-monitor
+          retention-days: 14
   live:
     needs: source
     # Only an affirmative dispatch starts disposable Minecraft servers.

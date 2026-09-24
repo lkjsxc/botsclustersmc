@@ -14,18 +14,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Apply source patch and publish only the matching candidate tree
+      - name: Publish source files only; workflow edits belong to the authorized connector
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = 581d51c0fa84918d0b2fdae8f28f4121af5d414e
+          test "$(git rev-parse HEAD^)" = 3a3ddf0fc1b64614dc10e9d29adad99279aebfff
           gzip -dc .crafting.patch.gz > "$RUNNER_TEMP/crafting.patch"
-          git apply --check "$RUNNER_TEMP/crafting.patch"
-          git apply "$RUNNER_TEMP/crafting.patch"
-          rm -- .crafting.patch.gz .github/workflows/import-crafting.yml
+          git apply --check --exclude='.github/workflows/*' "$RUNNER_TEMP/crafting.patch"
+          git apply --exclude='.github/workflows/*' "$RUNNER_TEMP/crafting.patch"
+          rm -- .crafting.patch.gz
           git add -A
           git diff --cached --check
-          test "$(git write-tree)" = 7e308cac755b1057f27fe2af98c7b28acd178c1b
+          test -z "$(git diff --cached --name-only -- .github/workflows)"
+          # Verify the final planned source tree without changing this checkout's workflows.
+          cp .git/index "$RUNNER_TEMP/final-tree.index"
+          GIT_INDEX_FILE="$RUNNER_TEMP/final-tree.index" git update-index --force-remove .github/workflows/import-crafting.yml
+          test "$(GIT_INDEX_FILE="$RUNNER_TEMP/final-tree.index" git write-tree)" = 7e308cac755b1057f27fe2af98c7b28acd178c1b
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'fix(training): restore reachable crafting practice and separate outcomes'
