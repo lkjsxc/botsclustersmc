@@ -86,3 +86,11 @@ and the current live policy. Run `./evaluate.sh` for one evaluation or
 `./evaluate.sh --watch` for repeated changed-policy tests. Zero-success tasks are
 not hidden. Evaluation never updates weights or curriculum certificates. See
 [Evaluation](EVALUATION.md) before treating these results as deployment evidence.
+
+## Inspect a crafting attempt
+
+`/bots inspect <id>` includes the actual menu, cursor, output preview and numbered
+menu cells from an immutable owner-thread snapshot. The spectator HUD names an
+open menu and the cursor item. These are read-only observations, not a menu that
+can control the NPC. Independent trial diagnostics also retain counts of closed,
+personal-inventory, workbench, furnace and chest observations.

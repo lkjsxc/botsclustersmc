@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.3 — workstation progress and observable menus
+
+- Correct recipe progress and raw reset placement for physical 2x2/3x3 grids;
+  never count a result preview as an ingredient or credit a pickaxe in a 2x2 menu.
+- Add bounded, discounted workstation potentials and practice-only staged raw
+  preparation without changing full-condition exams or choosing gameplay actions.
+- Show immutable menu, cursor, preview and numbered cells in NPC inspection;
+  distinguish actual menu types in independent neural trial diagnostics.
+- Preserve failed reward-scale trials in verification evidence. A source/runtime
+  update or successful software test is not a learned-survival certificate.
+
+
 ## 0.7.2 — independently measured progress
 
 Add the native `evaluate` command and an independent evaluation panel.

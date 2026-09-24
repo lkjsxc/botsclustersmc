@@ -56,12 +56,18 @@ public final class TrainingEnvironment {
                 AimPractice.Pose pose=HarvestPractice.reset(lesson.task(),lesson.kind(),d,yaw,pitch,targetYaw,targetPitch,rng);
                 yaw=pose.yaw();pitch=pose.pitch();
             }
+            if(StationPractice.applies(lesson.task())) {
+                double targetYaw=Math.toDegrees(Math.atan2(-(gx-sx),gz-sz));
+                double targetPitch=-Math.toDegrees(Math.atan2(gy+.5-(65+npc.entity.getEyeHeight()),Math.hypot(gx-sx,gz-sz)));
+                AimPractice.Pose pose=AimPractice.reset(lesson.kind(),d,yaw,pitch,targetYaw,targetPitch,rng);
+                yaw=pose.yaw();pitch=pose.pitch();
+            }
             Goal goal=new Goal(lesson.task(),gx,gy,gz,lesson.serial(),d,lesson.task().horizon());
             Location spawn=new Location(world,sx,65,sz,yaw,pitch);
             npc.reset(goal,spawn,()->{
                 supplies(npc,task);
                 // Only an easier initial menu, never a generated output or teacher action during play.
-                if(d<1&&lesson.kind()==Course.Kind.PRACTICE&&rng.unit()>d){
+                if(d<1&&lesson.kind()==Course.Kind.PRACTICE&&!StationPractice.acquisition(lesson)&&rng.unit()>d){
                     if(task==8||task==9||task==10)npc.pocket.open(Pocket.Menu.INVENTORY);
                     if(task==11||task==13||task==14||task==15){npc.container=new Location(world,a.x()+8,65,a.z()+8);npc.pocket.open(task==14?Pocket.Menu.FURNACE:task==15?Pocket.Menu.CHEST:Pocket.Menu.WORKBENCH);}
                 }
@@ -105,11 +111,11 @@ public final class TrainingEnvironment {
             case 8->Math.min(4,count(npc.pocket.crafted,3))*.2+InitialCrafting.progress(npc.pocket,task)*.2;
             case 9->Math.min(4,npc.pocket.crafted.getOrDefault("STICK",0L))*.2+InitialCrafting.progress(npc.pocket,task)*.2;
             case 10->Math.min(1,npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L))*.8+InitialCrafting.progress(npc.pocket,task)*.2;
-            case 11->Math.min(1,npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L))*.8+InitialCrafting.progress(npc.pocket,task)*.2;
+            case 11->Math.min(1,npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L))*.8+stationPotential(npc);
             case 12->Math.min(1,count(npc.broken,9))*.3+Math.min(1,count(npc.collected,8))*.5;
-            case 13->Math.min(1,npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L))*.8+InitialCrafting.progress(npc.pocket,task)*.2;
-            case 14->Math.min(1,npc.pocket.extracted.getOrDefault("IRON_INGOT",0L))*.8;
-            case 15->Math.min(4,chestLogs(npc,s))*.2;
+            case 13->Math.min(1,npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L))*.8+stationPotential(npc);
+            case 14->Math.min(1,npc.pocket.extracted.getOrDefault("IRON_INGOT",0L))*.8+stationPotential(npc);
+            case 15->Math.min(4,chestLogs(npc,s))*.2+stationPotential(npc);
             case 16->placedCells(npc,s)*(.8/3);
             case 17->Math.min(1,count(npc.broken,2))*.1+Math.min(1,count(npc.collected,2))*.1+Math.min(4,count(npc.pocket.crafted,3))*.05+Math.min(1,npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L))*.4;
             default->0;
@@ -121,8 +127,26 @@ public final class TrainingEnvironment {
             Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z()),Math.hypot(next.vx(),next.vz()),
             targetMining(npc,session),ticks);
     }
+    public static boolean stationOpen(Npc npc) {
+        Location station=npc.container;
+        return StationPractice.applies(npc.goal.task())&&npc.pocket.menu()==StationPractice.station(npc.goal.task())
+            &&station!=null&&station.getWorld()==npc.anchor.getWorld()
+            &&station.getBlockX()==(int)Math.floor(npc.goal.x())&&station.getBlockY()==(int)Math.floor(npc.goal.y())
+            &&station.getBlockZ()==(int)Math.floor(npc.goal.z());
+    }
+    private static double stationPotential(Npc npc) {
+        Task task=npc.goal.task();Location station=npc.container;
+        boolean opened=npc.pocket.menu()==StationPractice.station(task)&&station!=null
+            &&station.getWorld()==npc.anchor.getWorld()&&station.getBlockX()==(int)Math.floor(npc.goal.x())
+            &&station.getBlockY()==(int)Math.floor(npc.goal.y())&&station.getBlockZ()==(int)Math.floor(npc.goal.z());
+        Location at=npc.entity.getEyeLocation();double dx=npc.goal.x()-at.getX(),dz=npc.goal.z()-at.getZ();
+        double yaw=Sensors.angle(Math.toDegrees(Math.atan2(-dx,dz))-at.getYaw());
+        double pitch=Sensors.angle(-Math.toDegrees(Math.atan2(npc.goal.y()+.5-at.getY(),Math.hypot(dx,dz)))-at.getPitch());
+        return StationPractice.potential(task,opened,yaw,pitch,Math.hypot(dx,dz),InitialCrafting.progress(npc.pocket,task.ordinal()));
+    }
     public static boolean success(Npc npc,Session s,Npc.Applied previous,Frame next){
         int task=npc.goal.task().ordinal();int ticks=(int)(next.tick()-previous.frame().tick());
+        if(StationPractice.acquisition(s.lesson))return stationOpen(npc);
         if(task<5){
             double speed=Math.hypot(next.x()-previous.frame().x(),next.z()-previous.frame().z())/ticks;
             double angular=Math.max(Math.abs(Sensors.angle(next.yaw()-previous.frame().yaw())),Math.abs(next.pitch()-previous.frame().pitch()))/ticks;
