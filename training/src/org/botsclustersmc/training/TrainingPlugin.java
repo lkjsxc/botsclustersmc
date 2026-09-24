@@ -155,6 +155,8 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("crafting_practice_successes_by_task_and_missing",Arrays.toString(crafting.successes()));
         s.put("crafting_practice_bucket_width",CraftingOutcomes.BUCKETS);
         s.put("station_acquisition_updates_completion_ema",false);
+        ActivationHealth.Measurement activation=learner.activationHealth();
+        if(activation!=null)s.putAll(activation.status());
         s.put("learner_algorithm","vtrace-guarded-adam");s.put("aim_curriculum","progressive-settling");s.put("harvest_curriculum","sustained-contact-cost");s.put("station_curriculum","interleaved-opening-and-operation");s.put("station_acquisition_trials",acquisitionTrials.sum());s.put("station_acquisition_successes",acquisitionSuccesses.sum());s.put("update_samples",learner.updateSamples);s.put("update_learning_rate",learner.learningRate);s.put("update_mean_policy_kl",learner.meanPolicyKl);s.put("update_max_policy_kl",learner.maxPolicyKl);s.put("update_backtracks",learner.guardBacktracks.sum());s.put("update_rejected_samples",learner.guardRejectedSamples.sum());s.put("batch_wait_ns",learner.batchWaitNanos.sum());s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
     }
     @Override protected void closing()throws Exception{

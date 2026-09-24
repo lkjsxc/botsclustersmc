@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import time
 from playwright.sync_api import sync_playwright
+from activation_monitor import verify_activation_health
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -91,6 +92,7 @@ def main() -> None:
         assert page.locator('#rate').inner_text() == '—'
         assert 'historical' in page.locator('#error').inner_text()
         assert not errors, errors
+        verify_activation_health(browser, (ROOT/'host/monitor.html').read_text(), args.output)
         browser.close()
     report = dict(passed=True, source='synthetic metrics; no Minecraft server',
                   checks=['bucket mapping', 'opening separated', 'assistance labels', 'desktop/mobile bounds',

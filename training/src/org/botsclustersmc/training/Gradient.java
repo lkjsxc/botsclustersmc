@@ -11,6 +11,11 @@ public final class Gradient {
         return compute(target,trajectories,null);
     }
     public static Result compute(Policy target,List<Trajectory> trajectories,TaskBalance balance) {
+        return compute(target,trajectories,balance,null);
+    }
+    /** Optional caller-owned diagnostics observe each current state exactly once. */
+    public static Result compute(Policy target,List<Trajectory> trajectories,TaskBalance balance,ActivationHealth.Accumulator health) {
+        if(health!=null)health.require(target.updates(),Schema.HIDDEN,TaskBalance.TASKS+1);
         float[] grad=new float[Policy.PARAMETERS]; Policy.Workspace w=new Policy.Workspace();
         int total=0; double loss=0,entropy=0,importance=0;
         for(Trajectory fragment:trajectories) {
@@ -26,6 +31,7 @@ public final class Gradient {
             VTrace.Returns returns=VTrace.compute(reward,discount,value,next,ratio,carry);
             for(int i=0;i<n;i++) {
                 Transition s=fragment.steps().get(i); target.forward(s.observation(),s.mask(),w);
+                if(health!=null)health.observe(TaskBalance.task(s.observation()),w.h1,w.h2);
                 Distribution.gradient(w.probabilities,s.action(),returns.advantages()[i],0.002,w.dout);
                 Exploration.addGradient(w.probabilities,s.mask(),Exploration.COEFFICIENT,w.dout);
                 double error=w.logits[Schema.LOGITS]-returns.values()[i];

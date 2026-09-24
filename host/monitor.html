@@ -16,6 +16,7 @@
 <div class="charts"><section><h2>Accepted experience / second</h2><svg id="speedchart" viewBox="0 0 520 150" role="img" aria-label="Training throughput history"></svg><div id="speedrange" class="note"></div></section><section><h2>Completion and full-difficulty probes</h2><svg id="skillchart" viewBox="0 0 520 150" role="img" aria-label="Practice and probe success history"></svg><div class="note">Blue: probes · Green: completion · 0–100% · Moving averages include initialization priors; raw completed outcomes are shown below. New completion-EMA updates exclude station-opening lessons; resumed history is retained.</div></section></div>
 <section><h2>Curriculum population</h2><div id="population"></div><p class="note">Probe EMAs and trial totals refer to the actors currently at each stage; they can change when actors enter or leave. Training trials include probes. Historical exam passes certify the frozen policy examined, not every future policy. Neither movement nor a high sample count establishes survival or cooperation.</p></section>
 <section><h2>Assisted crafting practice</h2><p id="station-opening" class="note">Opening practice: no diagnostics yet.</p><div id="crafting-practice" class="crafting-grid"></div><p class="note">Each cell is successful completions / finished attempts, grouped by missing recipe cells at reset. Zero missing means the preview is ready, but the policy must collect it. Supplied grid/cursor materials are reset assistance, not learned steps. These counts cover this process only, exclude full probes/exams and interrupted attempts, and are not certificates. The station-opening counter is separate and also includes furnace/chest opening.</p></section>
+<section id="activation-section"><h2>Hidden activation diagnostics</h2><p id="activation-identity" class="note">No learner measurement yet.</p><div id="activation-table" class="crafting-grid"></div><p class="note">Only the last learner batch is measured, once per current state, without loss weighting. Full probes may train; frozen exams never enter this batch. These are state averages, not a census of NPCs or a count of permanently inactive neurons. Mean slope is the local tanh derivative (1 − activation²), not the full network gradient. High saturation can motivate investigation; it does not diagnose a learning failure or certify a skill. No rewards, actions, weights or optimizer settings are changed by this measurement.</p></section>
 <div class="cards"><div class="card"><div class="label">CPU CORES USED</div><div id="cpu" class="value">—</div></div><div class="card"><div class="label">BURNING BODIES</div><div id="burning" class="value">—</div></div><div class="card"><div class="label">INFERENCE FAILURES / REJECTIONS</div><div id="failures" class="value">—</div></div><div class="card"><div class="label">HEAP USED</div><div id="heap" class="value">—</div></div></div>
 <section><h2>Visit the training rooms</h2><p class="note">Join the Minecraft server, then use <code>/bots watch</code> for the most advanced actor, <code>/bots watch 0</code> for a particular actor, <code>/bots tour</code> to cycle, or <code>/bots overview</code> for free flight. <code>/bots unwatch</code> releases the camera. Goal particles and a live HUD identify the current lesson.</p><details><summary>Raw diagnostics</summary><pre id="raw"></pre></details></section>
 <div id="error" class="error"></div><footer>Read-only · Refreshes every 5 seconds · Last 720 metric snapshots · No console or model downloads are exposed.</footer>
@@ -109,6 +110,46 @@ function craftingPractice(s){
   });table.append(body);panel.append(table);
  }catch{panel.textContent='Crafting bucket diagnostics are unavailable. No completion rate is inferred.';}
 }
+function activationHealth(s){
+ const panel=$('activation-table'),identity=$('activation-identity'),section=$('activation-section');panel.replaceChildren();
+ const prefix='activation_health_',value=key=>s[prefix+key],count=n=>Number.isSafeInteger(n)&&n>=0;
+ const parse=key=>Array.isArray(value(key))?value(key):JSON.parse(value(key));
+ try{
+  const samples=parse('task_samples'),first=parse('first_saturation'),second=parse('second_saturation');
+  const slopeFirst=parse('first_mean_slope'),slopeSecond=parse('second_mean_slope'),arrays=[samples,first,second,slopeFirst,slopeSecond];
+  const total=value('samples'),units=value('hidden_units'),policy=value('policy_updates'),stamp=value('epoch_millis'),threshold=value('saturation_threshold');
+  if(value('scope')!=='last-learner-batch-unweighted'||!count(total)||total<1||!count(policy)||!count(stamp)||stamp<1||stamp>8640000000000000||
+     !count(units)||units<1||units>4096||typeof value('update_accepted')!=='boolean'||!Number.isFinite(threshold)||threshold<=0||threshold>=1||
+     arrays.some(a=>!Array.isArray(a)||a.length!==19))throw new Error('Invalid activation measurement');
+  let sum=0;
+  for(let task=0;task<19;task++){
+   if(!count(samples[task]))throw new Error('Invalid sample count');sum+=samples[task];
+   for(const values of arrays.slice(1))if(samples[task]===0?values[task]!==-1:!Number.isFinite(values[task])||values[task]<0||values[task]>1)
+    throw new Error('Missing or invalid activation fraction');
+  }
+  if(!Number.isSafeInteger(sum)||sum!==total)throw new Error('Sample counts do not match');
+  const now=Date.now(),age=(now-stamp)/1000,liveAge=(now-Number(s.epoch_millis))/1000;
+  const historical=s.state!=='running'||!Number.isFinite(liveAge)||liveAge>15||liveAge< -5||age>15||age< -5;
+  section.dataset.state=historical?'historical':'measured';
+  identity.textContent=`${historical?'Historical measurement':'Last learner batch'} · Measured policy #${fmt(policy)} (before update) · ${fmt(total)} states · ${new Date(stamp).toLocaleString()} · `+
+   (value('update_accepted')?'Update accepted by guard.':'Update rejected by guard; these states were measured, not learned.');
+  const table=document.createElement('table'),caption=document.createElement('caption');caption.className='note';
+  caption.textContent=`${fmt(units)} units / layer · Saturated: |activation| > ${threshold.toFixed(2)} · Absent tasks are not measured, not 0%.`;table.append(caption);
+  const head=document.createElement('thead'),headRow=document.createElement('tr');
+  for(const text of ['Task','States','L1 saturated','L2 saturated','L1 mean slope','L2 mean slope']){
+   const cell=document.createElement('th');cell.scope='col';cell.textContent=text;headRow.append(cell);
+  }head.append(headRow);table.append(head);
+  const body=document.createElement('tbody');
+  for(let task=0;task<19;task++)if(samples[task]>0){
+   const row=document.createElement('tr');row.dataset.task=task;
+   const label=document.createElement('th');label.scope='row';label.textContent=task===18?'Unclassified observation':`${task} · ${labels[task]}`;row.append(label);
+   const values=[fmt(samples[task]),pct(first[task]),pct(second[task]),slopeFirst[task].toFixed(4),slopeSecond[task].toFixed(4)];
+   values.forEach((text,index)=>{const cell=document.createElement('td');cell.dataset.metric=index;cell.textContent=text;row.append(cell);});body.append(row);
+  }table.append(body);panel.append(table);
+ }catch{
+  section.dataset.state='unavailable';identity.textContent='Activation diagnostics unavailable. No network-health or skill conclusion is inferred.';
+ }
+}
 function render(s,history){
  const age=Math.max(0,(Date.now()-Number(s.epoch_millis))/1000),stale=!Number.isFinite(age)||age>15;
  $('state').textContent=stale?'STALE':String(s.state||'unknown').toUpperCase();$('state').classList.toggle('bad',stale||s.state!=='running');
@@ -117,7 +158,7 @@ function render(s,history){
  $('probe').textContent=pct(s.probe_success_ema);$('practice').textContent='Completion EMA '+pct(s.practice_success_ema);
  $('exams').textContent=fmt(s.course_passed_exams)+' / '+fmt(s.course_exams);$('completed').textContent=fmt(s.course_completed_agents)+' actors have historical full-course certificates';
  $('cpu').textContent=Number(s.process_cpu_cores||0).toFixed(2)+' / '+fmt(s.available_processors);$('burning').textContent=fmt(s.burning_agents)+' / '+fmt(s.body_samples);
- $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);
+ $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);activationHealth(s);
  const rows=Array.isArray(history)?history.filter(r=>Number.isFinite(r.epoch_millis)&&r.schema===s.schema).slice(-720):[];
  const top=chart('speedchart',rows,['learner_samples_per_second']);chart('skillchart',rows,['probe_success_ema','practice_success_ema'],1);
  $('speedrange').textContent=`0–${fmt(top)} samples/s · ${rows.length} snapshots`+(rows.length?' · '+new Date(rows[0].epoch_millis).toLocaleTimeString()+'–'+new Date(rows.at(-1).epoch_millis).toLocaleTimeString():'');
@@ -128,7 +169,7 @@ async function update(){
   const responses=await Promise.all(['/api/status','/api/history'].map(path=>fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000)})));
   if(responses.some(r=>!r.ok))throw new Error('Metrics service is not ready.');
   const [status,history]=await Promise.all(responses.map(r=>r.json()));render(status,history);await renderEvaluation(status);
- }catch(error){$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
+ }catch(error){activationHealth({});$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
  finally{setTimeout(update,5000);}
 }
 update();
