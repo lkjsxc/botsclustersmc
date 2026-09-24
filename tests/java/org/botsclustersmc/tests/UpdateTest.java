@@ -9,7 +9,8 @@ public final class UpdateTest {
     private static int checks;
     private static void check(boolean ok){checks++;if(!ok)throw new AssertionError("check "+checks);}
     private static void near(double a,double b,double tolerance){check(Math.abs(a-b)<=tolerance);}
-    public static void main(String[] args) {
+    public static void main(String[] args)throws Exception {
+        ActivationHealthTest.main(args);ActivationGradientTest.main(args);
         RandomSource random=new RandomSource(63);float[] logits=new float[Schema.OUTPUTS];
         for(int i=0;i<logits.length;i++)logits[i]=random.symmetric(3);
         for(boolean[] mask:new boolean[][]{Schema.unrestrictedMask(),Task.FORWARD_STOP.mask(0,false)}) {

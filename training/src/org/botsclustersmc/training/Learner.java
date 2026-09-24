@@ -25,6 +25,9 @@ public final class Learner implements AutoCloseable {
     private final long[] learnedByTask=new long[TaskBalance.TASKS+1];
     private volatile long[] taskSampleSnapshot=learnedByTask.clone();
     private volatile TaskBalance lastBalance;
+    private record MeasuredGradient(Gradient.Result gradient,ActivationHealth.Snapshot health) {}
+    private volatile ActivationHealth.Measurement activationHealth;
+    public ActivationHealth.Measurement activationHealth(){return activationHealth;}
     public long[] taskSamples(){return taskSampleSnapshot.clone();}
     public TaskBalance updateBalance(){return lastBalance;}
     public volatile int updateSamples;
@@ -76,10 +79,17 @@ public final class Learner implements AutoCloseable {
                     int workers=Math.min(parallelism,batch.size());List<List<Trajectory>> groups=new ArrayList<>();
                     for(int i=0;i<workers;i++)groups.add(new ArrayList<>());
                     for(int i=0;i<batch.size();i++)groups.get(i%workers).add(batch.get(i));
-                    List<Future<Gradient.Result>> futures=new ArrayList<>();
-                    for(List<Trajectory> group:groups)futures.add(kernels.submit(()->Gradient.compute(target,group,balance)));
+                    List<Future<MeasuredGradient>> futures=new ArrayList<>();
+                    for(List<Trajectory> group:groups)futures.add(kernels.submit(()->{
+                        var health=new ActivationHealth.Accumulator(target.updates(),Schema.HIDDEN,TaskBalance.TASKS+1);
+                        Gradient.Result gradient=Gradient.compute(target,group,balance,health);
+                        return new MeasuredGradient(gradient,health.snapshot());
+                    }));
+                    var health=new ActivationHealth.Accumulator(target.updates(),Schema.HIDDEN,TaskBalance.TASKS+1);
                     float[] gradient=new float[Policy.PARAMETERS];int actual=0;double loss=0,ent=0,imp=0;
-                    for(Future<Gradient.Result> f:futures){Gradient.Result g=f.get();actual+=g.samples();loss+=g.valueLoss();ent+=g.entropy();imp+=g.importance();for(int i=0;i<gradient.length;i++)gradient[i]+=g.weights()[i];}
+                    for(Future<MeasuredGradient> f:futures){MeasuredGradient measured=f.get();health.merge(measured.health());Gradient.Result g=measured.gradient();actual+=g.samples();loss+=g.valueLoss();ent+=g.entropy();imp+=g.importance();for(int i=0;i<gradient.length;i++)gradient[i]+=g.weights()[i];}
+                    ActivationHealth.Snapshot measured=health.snapshot();
+                    if(measured.totalSamples()!=actual)throw new IllegalStateException("activation measurement/sample accounting differs");
                     UpdateGuard.Result checked=UpdateGuard.update(target,optimizer,gradient,actual,batch);
                     guardBacktracks.add(checked.backtracks());updateSamples=actual;
                     if(checked.update()!=null){
@@ -92,6 +102,7 @@ public final class Learner implements AutoCloseable {
                         publish.accept(policy);updates.increment();
                     }else{guardRejectedSamples.add(actual);learningRate=0;}
                     valueLoss=loss/actual;entropy=ent/actual;importance=imp/actual;
+                    activationHealth=new ActivationHealth.Measurement(measured,System.currentTimeMillis(),checked.update()!=null);
                 }
                 computeNanos.add(System.nanoTime()-started);updating=false;
             }
