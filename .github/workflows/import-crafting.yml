@@ -1,0 +1,32 @@
+name: Import tested crafting candidate
+on:
+  push:
+    branches: [work/20260924-crafting]
+    paths: ['.crafting.patch.gz', '.github/workflows/import-crafting.yml']
+permissions:
+  contents: write
+jobs:
+  import:
+    if: github.repository == 'lkjsxc/botsclustersmc' && github.ref == 'refs/heads/work/20260924-crafting'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Apply source patch and publish only the matching candidate tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 581d51c0fa84918d0b2fdae8f28f4121af5d414e
+          gzip -dc .crafting.patch.gz > "$RUNNER_TEMP/crafting.patch"
+          git apply --check "$RUNNER_TEMP/crafting.patch"
+          git apply "$RUNNER_TEMP/crafting.patch"
+          rm -- .crafting.patch.gz .github/workflows/import-crafting.yml
+          git add -A
+          git diff --cached --check
+          test "$(git write-tree)" = 7e308cac755b1057f27fe2af98c7b28acd178c1b
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(training): restore reachable crafting practice and separate outcomes'
+          git push origin HEAD:refs/heads/work/20260924-crafting
