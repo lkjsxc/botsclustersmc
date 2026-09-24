@@ -188,3 +188,11 @@ multiplayer cooperation are different claims. The diagnostic driver is a separat
 plugin, uses explicitly scripted primitive inputs, and cannot generate normal
 training checkpoints. Its18 passes show that the implemented tasks are reachable;
 they are not demonstrations, training data or learned skill certificates.
+
+## Workstation progress and observation
+
+[Workstation learning](STATIONS.md) defines menu-correct grid progress, practice-only
+raw-cell preparation and a bounded station potential. Full-difficulty probes and
+frozen exams keep the same initial conditions and item-success predicates. The
+operator can inspect actual menu cells, cursor and output separately from policy
+inputs. An open personal inventory is not counted as an open target workstation.

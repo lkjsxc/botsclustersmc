@@ -68,6 +68,7 @@ public final class Course {
     }
     public synchronized void abandon(long actor){Agent a=agent(actor);if(a.current!=null){a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
     public synchronized long examVersion(long actor){return agent(actor).examVersion;}
+    public synchronized Lesson currentLesson(long actor){return agent(actor).current;}
     public record Progress(int stage,int practiceEpisodes,int probes,double practiceSuccess,double probeSuccess,boolean exam,long examPolicy,int examCases,boolean completed) {}
     public synchronized Progress progress(long actor){
         Agent a=agent(actor);

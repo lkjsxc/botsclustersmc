@@ -1,5 +1,5 @@
 name: BotsClustersMC
-version: '0.7.2'
+version: '0.7.3'
 main: org.botsclustersmc.plugin.InferencePlugin
 api-version: '1.21'
 folia-supported: true
