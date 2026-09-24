@@ -4,6 +4,7 @@
 <style>
 :root{font-family:system-ui,sans-serif;color:#e7edf6;background:#111722;color-scheme:dark}body{max-width:1180px;margin:0 auto;padding:32px 24px}h1{font-size:30px;letter-spacing:-.7px;margin:4px 0 8px}h2{font-size:16px;font-weight:550;margin:0 0 18px}.muted{color:#9baac0}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:28px}.badge{padding:8px 14px;border-radius:30px;background:#203b31;color:#a9edc8}.bad{background:#4c252d;color:#ffc5ca}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card,section{background:#192232;border:1px solid #2c394e;border-radius:14px;padding:20px}.value{font-size:30px;letter-spacing:-.6px;margin:9px 0}.label{font-size:13px;color:#aabbce}.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}svg{width:100%;height:150px;overflow:visible}.line{fill:none;stroke:#88beff;stroke-width:2;vector-effect:non-scaling-stroke}.secondary{stroke:#b7e5ab}.axis{stroke:#3b4860;stroke-width:1}section{margin:18px 0}.row{display:grid;grid-template-columns:190px 1fr 65px;gap:12px;align-items:center;margin:9px 0;font-size:13px}.track{background:#101823;border-radius:4px;height:9px}.fill{height:9px;background:#88beff;border-radius:4px}.note{font-size:13px;line-height:1.6;color:#aabbce}code{color:#cee2ff}pre{white-space:pre-wrap;max-height:380px;overflow:auto;font-size:12px}.charts section{margin:0}.error{margin:16px 0;color:#ffc5ca}footer{margin-top:25px;font-size:12px;color:#91a0b8}@media(max-width:750px){.cards{grid-template-columns:1fr 1fr}.charts{grid-template-columns:1fr}header{display:block}.badge{display:inline-block;margin-top:15px}.row{grid-template-columns:145px 1fr 45px}body{padding:22px 16px}.value{font-size:25px}}
 .stage-detail{display:block;color:#9baac0;font-size:11px;line-height:1.5;margin-top:3px}.row{margin:12px 0;align-items:start}.row .track{margin-top:5px}
+.crafting-grid{overflow-x:auto}.crafting-grid table{width:100%;min-width:540px;border-collapse:collapse;font-size:12px}.crafting-grid th,.crafting-grid td{text-align:right;padding:9px 8px;border-bottom:1px solid #2c394e;white-space:nowrap}.crafting-grid th:first-child{text-align:left}
 </style>
 <header><div><div class="label">BOTSCLUSTERSMC / LIVE OBSERVATORY</div><h1>Learning, not just moving.</h1><div class="muted" id="updated">Connecting to the training server…</div></div><span id="state" class="badge">Connecting</span></header>
 <div class="cards">
@@ -12,8 +13,9 @@
 <div class="card"><div class="label">FULL-DIFFICULTY PROBE EMA</div><div id="probe" class="value">—</div><div id="practice" class="note">—</div></div>
 <div class="card"><div class="label">FROZEN EXAMS PASSED / STARTED</div><div id="exams" class="value">—</div><div id="completed" class="note">—</div></div>
 </div>
-<div class="charts"><section><h2>Accepted experience / second</h2><svg id="speedchart" viewBox="0 0 520 150" role="img" aria-label="Training throughput history"></svg><div id="speedrange" class="note"></div></section><section><h2>Training and full-difficulty probes</h2><svg id="skillchart" viewBox="0 0 520 150" role="img" aria-label="Practice and probe success history"></svg><div class="note">Blue: probes · Green: training · 0–100% · Moving averages include initialization priors; raw completed outcomes are shown below.</div></section></div>
+<div class="charts"><section><h2>Accepted experience / second</h2><svg id="speedchart" viewBox="0 0 520 150" role="img" aria-label="Training throughput history"></svg><div id="speedrange" class="note"></div></section><section><h2>Completion and full-difficulty probes</h2><svg id="skillchart" viewBox="0 0 520 150" role="img" aria-label="Practice and probe success history"></svg><div class="note">Blue: probes · Green: completion · 0–100% · Moving averages include initialization priors; raw completed outcomes are shown below. New completion-EMA updates exclude station-opening lessons; resumed history is retained.</div></section></div>
 <section><h2>Curriculum population</h2><div id="population"></div><p class="note">Probe EMAs and trial totals refer to the actors currently at each stage; they can change when actors enter or leave. Training trials include probes. Historical exam passes certify the frozen policy examined, not every future policy. Neither movement nor a high sample count establishes survival or cooperation.</p></section>
+<section><h2>Assisted crafting practice</h2><p id="station-opening" class="note">Opening practice: no diagnostics yet.</p><div id="crafting-practice" class="crafting-grid"></div><p class="note">Each cell is successful completions / finished attempts, grouped by missing recipe cells at reset. Zero missing means the preview is ready, but the policy must collect it. Supplied grid/cursor materials are reset assistance, not learned steps. These counts cover this process only, exclude full probes/exams and interrupted attempts, and are not certificates. The station-opening counter is separate and also includes furnace/chest opening.</p></section>
 <div class="cards"><div class="card"><div class="label">CPU CORES USED</div><div id="cpu" class="value">—</div></div><div class="card"><div class="label">BURNING BODIES</div><div id="burning" class="value">—</div></div><div class="card"><div class="label">INFERENCE FAILURES / REJECTIONS</div><div id="failures" class="value">—</div></div><div class="card"><div class="label">HEAP USED</div><div id="heap" class="value">—</div></div></div>
 <section><h2>Visit the training rooms</h2><p class="note">Join the Minecraft server, then use <code>/bots watch</code> for the most advanced actor, <code>/bots watch 0</code> for a particular actor, <code>/bots tour</code> to cycle, or <code>/bots overview</code> for free flight. <code>/bots unwatch</code> releases the camera. Goal particles and a live HUD identify the current lesson.</p><details><summary>Raw diagnostics</summary><pre id="raw"></pre></details></section>
 <div id="error" class="error"></div><footer>Read-only · Refreshes every 5 seconds · Last 720 metric snapshots · No console or model downloads are exposed.</footer>
@@ -82,15 +84,40 @@ function population(data){
   const count=document.createElement('span');count.textContent=fmt(counts[index]);row.append(name,track,count);root.append(row);
  });
 }
+function craftingPractice(s){
+ const panel=$('crafting-practice');panel.replaceChildren();
+ const count=n=>Number.isSafeInteger(n)&&n>=0;
+ const trials=s.station_acquisition_trials,successes=s.station_acquisition_successes;
+ $('station-opening').textContent=count(trials)&&count(successes)&&successes<=trials?
+  `Opening practice: ${fmt(successes)} / ${fmt(trials)} completed attempts. Separate from item completion.`:'Opening practice: diagnostics unavailable.';
+ const parse=key=>Array.isArray(s[key])?s[key]:JSON.parse(s[key]);
+ try{
+  const attempts=parse('crafting_practice_trials_by_task_and_missing'),wins=parse('crafting_practice_successes_by_task_and_missing');
+  if(s.crafting_practice_bucket_width!==6||attempts.length!==108||wins.length!==108||!attempts.every(count)||!wins.every((n,i)=>count(n)&&n<=attempts[i]))throw new Error('Invalid crafting counts');
+  const tasks=[8,9,10,11,13],cells=[1,2,4,5,5];
+  for(let task=0;task<18;task++)for(let missing=0;missing<6;missing++){
+   const index=tasks.indexOf(task);if((index<0||missing>cells[index])&&attempts[task*6+missing]!==0)throw new Error('Invalid crafting bucket');
+  }
+  const table=document.createElement('table'),caption=document.createElement('caption');caption.className='note';caption.textContent='Starting missing cells · successful / finished';table.append(caption);
+  const head=document.createElement('thead'),row=document.createElement('tr');
+  for(const text of ['Task','0','1','2','3','4','5']){const cell=document.createElement('th');cell.scope='col';cell.textContent=text;row.append(cell);}head.append(row);table.append(head);
+  const body=document.createElement('tbody');
+  tasks.forEach((task,index)=>{const row=document.createElement('tr'),label=document.createElement('th');label.scope='row';label.textContent=labels[task];row.append(label);
+   for(let missing=0;missing<6;missing++){const cell=document.createElement('td'),i=task*6+missing;cell.dataset.task=task;cell.dataset.missing=missing;
+    cell.textContent=missing>cells[index]?'—':`${fmt(wins[i])} / ${fmt(attempts[i])}`;row.append(cell);}
+   body.append(row);
+  });table.append(body);panel.append(table);
+ }catch{panel.textContent='Crafting bucket diagnostics are unavailable. No completion rate is inferred.';}
+}
 function render(s,history){
  const age=Math.max(0,(Date.now()-Number(s.epoch_millis))/1000),stale=!Number.isFinite(age)||age>15;
  $('state').textContent=stale?'STALE':String(s.state||'unknown').toUpperCase();$('state').classList.toggle('bad',stale||s.state!=='running');
  $('updated').textContent=`Snapshot: ${new Date(s.epoch_millis).toLocaleString()} · ${age.toFixed(0)} seconds ago · ${s.schema}`;
  $('agents').textContent=fmt(s.active_agents);$('rate').textContent=stale?'—':fmt(s.learner_samples_per_second);$('samples').textContent=fmt(s.trained_samples)+' total accepted samples';
- $('probe').textContent=pct(s.probe_success_ema);$('practice').textContent='Training EMA '+pct(s.practice_success_ema);
+ $('probe').textContent=pct(s.probe_success_ema);$('practice').textContent='Completion EMA '+pct(s.practice_success_ema);
  $('exams').textContent=fmt(s.course_passed_exams)+' / '+fmt(s.course_exams);$('completed').textContent=fmt(s.course_completed_agents)+' actors have historical full-course certificates';
  $('cpu').textContent=Number(s.process_cpu_cores||0).toFixed(2)+' / '+fmt(s.available_processors);$('burning').textContent=fmt(s.burning_agents)+' / '+fmt(s.body_samples);
- $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);
+ $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);
  const rows=Array.isArray(history)?history.filter(r=>Number.isFinite(r.epoch_millis)&&r.schema===s.schema).slice(-720):[];
  const top=chart('speedchart',rows,['learner_samples_per_second']);chart('skillchart',rows,['probe_success_ema','practice_success_ema'],1);
  $('speedrange').textContent=`0–${fmt(top)} samples/s · ${rows.length} snapshots`+(rows.length?' · '+new Date(rows[0].epoch_millis).toLocaleTimeString()+'–'+new Date(rows.at(-1).epoch_millis).toLocaleTimeString():'');

@@ -14,6 +14,7 @@ public final class TrainingEnvironment {
     public static final class Session {
         public final ArenaLayout arena;public final List<Transition> fragment=new ArrayList<>(32);
         public Course.Lesson lesson;public Policy examPolicy;public long sequence;public int hold;public double potential;
+        public int craftingMissing=-1; // Owner-thread reset diagnostics, never a policy input.
         public Session(ArenaLayout arena){this.arena=arena;}
     }
     public static void build(World world,ArenaLayout a){
@@ -66,12 +67,16 @@ public final class TrainingEnvironment {
             Location spawn=new Location(world,sx,65,sz,yaw,pitch);
             npc.reset(goal,spawn,()->{
                 supplies(npc,task);
-                // Only an easier initial menu, never a generated output or teacher action during play.
-                if(d<1&&lesson.kind()==Course.Kind.PRACTICE&&!StationPractice.acquisition(lesson)&&rng.unit()>d){
-                    if(task==8||task==9||task==10)npc.pocket.open(Pocket.Menu.INVENTORY);
-                    if(task==11||task==13||task==14||task==15){npc.container=new Location(world,a.x()+8,65,a.z()+8);npc.pocket.open(task==14?Pocket.Menu.FURNACE:task==15?Pocket.Menu.CHEST:Pocket.Menu.WORKBENCH);}
+                // One testable reset decision: opening and operation practice coexist at every difficulty.
+                RandomSource pocketRng=StationPractice.resetRandom(lesson);
+                Pocket.Menu initial=StationPractice.initialMenu(lesson,pocketRng);
+                if(initial!=Pocket.Menu.CLOSED) {
+                    if(initial!=Pocket.Menu.INVENTORY)npc.container=new Location(world,a.x()+8,65,a.z()+8);
+                    npc.pocket.open(initial);
                 }
-                if(lesson.kind()==Course.Kind.PRACTICE&&(npc.pocket.menu()==Pocket.Menu.INVENTORY||npc.pocket.menu()==Pocket.Menu.WORKBENCH))InitialCrafting.prepare(npc.pocket,task,d,rng);
+                session.craftingMissing=-1;
+                if(lesson.kind()==Course.Kind.PRACTICE&&(initial==Pocket.Menu.INVENTORY||initial==Pocket.Menu.WORKBENCH))
+                    session.craftingMissing=InitialCrafting.prepare(npc.pocket,task,d,pocketRng);
                 session.hold=0;session.potential=potential(npc,session);
             });
         }catch(Throwable e){plugin.fail(e);}});

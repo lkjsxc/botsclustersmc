@@ -28,24 +28,42 @@ public final class InitialCrafting {
         return task==13?item.equals("COBBLESTONE"):
             org.botsclustersmc.core.Stack.kind(item)==(task==8?2:3);
     }
-    public static void prepare(Pocket pocket,int task,double difficulty,RandomSource rng) {
+    public static int ingredientCells(int task) {return layout(task).length;}
+    /** Returns actual unfilled recipe cells, or -1 when no assisted reset was applied. */
+    public static int prepare(Pocket pocket,int task,double difficulty,RandomSource rng) {
         if(!Double.isFinite(difficulty)||difficulty<0||difficulty>1)throw new IllegalArgumentException("difficulty");
         int[][] cells=layout(task);int width=width(pocket);
-        if(difficulty>=1||!fits(cells,width))return;
-        int missing=(int)Math.ceil(difficulty*cells.length);
+        if(difficulty>=1||!fits(cells,width))return -1;
+        boolean[] furnish=new boolean[cells.length];
+        if(task==11||task==13) {
+            int frontier=(int)Math.ceil(difficulty*cells.length);
+            // Half frontier, half earlier start states, INCLUDING output collection.
+            int missing=frontier==0?0:rng.unit()<.5?frontier:rng.nextInt(frontier);
+            int[] order=new int[cells.length];for(int i=0;i<order.length;i++)order[i]=i;
+            for(int i=order.length-1;i>0;i--){int j=rng.nextInt(i+1),tmp=order[i];order[i]=order[j];order[j]=tmp;}
+            for(int i=missing;i<order.length;i++)furnish[order[i]]=true;
+        } else for(int i=0;i<cells.length;i++)furnish[i]=rng.unit()>difficulty;
         for(int i=0;i<cells.length;i++) {
             int[] cell=cells[i];
-            boolean furnish=task==11||task==13?i>=missing:rng.unit()>difficulty;
-            if(furnish&&!pocket.storage(cell[0]).empty()) {
+            if(furnish[i]&&!pocket.storage(cell[0]).empty()) {
                 pocket.click(1,cell[0],Pocket.NONE);
                 pocket.click(2,slot(width,cell[1],cell[2]),Pocket.NONE);
                 pocket.click(1,cell[0],Pocket.NONE);
             }
         }
-        // No output item is supplied; all cursor/grid units come from raw reset stock.
-        if(rng.unit()>difficulty)for(int source=0;source<2;source++)if(!pocket.storage(source).empty()) {
-            pocket.click(1,source,Pocket.NONE);break;
+        // No output is supplied. A preview is not an item until the policy collects it.
+        if(rng.unit()>difficulty) {
+            int sources=0;for(int source=0;source<2;source++)if(!pocket.storage(source).empty())sources++;
+            if(sources>0) {
+                int selected=rng.nextInt(sources);
+                for(int source=0;source<2;source++)if(!pocket.storage(source).empty()&&selected--==0) {
+                    pocket.click(1,source,Pocket.NONE);break;
+                }
+            }
         }
+        int missing=0;
+        for(int[] cell:cells)if(!matches(pocket.get(slot(width,cell[1],cell[2]),Pocket.NONE).item(),task,cell[0]))missing++;
+        return missing;
     }
     public static double progress(Pocket pocket,int task) {
         int[][] cells=layout(task);int width=width(pocket);

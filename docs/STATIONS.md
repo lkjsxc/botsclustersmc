@@ -38,12 +38,21 @@ with zero terminal potential. The discounted sum telescopes to a fixed initial
 term, so opening/closing or rearranging ingredients cannot increase total episode
 return by cycling. This is shaping assistance, not a change to success criteria.
 
-For pickaxes, easier practice leaves a prefix of `ceil(5 * difficulty)` ingredient
-cells empty and prepositions the remaining raw suffix. This creates a progression
-from a small number of missing cells to the unchanged full empty-grid problem.
-The policy still chooses every in-episode click; no action sequence is replayed.
-Full probes/exams never use this preparation. Other small recipes retain random
-raw-subset preparation, now using their actual active-menu grid coordinates.
+For pickaxes, operation practice samples a starting number of missing recipe cells.
+Let `frontier = ceil(5 * difficulty)`. Half the starts use that frontier and half
+sample uniformly from earlier counts `0..frontier-1` (a zero frontier stays zero).
+The subset of missing cells is shuffled: any ingredient position can be practiced,
+not only a fixed prefix. Zero missing supplies raw ingredients in the grid, **not
+an owned product**. The policy must still choose a result-slot click to obtain it.
+Thus output collection and one-cell completion remain reachable even after the
+frontier advances. This is a reverse-start-state curriculum, not a teacher policy.
+
+The policy chooses every in-episode click; no action sequence is replayed. Full
+probes/exams never use this preparation. Other small recipes retain random
+raw-subset preparation using their actual active-menu grid coordinates. A separate,
+lesson-seeded pocket RNG makes reset diagnostics independent of pose RNG usage.
+Full probes/exams consume no pocket-assistance RNG and retain their world/pose
+stream, closed menu and original raw inventory.
 
 Experiments with an extra cumulative unfinished-work penalty were not adopted:
 the stronger penalty degraded previously learned tasks in frozen-policy checks.
@@ -55,20 +64,49 @@ correction, exam gates and terminal item requirements are unchanged. No pathfind
 auto-aim, recipe macro, action demonstration or hidden fallback is added. Existing
 valid checkpoints retain their actual weights, Adam state and course history.
 
-## Acquisition before assembly
+## Interleaved opening and operation
 
-Below practice difficulty 0.55, workstation lessons explicitly train only opening
-the actual target station. These lessons always reset with a closed menu and
-unprepared raw stock; the policy must perform the opening itself. The spectator
-HUD labels them `practice: open target station`, and separate trial/success
-counters prevent confusing them with finished recipes. Harder practice requires
-the complete item outcome and uses the staged raw-cell preparation above.
+At every assisted practice difficulty below 1, a lesson-seeded draw assigns about
+one quarter of workstation lessons to opening and three quarters to operation.
+Opening lessons always start closed with unprepared raw stock; the policy must
+open the actual target station. Operation lessons start with that station open
+and require the original complete item outcome. Pickaxe operation starts also
+use the raw-cell preparation above. Furnace and chest operation practice use the
+same phase split, without crafting-grid preparation. Practice at difficulty 1,
+full probes and frozen exams all start closed and require the full outcome.
 
-This deliberately changes practice completion, not certification: full probes and
-frozen exams ALWAYS require the original crafted item, smelted ingot or chest
-contents, and never complete merely because a station opened. Existing readiness
-and promotion thresholds are unchanged. Practice averages now include short
-acquisition lessons and must not be reported as full recipe success rates.
+The previous composition was defective: below 0.55 every station practice ended
+at opening; operation only became eligible at difficulties requiring at least
+three missing pickaxe cells. Its intended collection-only and one-/two-cell
+practice was therefore absent. Moreover, opening successes raised the same EMA
+used for assembly difficulty. More training alone could not fill that reset gap.
+
+Opening outcomes now remain in actual episode/success counters but do **not**
+update the completion EMA used to select difficulty. Completed operation practice,
+ordinary nonstation practice and full probes still update it. Readiness, probe
+cadence, frozen exam thresholds and promotion requirements are unchanged. Opening
+alone cannot supply the full-probe results required to begin an exam.
+
+Existing valid checkpoints retain weights, Adam, RNG, course history and existing
+EMA values. On resumption, new EMA updates exclude opening; old EMA contributions
+are not retrospectively reclassified or silently reset. The new process-local
+crafting buckets start at zero. A schema-compatible resume is not evidence that
+the modified curriculum already improves a learned policy.
+
+## See the separate outcomes
+
+The HUD labels opening as `practice: open target station` and operation as
+`practice: use open station`. The observatory reports finished assisted crafting
+attempts and successes by task and the number of recipe cells missing **at
+reset**, alongside a separate station-opening counter. Zero missing means output
+collection is required, not that the task succeeded before an action. A five-cell
+practice is still assisted by an initially open workbench; it is not a full probe.
+
+These exact counters cover the current process only. They exclude probes, exams
+and interrupted attempts. They include unsuccessful completed/time-limited
+practice, not just wins. Empty buckets show `0 / 0`, never an invented success
+percentage. Missing, malformed or inconsistent diagnostics display unavailable.
+Historical trial counts, moving averages and frozen-policy results remain separate.
 
 ## Inspect what the policy is doing
 
