@@ -1,11 +1,27 @@
 """Synthetic read-only activation telemetry checks; no Minecraft server or policy is used."""
 import json
-import time
 from pathlib import Path
 
 
+# The same synthetic instant in Python and the page, independent of process startup.
+FIXTURE_EPOCH_MS = 1_700_000_000_000
+
+
+def install_fixture(page, status: dict) -> None:
+    """Use only in disposable synthetic pages, never with a live server."""
+    page.context.set_offline(True)
+    page.evaluate("""s => {
+        Date.now = () => s.epoch_millis;
+        // Initial update() still runs; later refreshes cannot overwrite an assertion.
+        window.setTimeout = () => 0;
+        window.fetch = async path => ({ok: true, json: async () =>
+            path === '/api/status' ? structuredClone(s) :
+            path === '/api/history' ? [structuredClone(s)] : {result: null, monitor: null}});
+    }""", status)
+
+
 def verify_activation_health(browser, html: str, output: Path) -> None:
-    now = int(time.time() * 1000)
+    now = FIXTURE_EPOCH_MS
     samples = [0] * 19
     samples[0], samples[10], samples[18] = 32, 128, 1
     first, second, slope1, slope2 = ([-1] * 19 for _ in range(4))
@@ -21,13 +37,7 @@ def verify_activation_health(browser, html: str, output: Path) -> None:
     page = browser.new_page(viewport={'width': 1280, 'height': 1000}, locale='en-US')
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    page.context.set_offline(True)
-    page.evaluate("""s => {
-        window.setTimeout = () => 0; // This isolated fixture must not race a scheduled refresh.
-        window.fetch = async path => ({ok: true, json: async () =>
-            path === '/api/status' ? structuredClone(s) :
-            path === '/api/history' ? [structuredClone(s)] : {result: null, monitor: null}});
-    }""", status)
+    install_fixture(page, status)
     page.set_content(html, wait_until='load')
     page.wait_for_function("document.getElementById('activation-section').dataset.state === 'measured'")
     assert page.locator('#activation-table tbody tr').count() == 3
@@ -50,6 +60,12 @@ def verify_activation_health(browser, html: str, output: Path) -> None:
         page.evaluate('s => activationHealth(s)', status | override)
         assert page.locator('#activation-section').get_attribute('data-state') == 'historical'
         assert 'Historical measurement' in page.locator('#activation-identity').inner_text()
+    # Freeze the clock rather than widening the production freshness threshold.
+    for field in ['epoch_millis', 'activation_health_epoch_millis']:
+        for age, expected in [(0, 'measured'), (15000, 'measured'), (15001, 'historical'),
+                              (-5000, 'measured'), (-5001, 'historical')]:
+            page.evaluate('s => activationHealth(s)', status | {field: now - age})
+            assert page.locator('#activation-section').get_attribute('data-state') == expected, (field, age)
     page.evaluate('s => activationHealth(s)', status | dict(activation_health_update_accepted=False))
     assert 'measured, not learned' in page.locator('#activation-identity').inner_text()
     invalid = [dict(activation_health_samples=162), dict(activation_health_samples=0),
@@ -81,6 +97,6 @@ def verify_activation_health(browser, html: str, output: Path) -> None:
         passed=True, source='synthetic telemetry; no Minecraft server or weights',
         invalid_cases=len(invalid), browser_errors=errors,
         checks=['render wiring', 'raw task counts', 'pre-update identity', 'unclassified bucket',
-                'absence is not zero', 'native/string arrays', 'measurement/status freshness',
+                'absence is not zero', 'native/string arrays', 'measurement/status freshness', 'exact freshness/future-skew boundaries',
                 'rejected is not learned', 'desktop/mobile bounds', 'invalid data fails closed']), indent=2) + '\n')
     print(f'PASS synthetic activation dashboard; {len(invalid)} invalid cases, identity, stale/absent/rejected state and desktop/mobile')
