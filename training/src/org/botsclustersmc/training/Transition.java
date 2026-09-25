@@ -8,7 +8,7 @@ public record Transition(float[] observation, boolean[] mask, int[] action,
         float[] nextObservation, boolean[] nextMask, boolean terminal) {
     public Transition {
         Schema.checkObservation(observation); Schema.checkObservation(nextObservation); Schema.checkAction(action);
-        if(mask.length!=Schema.LOGITS || nextMask.length!=Schema.LOGITS || behaviorVersion<0
+        if(mask.length!=Schema.DISTRIBUTION || nextMask.length!=Schema.DISTRIBUTION || behaviorVersion<0
             || !Double.isFinite(behaviorLogProbability) || behaviorLogProbability>1e-6
             || !Float.isFinite(reward) || ticks<1 || ticks>12000) throw new IllegalArgumentException("invalid transition");
     }

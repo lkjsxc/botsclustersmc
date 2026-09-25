@@ -1,31 +1,51 @@
 package org.botsclustersmc.training;
 
-import org.botsclustersmc.core.Schema;
+import org.botsclustersmc.core.*;
 
-/** A weak, task-wide uniform prior over legal controls; never a preferred gameplay action. */
+/** Uniform legal parent controls, then uniform legal slots conditional on each click type. */
 public final class Exploration {
     private Exploration() {}
     public static final double COEFFICIENT=.005;
-    public static void addGradient(double[] probabilities,boolean[] mask,double coefficient,float[] gradient) {
-        int offset=0;
-        for(int size:Schema.HEADS) {
-            int legal=0;for(int j=0;j<size;j++)if(mask[offset+j])legal++;
-            if(legal==0)throw new IllegalArgumentException("Empty legal control set");
-            if(legal>1)for(int j=0;j<size;j++)if(mask[offset+j])
-                gradient[offset+j]+=(float)(coefficient*(probabilities[offset+j]-1.0/legal));
-            offset+=size;
-        }
+    private static int legal(boolean[] mask,int off,int size) {
+        int n=0;for(int j=0;j<size;j++)if(mask[off+j])n++;
+        if(n==0)throw new IllegalArgumentException("Empty legal control set");return n;
     }
-    /** Stable cross entropy H(uniform legal prior, policy), differentiated head by head. */
-    public static double loss(float[] logits,boolean[] mask,double coefficient) {
-        double loss=0;int offset=0;
-        for(int size:Schema.HEADS) {
-            int n=0;double max=Double.NEGATIVE_INFINITY,sumLogits=0;
-            for(int j=0;j<size;j++)if(mask[offset+j]){n++;max=Math.max(max,logits[offset+j]);sumLogits+=logits[offset+j];}
-            if(n==0)throw new IllegalArgumentException("Empty legal control set");double sum=0;
-            for(int j=0;j<size;j++)if(mask[offset+j])sum+=Math.exp(logits[offset+j]-max);
-            if(n>1)loss+=coefficient*(max+Math.log(sum)-sumLogits/n);offset+=size;
+    public static void addGradient(double[] p,boolean[] mask,double coefficient,float[] gradient) {
+        if(p.length!=Schema.DISTRIBUTION||mask.length!=Schema.DISTRIBUTION||gradient.length!=Schema.OUTPUTS)
+            throw new IllegalArgumentException("exploration dimensions");
+        int off=0;
+        for(int head=0;head<7;head++) {
+            add(p,mask,off,off,Schema.HEADS[head],coefficient,gradient);off+=Schema.HEADS[head];
         }
-        return loss;
+        int parent=Task.offset(6),parents=legal(mask,parent,Schema.HEADS[6]);
+        for(int op=1;op<=3;op++)if(mask[parent+op])
+            add(p,mask,Schema.slotOffset(op),Task.offset(7),Schema.HEADS[7],coefficient/parents,gradient);
+    }
+    private static void add(double[] p,boolean[] mask,int off,int logitOffset,int size,double weight,float[] gradient) {
+        int n=legal(mask,off,size);
+        if(n>1)for(int j=0;j<size;j++)if(mask[off+j])
+            gradient[logitOffset+j]+=(float)(weight*(p[off+j]-1.0/n));
+    }
+    /** Stable cross entropy of that fixed joint prior, not a policy-weighted surrogate. */
+    public static double loss(float[] logits,boolean[] mask,double coefficient) {
+        if(logits.length<Schema.LOGITS||mask.length!=Schema.DISTRIBUTION)
+            throw new IllegalArgumentException("exploration dimensions");
+        double loss=0;int off=0;
+        for(int head=0;head<7;head++) {
+            loss+=crossEntropy(logits,mask,off,off,Schema.HEADS[head]);off+=Schema.HEADS[head];
+        }
+        int parent=Task.offset(6),parents=legal(mask,parent,Schema.HEADS[6]);
+        for(int op=1;op<=3;op++)if(mask[parent+op])
+            loss+=crossEntropy(logits,mask,Schema.slotOffset(op),Task.offset(7),Schema.HEADS[7])/parents;
+        return coefficient*loss;
+    }
+    private static double crossEntropy(float[] logits,boolean[] mask,int off,int logitOffset,int size) {
+        int n=legal(mask,off,size);if(n==1)return 0;
+        double max=Double.NEGATIVE_INFINITY,sumLogits=0,sum=0;
+        for(int j=0;j<size;j++)if(mask[off+j]) {
+            max=Math.max(max,logits[logitOffset+j]);sumLogits+=logits[logitOffset+j];
+        }
+        for(int j=0;j<size;j++)if(mask[off+j])sum+=Math.exp(logits[logitOffset+j]-max);
+        return max+Math.log(sum)-sumLogits/n;
     }
 }

@@ -42,36 +42,57 @@ public final class MenuInputsTest {
         MenuInputs.restrict(pocket,external,mask);return mask;
     }
     private static void maskChecks(Pocket pocket,Pocket.External external) {
-        int operation=Task.offset(6),slot=Task.offset(7);
+        int operation=Task.offset(6);
+        String before=state(pocket,external);
         boolean[] result=mask(pocket,external,Task.CRAFT_WORKBENCH);
+        check(state(pocket,external).equals(before),"mask construction mutated the inventory");
         if(pocket.menu()==Pocket.Menu.CLOSED) {
             check(Arrays.equals(result,Task.CRAFT_WORKBENCH.mask(0,false)),"closed input meanings unchanged");return;
         }
         check(result[operation]&&result[operation+5]&&!result[operation+4],"wait/close allowed; duplicate open excluded");
-        boolean any=false;
         for(int op=1;op<=3;op++) {
             boolean possible=false;
-            for(int i=0;i<pocket.slots();i++)if(pocket.wouldChange(op,i,external)) {
-                check(result[slot+i],"a real mechanical effect was masked");possible=true;
+            for(int i=0;i<64;i++) {
+                boolean useful=pocket.wouldChange(op,i,external);
+                check(result[Schema.slotOffset(op)+i]==useful,"exact operation-conditioned mechanical support");
+                possible|=useful;
             }
-            check(result[operation+op]==possible,"operation availability");any|=possible;
-        }
-        for(int i=0;i<64;i++) {
-            boolean useful=false;
-            for(int op=1;op<=3;op++)useful|=pocket.wouldChange(op,i,external);
-            check(result[slot+i]==(useful||!any&&i==0),"slot union is exact, with one inactive dummy");
+            check(result[operation+op]==possible,"empty branches disable only their parent");
         }
         for(Task task:Task.values()) {
             boolean[] other=mask(pocket,external,task);
-            for(int i=operation;i<Schema.LOGITS;i++)check(other[i]==result[i],"menu availability must be goal-independent");
+            for(int i=operation;i<Schema.DISTRIBUTION;i++)check(other[i]==result[i],"menu availability must be goal-independent");
         }
-        double[] probabilities=new double[Schema.LOGITS];
+        double[] probabilities=new double[Schema.DISTRIBUTION];
         Distribution.probabilities(new float[Schema.OUTPUTS],result,probabilities);
-        Distribution.Choice choice=Distribution.choose(probabilities,new RandomSource(checks),false);
-        check(Double.isFinite(choice.logProbability()),"conditional likelihood stays finite");
-        Schema.checkAction(choice.actions());
+        for(int i=0;i<8;i++) {
+            Distribution.Choice choice=Distribution.choose(probabilities,new RandomSource(checks+i),i==0);
+            check(Double.isFinite(choice.logProbability()),"conditional likelihood stays finite");
+            Schema.checkAction(choice.actions());
+            int op=choice.actions()[6],slot=choice.actions()[7];
+            check(!Schema.slotActive(op)||pocket.wouldChange(op,slot,external),"sampled click must have a mechanical effect");
+        }
+    }
+    private static void preexistingRestrictions() {
+        Pocket pocket=new Pocket();pocket.open(Pocket.Menu.INVENTORY);
+        pocket.setStorage(0,new Stack("OAK_PLANKS",4));
+        pocket.click(1,0,Pocket.NONE);pocket.click(2,36,Pocket.NONE);
+        boolean[] mask=Task.CRAFT_WORKBENCH.mask(pocket.slots(),true);
+        Task.only(mask,7,0,36,37);mask[Task.offset(6)+1]=false;
+        mask[Schema.slotOffset(2)+36]=false;
+        boolean[] before=mask.clone();
+        MenuInputs.restrict(pocket,Pocket.NONE,mask);
+        for(int i=0;i<mask.length;i++)check(!mask[i]||before[i],"restriction cannot enable a forbidden control");
+        for(int op=1;op<=3;op++)for(int slot=0;slot<64;slot++) {
+            boolean expected=before[Task.offset(6)+op]&&before[Schema.slotOffset(op)+slot]
+                &&pocket.wouldChange(op,slot,Pocket.NONE);
+            check(mask[Schema.slotOffset(op)+slot]==expected,"input restrictions survive mechanical filtering");
+        }
+        boolean[] once=mask.clone();MenuInputs.restrict(pocket,Pocket.NONE,mask);
+        check(Arrays.equals(once,mask),"mechanical filtering is idempotent");
     }
     public static void main(String[] args) {
+        preexistingRestrictions();
         Pocket p=new Pocket();Pocket.External none=Pocket.NONE;
         p.open(Pocket.Menu.INVENTORY);maskChecks(p,none);
         p.setStorage(17,new Stack("OAK_LOG",1));

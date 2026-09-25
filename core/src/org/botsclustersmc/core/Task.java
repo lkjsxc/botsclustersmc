@@ -25,11 +25,21 @@ public enum Task {
             // Screen focus is mechanical, independent of which goal is being attempted.
             // Even a changed non-GUI goal must allow the actor to close an existing menu.
             Arrays.fill(mask,offset(6),offset(7),true);
-            int off=offset(7);for(int i=Math.max(1,availableSlots);i<Schema.HEADS[7];i++)mask[off+i]=false;
+            for(int op=1;op<=3;op++) {
+                int off=Schema.slotOffset(op);
+                for(int i=Math.max(1,availableSlots);i<Schema.HEADS[7];i++)mask[off+i]=false;
+            }
             MenuFocus.restrict(mask);
         }
         return mask;
     }
     public static int offset(int head){int n=0;for(int i=0;i<head;i++)n+=Schema.HEADS[i];return n;}
-    public static void only(boolean[] mask,int head,int... choices){int off=offset(head);Arrays.fill(mask,off,off+Schema.HEADS[head],false);for(int choice:choices)mask[off+choice]=true;}
+    public static void only(boolean[] mask,int head,int... choices) {
+        // A lesson-wide slot restriction applies to every conditional click branch.
+        for(int op=1;op<=(head==7?3:1);op++) {
+            int off=head==7?Schema.slotOffset(op):offset(head);
+            Arrays.fill(mask,off,off+Schema.HEADS[head],false);
+            for(int choice:choices)mask[off+choice]=true;
+        }
+    }
 }
