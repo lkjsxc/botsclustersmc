@@ -1,15 +1,17 @@
 # Changelog
 
-## Unreleased — reachable crafting practice
+## Unreleased — completion-preserving workstation practice
 
-- Interleave workstation opening with operation at every assisted difficulty;
-  opening successes no longer raise the completion-difficulty EMA.
-- Restore reachable output collection and every missing ingredient position,
-  mixing the current frontier with earlier reset states without teacher actions.
-- Expose process-local assisted outcomes by task and initial missing-cell count,
-  separately from opening, full probes, frozen exams and historical certificates.
-- Add composed curriculum tests, offline browser diagnostics and source-time
-  compilation of live fixtures. These are not a new learned-survival result.
+- Remove the unobserved opening-only terminal goal: every station lesson now
+  requires the actual task outcome, not merely opening the workstation.
+- Start assisted practice at an open station while keeping full probes/exams
+  closed and unassisted. Preserve raw-cell/cursor preparation, earlier reset
+  states, reward shaping, inference, optimizer and earned checkpoint history.
+- Update difficulty only from task completion and expose the completion contract
+  alongside process-local crafting outcomes; remove opening-only success counters.
+- Test fixed-state station success across lesson seeds/kinds/difficulties, composed
+  resets, full scripted fixtures and dashboard validation. Software correctness
+  does not establish improved learned crafting, survival or cooperation.
 
 ## 0.7.3 — workstation progress and observable menus
 

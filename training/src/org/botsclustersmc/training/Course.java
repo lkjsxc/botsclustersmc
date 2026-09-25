@@ -60,8 +60,8 @@ public final class Course {
             }
         }else{
             a.episodes[task]++;a.sinceExam++;
-            // Opening-only outcomes are not product completion and must not raise its difficulty.
-            if(!StationPractice.acquisition(lesson))a.ema[task]=.95*a.ema[task]+.05*(success?1:0);
+            // Every outcome is task completion; resets may help, but opening alone never succeeds.
+            a.ema[task]=.95*a.ema[task]+.05*(success?1:0);
             if(lesson.kind()==Kind.PROBE){a.probes[task]++;a.probeEma[task]=.9*a.probeEma[task]+.1*(success?1:0);if(task==a.stage)a.probesSinceExam++;
                 // A real regression returns THIS actor to the forgotten skill, not every actor.
                 if(task<a.stage&&a.probes[task]>=8&&a.probeEma[task]<.45){a.stage=task;a.effort.reset();a.complete=false;a.sinceExam=0;a.probesSinceExam=0;regressions++;}

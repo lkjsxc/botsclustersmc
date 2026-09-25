@@ -67,7 +67,7 @@ public final class TrainingEnvironment {
             Location spawn=new Location(world,sx,65,sz,yaw,pitch);
             npc.reset(goal,spawn,()->{
                 supplies(npc,task);
-                // One testable reset decision: opening and operation practice coexist at every difficulty.
+                // Practice starts nearer the same completion goal; probes/exams start unassisted.
                 RandomSource pocketRng=StationPractice.resetRandom(lesson);
                 Pocket.Menu initial=StationPractice.initialMenu(lesson,pocketRng);
                 if(initial!=Pocket.Menu.CLOSED) {
@@ -140,10 +140,7 @@ public final class TrainingEnvironment {
             &&station.getBlockZ()==(int)Math.floor(npc.goal.z());
     }
     private static double stationPotential(Npc npc) {
-        Task task=npc.goal.task();Location station=npc.container;
-        boolean opened=npc.pocket.menu()==StationPractice.station(task)&&station!=null
-            &&station.getWorld()==npc.anchor.getWorld()&&station.getBlockX()==(int)Math.floor(npc.goal.x())
-            &&station.getBlockY()==(int)Math.floor(npc.goal.y())&&station.getBlockZ()==(int)Math.floor(npc.goal.z());
+        Task task=npc.goal.task();boolean opened=stationOpen(npc);
         Location at=npc.entity.getEyeLocation();double dx=npc.goal.x()-at.getX(),dz=npc.goal.z()-at.getZ();
         double yaw=Sensors.angle(Math.toDegrees(Math.atan2(-dx,dz))-at.getYaw());
         double pitch=Sensors.angle(-Math.toDegrees(Math.atan2(npc.goal.y()+.5-at.getY(),Math.hypot(dx,dz)))-at.getPitch());
@@ -151,7 +148,7 @@ public final class TrainingEnvironment {
     }
     public static boolean success(Npc npc,Session s,Npc.Applied previous,Frame next){
         int task=npc.goal.task().ordinal();int ticks=(int)(next.tick()-previous.frame().tick());
-        if(StationPractice.acquisition(s.lesson))return stationOpen(npc);
+        // Lesson kind/seed may change reset assistance, not the station task's terminal goal.
         if(task<5){
             double speed=Math.hypot(next.x()-previous.frame().x(),next.z()-previous.frame().z())/ticks;
             double angular=Math.max(Math.abs(Sensors.angle(next.yaw()-previous.frame().yaw())),Math.abs(next.pitch()-previous.frame().pitch()))/ticks;

@@ -23,16 +23,11 @@ public final class CraftingCurriculumTest {
     }
     private static void composedResets() {
         for(Task task:new Task[]{Task.CRAFT_WOOD_PICK,Task.CRAFT_STONE_PICK})for(double d:new double[]{0,.1,.32,.54,.55,.7,.99}) {
-            int[] buckets=new int[6],singleCell=new int[5];int opening=0,operation=0;
+            int[] buckets=new int[6],singleCell=new int[5];int operation=0;
             for(long seed=0;seed<2048;seed++) {
                 Course.Lesson l=lesson(task,Course.Kind.PRACTICE,d,seed);Pocket p=stock(task);
                 RandomSource rng=StationPractice.resetRandom(l);Pocket.Menu initial=StationPractice.initialMenu(l,rng);
                 p.open(initial);
-                if(StationPractice.acquisition(l)) {
-                    opening++;check(initial==Pocket.Menu.CLOSED,"opening begins closed at EVERY difficulty");
-                    check(p.storage(0).count()==3&&p.storage(1).count()==2&&p.cursor().empty(),"opening stock stays raw");
-                    continue;
-                }
                 operation++;check(StationPractice.operation(l)&&initial==Pocket.Menu.WORKBENCH,"operation starts at usable workbench");
                 int missing=InitialCrafting.prepare(p,task.ordinal(),d,rng),actual=0;
                 for(int i=0;i<GRID.length;i++)if(p.get(GRID[i],Pocket.NONE).empty())actual++;
@@ -51,23 +46,24 @@ public final class CraftingCurriculumTest {
                 if(missing==0)replay.click(3,45,Pocket.NONE);
                 check(replayMissing==missing&&state(p).equals(state(replay)),"same lesson reproduces pocket independently of pose RNG");
             }
-            check(opening>400&&opening<640&&operation==2048-opening,"bounded deterministic opening/operation mixture");
+            check(operation==2048,"every assisted station start retains the product-completion goal");
             int frontier=(int)Math.ceil(d*5);
             for(int i=0;i<=frontier;i++)check(buckets[i]>40,"each earlier and frontier start is reachable");
             if(frontier>0) {
                 check(buckets[frontier]>operation*.4&&buckets[frontier]<operation*.6,"frontier retains half of operation work");
                 for(int n:singleCell)check(n>5,"all individual missing cells can be practiced, not one fixed prefix");
             }
-            System.out.println("RESET "+task+" difficulty="+d+" opening="+opening+" operation="+operation+" missing="+Arrays.toString(buckets));
+            System.out.println("RESET "+task+" difficulty="+d+" operation="+operation+" missing="+Arrays.toString(buckets));
         }
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double d:new double[]{.2,.9,1})for(long seed=0;seed<64;seed++) {
             Course.Lesson l=lesson(task,kind,d,seed);RandomSource rng=StationPractice.resetRandom(l);long before=rng.state();
             Pocket.Menu menu=StationPractice.initialMenu(l,rng);
             if(kind!=Course.Kind.PRACTICE||d==1) {
-                check(menu==Pocket.Menu.CLOSED&&!StationPractice.acquisition(l)&&!StationPractice.operation(l),"full tasks retain closed unassisted reset");
+                check(menu==Pocket.Menu.CLOSED&&!StationPractice.operation(l),"full tasks retain closed unassisted reset");
                 check(rng.state()==before,"full task consumes no assistance RNG");
             } else if(StationPractice.applies(task)) {
-                check(menu==(StationPractice.acquisition(l)?Pocket.Menu.CLOSED:StationPractice.station(task)),"all station types are usable in operation practice");
+                check(menu==StationPractice.station(task),"all station types start usable in assisted practice");
+                check(rng.state()==before,"station menu selection consumes no reset RNG");
             }
         }
         Pocket wrong=stock(Task.CRAFT_WOOD_PICK);wrong.open(Pocket.Menu.INVENTORY);
@@ -77,25 +73,24 @@ public final class CraftingCurriculumTest {
         Pocket wrongStock=new Pocket();wrongStock.open(Pocket.Menu.WORKBENCH);wrongStock.setStorage(0,new Stack("DIRT",3));wrongStock.setStorage(1,new Stack("DIRT",2));
         check(InitialCrafting.prepare(wrongStock,11,0,new RandomSource(9))==5,"wrong stock never reports supplied ingredients");
     }
-    private static void independentDifficulty() throws Exception {
-        Course base=new Course(1,37);
-        while(base.stage(0)<11){CourseTest.ready(base,0);CourseTest.exam(base,0,123,-1,0);}
-        byte[] saved=base.encode();Course success=Course.decode(saved,1),failure=Course.decode(saved,1);int openings=0,operations=0,probes=0;
+    private static void completionDifficulty() throws Exception {
+        Course course=new Course(1,37);
+        while(course.stage(0)<11){CourseTest.ready(course,0);CourseTest.exam(course,0,123,-1,0);}
+        long beforeEpisodes=course.episodes(),beforeWins=course.successes();int operations=0,probes=0,wins=0;
         for(int i=0;i<500;i++) {
-            Course.Lesson a=success.issue(0),b=failure.issue(0);
-            check(a.equals(b),"opening success cannot change next seed, phase, difficulty or task");
-            boolean opening=StationPractice.acquisition(a);double before=success.progress(0).practiceSuccess();
-            if(opening)openings++;else if(a.kind()==Course.Kind.PROBE)probes++;else operations++;
-            success.finish(0,a.serial(),opening);failure.finish(0,b.serial(),false);
-            double after=success.progress(0).practiceSuccess();
-            check(after==failure.progress(0).practiceSuccess(),"opening wins excluded from completion EMA");
-            check(after==(opening?before:.95*before),"completion failures still lower difficulty");
-            check(!success.needsExam(0)&&!failure.needsExam(0)&&success.stage(0)==11,"opening successes never unlock exam or promotion");
+            Course.Lesson lesson=course.issue(0);double before=course.progress(0).practiceSuccess();
+            boolean probe=lesson.kind()==Course.Kind.PROBE;
+            if(probe)probes++;else {operations++;check(StationPractice.operation(lesson),"all assisted practice targets completion");}
+            // Supplied test outcomes, not actions or learned success: probes deliberately fail.
+            boolean completed=!probe&&i%3==0;if(completed)wins++;
+            course.finish(0,lesson.serial(),completed);
+            check(course.progress(0).practiceSuccess()==.95*before+.05*(completed?1:0),"every completion outcome updates difficulty");
+            check(!course.needsExam(0)&&course.stage(0)==11,"assisted completions cannot replace full probes or unlock promotion");
         }
-        check(openings>50&&operations>100&&probes==100,"both practice phases and unchanged 1-in-5 probe cadence");
-        check(success.episodes()==failure.episodes()&&success.successes()-failure.successes()==openings,"actual successes/counters are retained, not erased");
-        check(success.certifiedVersion(0,11)==-1,"no false wooden pick certificate");
-        Course restored=Course.decode(success.encode(),1);check(Arrays.equals(success.encode(),restored.encode()),"unchanged checkpoint round trip");
+        check(operations==400&&probes==100,"unchanged 1-in-5 full-probe cadence");
+        check(course.episodes()-beforeEpisodes==500&&course.successes()-beforeWins==wins,"exact completed-outcome counters");
+        check(course.certifiedVersion(0,11)==-1,"no false wooden pick certificate");
+        Course restored=Course.decode(course.encode(),1);check(Arrays.equals(course.encode(),restored.encode()),"unchanged checkpoint round trip");
     }
     private static void outcomes() throws Exception {
         CraftingOutcomes c=new CraftingOutcomes();Thread[] writers=new Thread[4];
@@ -109,7 +104,7 @@ public final class CraftingCurriculumTest {
         check(Arrays.stream(new CraftingOutcomes().snapshot().trials()).sum()==0,"new process has no borrowed historical bucket claims");
     }
     public static void main(String[] args)throws Exception {
-        composedResets();independentDifficulty();outcomes();
+        composedResets();completionDifficulty();outcomes();
         System.out.println("PASS composed crafting curriculum checks="+checks+"; not learned-Minecraft evidence");
     }
 }

@@ -94,8 +94,9 @@ public final class StationTest {
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double d:new double[]{0,.2,.549,.55,.8,1}) {
             Course.Lesson lesson=new Course.Lesson(1,task,d,3,kind);
             boolean assisted=StationPractice.applies(task)&&kind==Course.Kind.PRACTICE&&d<1;
-            check((StationPractice.acquisition(lesson)||StationPractice.operation(lesson))==assisted);
-            check(!(StationPractice.acquisition(lesson)&&StationPractice.operation(lesson)));
+            check(StationPractice.operation(lesson)==assisted);
+            check(StationPractice.initialMenu(lesson,new RandomSource(3))==
+                (assisted?StationPractice.station(task):Pocket.Menu.CLOSED)||!StationPractice.applies(task));
         }
         System.out.println("PASS station and menu-correct recipe checks="+checks);
     }
