@@ -202,10 +202,10 @@ public final class Host {
     }
     void test()throws Exception{
         build();Path out=ROOT.resolve(".build/tests");Files.createDirectories(out);String cp=ROOT.resolve(".build/classes")+File.pathSeparator+classpath();
-        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","tests/live","host"))args.add(p.toString());
+        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","tests/live","tests/holdout","host"))args.add(p.toString());
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
         System.out.println("PASS real-API compilation of live diagnostic fixtures; not executed by source tests.");
-        for(String test:List.of("CoreTest","MechanicsTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","StationTest","CraftingCurriculumTest","BalanceTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        for(String test:List.of("CoreTest","MechanicsTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","StationTest","CraftingCurriculumTest","CraftingTraceTest","BalanceTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}

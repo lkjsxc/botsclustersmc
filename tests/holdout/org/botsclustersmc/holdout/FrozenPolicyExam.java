@@ -75,7 +75,7 @@ public final class FrozenPolicyExam extends RuntimePlugin {
     @Override public boolean observed(Npc npc,Npc.Applied previous,Frame next) {
         if(previous.result().policyVersion()!=policy.updates())throw new IllegalStateException("Frozen policy identity changed");
         TrainingEnvironment.Session session=sessions.get(npc.id);
-        traces.get(npc.id).observe(npc,previous,next);
+        traces.get(npc.id).observe(npc,previous,next,policy);
         boolean success=TrainingEnvironment.success(npc,session,previous,next);
         long elapsed=next.tick()-npc.episodeStart;
         boolean terminal=success||elapsed>=npc.goal.horizon()||!session.arena.contains(next.x(),next.y(),next.z());
