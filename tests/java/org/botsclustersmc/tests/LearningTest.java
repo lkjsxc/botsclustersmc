@@ -5,7 +5,7 @@ import java.util.*;
 /** A synthetic conditional bandit, explicitly NOT Minecraft skill evidence. */
 public final class LearningTest {
     public static void main(String[] args){
-        boolean[] mask=new boolean[Schema.LOGITS];int offset=0;for(int i=0;i<Schema.HEADS.length;i++){mask[offset+Schema.IDLE[i]]=true;offset+=Schema.HEADS[i];}mask[1]=true;
+        boolean[] mask=new boolean[Schema.DISTRIBUTION];int offset=0;for(int i=0;i<Schema.HEADS.length;i++){mask[offset+Schema.IDLE[i]]=true;offset+=Schema.HEADS[i];}mask[1]=true;
         for(int seed=1;seed<=5;seed++){
             Policy p=Policy.initialize(seed);Adam adam=new Adam();RandomSource random=new RandomSource(seed+777);Policy.Workspace w=new Policy.Workspace();
             for(int update=0;update<400;update++){

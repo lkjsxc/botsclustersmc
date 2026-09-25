@@ -23,7 +23,7 @@ public final class InferencePool implements AutoCloseable {
     public boolean offer(Request request) {
         Objects.requireNonNull(request); Objects.requireNonNull(request.policy()); Objects.requireNonNull(request.deliver()); Objects.requireNonNull(request.fail());
         Schema.checkObservation(request.observation());
-        if(request.mask().length!=Schema.LOGITS)throw new IllegalArgumentException("mask shape");
+        if(request.mask().length!=Schema.DISTRIBUTION)throw new IllegalArgumentException("mask shape");
         synchronized(closed){return !closed.get() && queue.offer(request);}
     }
     private void fail(Request request,Throwable cause){failed.increment();try{request.fail().accept(cause);}catch(Throwable ignored){}}

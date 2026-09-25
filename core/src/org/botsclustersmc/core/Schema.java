@@ -11,11 +11,18 @@ public final class Schema {
     public static final int[] HEADS = {9, 5, 5, 3, 4, 9, 6, 64};
     public static final int LOGITS = Arrays.stream(HEADS).sum();
     public static final int OUTPUTS = LOGITS + 1;
+    // The network retains one shared slot-logit head. Transient masks/probabilities
+    // carry a separate conditional slot block for each of the three click types.
+    public static final int DISTRIBUTION = LOGITS + 2 * HEADS[7];
     public static final int[] IDLE = {0, 2, 2, 0, 0, 0, 0, 0};
     public static final int DECISION_TICKS = 4;
     public static final int MAX_MODEL_BYTES = 8 * 1024 * 1024;
     public static boolean slotActive(int operation) { return operation >= 1 && operation <= 3; }
-    public static boolean[] unrestrictedMask() { boolean[] m=new boolean[LOGITS]; Arrays.fill(m,true); return m; }
+    public static boolean[] unrestrictedMask() { boolean[] m=new boolean[DISTRIBUTION]; Arrays.fill(m,true); return m; }
+    public static int slotOffset(int operation) {
+        if(!slotActive(operation))throw new IllegalArgumentException("inactive slot operation");
+        return LOGITS-HEADS[7]+(operation-1)*HEADS[7];
+    }
     public static void checkObservation(float[] x) {
         if(x.length != INPUTS) throw new IllegalArgumentException("observation dimension");
         for(float f:x) if(!Float.isFinite(f)) throw new IllegalArgumentException("non-finite observation");

@@ -8,19 +8,6 @@ public final class UpdateGuard {
     private UpdateGuard() {}
     public record Change(double mean,double maximum) {}
     public record Result(Adam.Update update,double learningRate,Change change,int backtracks) {}
-    public static double divergence(double[] before,double[] after) {
-        double sum=0;int offset=0;
-        for(int head=0;head<7;head++) {
-            sum+=headDivergence(before,after,offset,Schema.HEADS[head]);offset+=Schema.HEADS[head];
-        }
-        int parent=Task.offset(6);double active=before[parent+1]+before[parent+2]+before[parent+3];
-        return Math.max(0,sum+(active>0?active*headDivergence(before,after,offset,Schema.HEADS[7]):0));
-    }
-    private static double headDivergence(double[] p,double[] q,int offset,int count) {
-        double sum=0;
-        for(int j=0;j<count;j++) {int i=offset+j;if(p[i]>0){if(!(q[i]>0))return Double.POSITIVE_INFINITY;sum+=p[i]*Math.log(p[i]/q[i]);}}
-        return sum;
-    }
     public static List<Transition> observations(List<Trajectory> batch) {
         List<Transition> all=new ArrayList<>();for(Trajectory trajectory:batch)all.addAll(trajectory.steps());
         int n=Math.min(128,all.size());if(all.size()<=n)return all;
@@ -44,7 +31,7 @@ public final class UpdateGuard {
         Policy.Workspace w=new Policy.Workspace();double sum=0,maximum=0;
         for(int i=0;i<samples.size();i++) {
             Transition s=samples.get(i);candidate.forward(s.observation(),s.mask(),w);
-            double kl=divergence(before.get(i),w.probabilities);sum+=kl;maximum=Math.max(maximum,kl);
+            double kl=Distribution.divergence(before.get(i),w.probabilities);sum+=kl;maximum=Math.max(maximum,kl);
         }
         return new Change(sum/samples.size(),maximum);
     }

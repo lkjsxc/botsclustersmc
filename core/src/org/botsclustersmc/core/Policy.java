@@ -27,7 +27,7 @@ public final class Policy {
     }
     public static final class Workspace {
         public final float[] h1=new float[Schema.HIDDEN], h2=new float[Schema.HIDDEN], logits=new float[Schema.OUTPUTS];
-        public final double[] probabilities=new double[Schema.LOGITS];
+        public final double[] probabilities=new double[Schema.DISTRIBUTION];
         public final float[] dh1=new float[Schema.HIDDEN],dh2=new float[Schema.HIDDEN],dout=new float[Schema.OUTPUTS];
     }
     public void forward(float[] x,boolean[] mask,Workspace s) {

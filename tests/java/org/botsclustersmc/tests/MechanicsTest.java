@@ -28,7 +28,7 @@ public final class MechanicsTest {
         p.setStorage(0,new Stack("STONE",1));p.click(1,0,furnace);p.click(1,38,furnace);check(p.cursor().item().equals("STONE")&&furnace.get(2).empty(),"output slot rejects deposit");p.click(1,0,furnace);furnace.set(2,new Stack("IRON_INGOT",1));p.click(1,38,furnace);check(p.count("IRON_INGOT")==1&&p.extracted.get("IRON_INGOT")==1,"actual output extraction evidence");
         p.clear();for(int i=0;i<36;i++)p.setStorage(i,new Stack("COBBLESTONE",64));check(p.insert(new Stack("OAK_LOG",4)).count()==4,"full inventory does not delete drops");
         for(Task task:Task.values())for(boolean open:new boolean[]{false,true}){
-            boolean[] mask=task.mask(open?41:0,open);float[] logits=new float[Schema.OUTPUTS];double[] probabilities=new double[Schema.LOGITS];Distribution.probabilities(logits,mask,probabilities);
+            boolean[] mask=task.mask(open?41:0,open);float[] logits=new float[Schema.OUTPUTS];double[] probabilities=new double[Schema.DISTRIBUTION];Distribution.probabilities(logits,mask,probabilities);
             for(int i=0;i<50;i++){Distribution.Choice c=Distribution.choose(probabilities,new RandomSource(i),false);Schema.checkAction(c.actions());if(!open)check(!Schema.slotActive(c.actions()[6]),"closed-menu clicks masked");if(open)check(c.actions()[7]<41,"nonexistent slots masked");}
         }
         for(int task:new int[]{8,9,10,11,13})for(int seed=0;seed<500;seed++){

@@ -14,12 +14,13 @@ public final class CoreTest {
     static void near(double a,double b,double e,String message){check(Math.abs(a-b)<=e,message+" "+a+" != "+b);}
     static void fails(Throwing r,String message)throws Exception{boolean fail=false;try{r.run();}catch(Exception expected){fail=true;}check(fail,message);}
     public static void main(String[] args)throws Exception {
+        ConditionalDistributionTest.main(args);ConditionalInferenceTest.main(args);
         Policy p=Policy.initialize(12);boolean[] mask=Schema.unrestrictedMask();RandomSource rng=new RandomSource(42);
         float[][] obs=new float[32][Schema.INPUTS];for(float[] a:obs)for(int i=0;i<a.length;i++)a[i]=rng.symmetric(1);
         Policy.BatchWorkspace batch=new Policy.BatchWorkspace(32);Policy.Workspace ws=new Policy.Workspace();float[] out=new float[Schema.OUTPUTS];
         for(int n:new int[]{1,3,16,32}){p.forwardBatch(obs,n,batch);for(int i=0;i<n;i++){p.forward(obs[i],mask,ws);batch.lane(i,out);for(int j=0;j<out.length;j++)near(out[j],ws.logits[j],3e-6,"scalar/batch");}}
         float[] logits=new float[Schema.OUTPUTS];for(int i=0;i<logits.length;i++)logits[i]=rng.symmetric(2);
-        double[] probs=new double[Schema.LOGITS];Distribution.probabilities(logits,mask,probs);
+        double[] probs=new double[Schema.DISTRIBUTION];Distribution.probabilities(logits,mask,probs);
         for(int gui:new int[]{0,1,2,3,4,5}){
             int[] act=Schema.IDLE.clone();act[6]=gui;act[7]=Schema.slotActive(gui)?13:0;
             float[] grad=new float[Schema.OUTPUTS];Distribution.gradient(probs,act,.7,.031,grad);
@@ -29,7 +30,7 @@ public final class CoreTest {
             }
         }
         int[] bad=Schema.IDLE.clone();bad[7]=1;fails(()->Distribution.logProbability(probs,bad),"inactive slot must be zero");
-        boolean[] empty=new boolean[Schema.LOGITS];fails(()->Distribution.probabilities(logits,empty,probs),"empty mask fails");
+        boolean[] empty=new boolean[Schema.DISTRIBUTION];fails(()->Distribution.probabilities(logits,empty,probs),"empty mask fails");
         Arrays.fill(mask,false);int off=0;for(int i=0;i<Schema.HEADS.length;i++){mask[off+Schema.IDLE[i]]=true;off+=Schema.HEADS[i];}
         p.forward(obs[0],mask,ws);Distribution.Choice choice=Distribution.choose(ws.probabilities,rng,false);check(Arrays.equals(choice.actions(),Schema.IDLE),"mechanical mask");near(choice.logProbability(),0,1e-8,"deterministic probability");
         mask=Schema.unrestrictedMask();p.forward(obs[0],mask,ws);float[] gradient=new float[Policy.PARAMETERS];float[] d=new float[Schema.OUTPUTS];for(int j=0;j<d.length;j++)d[j]=rng.symmetric(.1);p.backward(obs[0],ws,d,gradient);
@@ -51,7 +52,7 @@ public final class CoreTest {
         pool(p,obs[0]);poolCompletionBarrier(p,obs[0]);learner(p,obs[0]);
         System.out.println("PASS core checks="+checks+" parameters="+Policy.PARAMETERS);
     }
-    static double loss(float[] logits,boolean[] mask,int[] action){double[] p=new double[Schema.LOGITS];Distribution.probabilities(logits,mask,p);return -.7*Distribution.logProbability(p,action)-.031*Distribution.entropy(p);}
+    static double loss(float[] logits,boolean[] mask,int[] action){double[] p=new double[Schema.DISTRIBUTION];Distribution.probabilities(logits,mask,p);return -.7*Distribution.logProbability(p,action)-.031*Distribution.entropy(p);}
     static double linear(Policy p,float[] x,boolean[] mask,float[] d){Policy.Workspace w=new Policy.Workspace();p.forward(x,mask,w);double sum=0;for(int i=0;i<d.length;i++)sum+=d[i]*w.logits[i];return sum;}
     static void pool(Policy p,float[] obs)throws Exception {
         int n=1000;CountDownLatch done=new CountDownLatch(n);AtomicInteger failures=new AtomicInteger();InferencePool pool=new InferencePool(3,1000);
