@@ -8,9 +8,8 @@ import json
 import os
 from pathlib import Path
 import shutil
-import time
 from playwright.sync_api import sync_playwright
-from activation_monitor import verify_activation_health
+from activation_monitor import FIXTURE_EPOCH_MS, install_fixture, verify_activation_health
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +22,7 @@ def main() -> None:
     attempts, wins = [0] * 108, [0] * 108
     attempts[66:72] = [40, 30, 20, 10, 5, 2]
     wins[66:72] = [38, 20, 10, 4, 1, 0]
-    status = dict(epoch_millis=int(time.time()*1000), state='running',
+    status = dict(epoch_millis=FIXTURE_EPOCH_MS, state='running',
                   schema='bcmc-citizen-egocentric-context', active_agents=64,
                   learner_samples_per_second=100, trained_samples=12000,
                   course_task_population=json.dumps([0]*11+[64]+[0]*6),
@@ -41,14 +40,7 @@ def main() -> None:
         browser = p.chromium.launch(headless=True, executable_path=executable)
         page = browser.new_page(viewport={'width': 1280, 'height': 1000})
         page.on('pageerror', lambda error: errors.append(str(error)))
-        # Inject read-only synthetic responses; no URL, external host or server is contacted.
-        page.context.set_offline(True)
-        page.evaluate("""status => {
-            window.fetch = async path => ({ok: true, json: async () =>
-                path === '/api/status' ? structuredClone(status) :
-                path === '/api/history' ? [structuredClone(status)] :
-                {result: null, monitor: null}});
-        }""", status)
+        install_fixture(page, status)
         page.set_content((ROOT/'host/monitor.html').read_text(), wait_until='load')
         page.wait_for_function("document.getElementById('state').textContent === 'RUNNING'")
         assert page.locator('#state').inner_text() == 'RUNNING'
@@ -87,16 +79,20 @@ def main() -> None:
         page.evaluate('s => craftingPractice(s)', native | dict(crafting_practice_trials_by_task_and_missing=[0]*108,
                                                                crafting_practice_successes_by_task_and_missing=[0]*108))
         assert page.locator('[data-task="11"][data-missing="0"]').inner_text() == '0 / 0'
-        page.evaluate('s => render(s, [s])', status | dict(epoch_millis=int(time.time()*1000)-60000))
-        assert page.locator('#state').inner_text() == 'STALE'
-        assert page.locator('#rate').inner_text() == '—'
-        assert 'historical' in page.locator('#error').inner_text()
+        # These are exact age boundaries, not wall-clock waits or looser assertions.
+        for age, expected in [(0, 'RUNNING'), (14999, 'RUNNING'), (15000, 'RUNNING'),
+                              (15001, 'STALE'), (60000, 'STALE')]:
+            page.evaluate('s => render(s, [s])', status | dict(epoch_millis=FIXTURE_EPOCH_MS-age))
+            assert page.locator('#state').inner_text() == expected, age
+            assert page.locator('#rate').inner_text() == ('—' if expected == 'STALE' else '100'), age
+            assert ('historical' in page.locator('#error').inner_text()) == (expected == 'STALE'), age
         assert not errors, errors
         verify_activation_health(browser, (ROOT/'host/monitor.html').read_text(), args.output)
         browser.close()
     report = dict(passed=True, source='synthetic metrics; no Minecraft server',
                   checks=['bucket mapping', 'opening separated', 'assistance labels', 'desktop/mobile bounds',
-                          'invalid counts fail closed', 'zero attempts not a percentage', 'stale metrics warning'],
+                          'invalid counts fail closed', 'zero attempts not a percentage', 'stale metrics warning',
+                          'fixed fixture clock', 'exact 15-second freshness boundary'],
                   browser_errors=errors)
     (args.output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
     print('PASS synthetic crafting dashboard; desktop/mobile, isolated counts, invalid/stale state; no browser errors')
