@@ -3,6 +3,7 @@ package org.botsclustersmc.holdout;
 import java.util.Locale;
 import java.util.Arrays;
 import org.botsclustersmc.core.Pocket;
+import org.botsclustersmc.core.Policy;
 import org.botsclustersmc.core.Stack;
 import java.util.Map;
 import org.botsclustersmc.plugin.Frame;
@@ -17,7 +18,14 @@ final class TrialTrace {
     private int dropDecisions,useDecisions,minRawUnits=Integer.MAX_VALUE;
     private final StringBuilder firstClicks=new StringBuilder();
     private int recordedClicks;
-    void observe(Npc npc,Npc.Applied previous,Frame next) {
+    private CraftingTrace crafting;
+    void observe(Npc npc,Npc.Applied previous,Frame next,Policy policy) {
+        int task=npc.goal.task().ordinal();
+        if(CraftingTrace.applies(task)) {
+            if(crafting==null)crafting=new CraftingTrace();
+            crafting.observe(policy,task,previous.frame().observation(),previous.frame().mask(),
+                next.observation(),previous.result().actions(),previous.result().logProbability());
+        }
         observations++;int[] action=previous.result().actions();
         if(action[4]==1)digDecisions++;
         if(action[4]==2)useDecisions++;
@@ -54,6 +62,7 @@ final class TrialTrace {
         return motor.substring(0,motor.length()-1)+String.format(Locale.ROOT,
             ",\"gui_operations\":%s,\"clicked_slots\":%s,\"menu_observations\":%s,\"menu_open_observations\":%d,\"recipe_visible_observations\":%d,\"max_grid_units\":%d,\"max_crafted_units\":%d,\"drop_decisions\":%d,\"use_decisions\":%d,\"minimum_raw_units\":%d,\"first_clicks_op_slot_menu_cursor_kind_count\":\"%s\"}",
             Arrays.toString(guiOperations),Arrays.toString(clickedSlots),Arrays.toString(menus),openObservations,recipeObservations,
-            maxGridUnits,maxCrafted,dropDecisions,useDecisions,minRawUnits,firstClicks);
+            maxGridUnits,maxCrafted,dropDecisions,useDecisions,minRawUnits,firstClicks)
+            .replaceFirst("}$",crafting==null?"}":",\"crafting\":"+crafting.json()+"}");
     }
 }
