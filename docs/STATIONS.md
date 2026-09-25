@@ -3,8 +3,8 @@
 A full-condition crafting trial begins with a closed menu, raw inventory and a
 random facing direction. Success in an already-open, partly supplied practice
 menu does not show that a policy can find and open the workstation itself.
-The station curriculum makes that prerequisite measurable without supplying
-in-episode actions or relaxing any independent exam.
+Full probes and frozen exams measure that prerequisite together with completion,
+without supplying in-episode actions or relaxing any independent exam.
 
 ## Correct grid coordinates
 
@@ -64,41 +64,45 @@ correction, exam gates and terminal item requirements are unchanged. No pathfind
 auto-aim, recipe macro, action demonstration or hidden fallback is added. Existing
 valid checkpoints retain their actual weights, Adam state and course history.
 
-## Interleaved opening and operation
+## One completion goal, different starting states
 
-At every assisted practice difficulty below 1, a lesson-seeded draw assigns about
-one quarter of workstation lessons to opening and three quarters to operation.
-Opening lessons always start closed with unprepared raw stock; the policy must
-open the actual target station. Operation lessons start with that station open
-and require the original complete item outcome. Pickaxe operation starts also
-use the raw-cell preparation above. Furnace and chest operation practice use the
-same phase split, without crafting-grid preparation. Practice at difficulty 1,
-full probes and frozen exams all start closed and require the full outcome.
+Every workstation lesson now requires the same task outcome: obtaining the crafted
+pickaxe, extracting the iron ingot, or supplying the target chest. At assisted
+practice difficulty below 1, the correct station starts open. Pickaxe practice
+also uses the raw-cell preparation above. Furnace and chest practice do not use
+crafting-grid preparation. Difficulty-1 practice, full probes and frozen exams
+retain their original closed menu, raw stock and pose. Full probes still provide
+learning experience for opening and operating the station as one complete task.
 
-The previous composition was defective: below 0.55 every station practice ended
-at opening; operation only became eligible at difficulties requiring at least
-three missing pickaxe cells. Its intended collection-only and one-/two-cell
-practice was therefore absent. Moreover, opening successes raised the same EMA
-used for assembly difficulty. More training alone could not fill that reset gap.
+The previous opening/operation split assigned an unobserved lesson-seeded goal:
+about one quarter of assisted station lessons succeeded immediately on opening,
+while the same task and observable state required item completion in other
+lessons. The success branch changed the terminal flag and terminal reward even
+though neither the actor nor the critic received that goal distinction. Excluding
+opening wins from the completion EMA did not remove this inconsistent learning
+signal. A fixed-state regression now checks success and potential across lesson
+kinds, difficulties and seeds. This identifies a goal-contract defect, not proof
+that it was the sole cause of failed wooden-pickaxe learning.
 
-Opening outcomes now remain in actual episode/success counters but do **not**
-update the completion EMA used to select difficulty. Completed operation practice,
-ordinary nonstation practice and full probes still update it. Readiness, probe
-cadence, frozen exam thresholds and promotion requirements are unchanged. Opening
-alone cannot supply the full-probe results required to begin an exam.
+The correction removes the opening-only success branch rather than adding a
+hidden option, a teacher action or another model input. Every new task-completion
+outcome updates the difficulty EMA. Opening still contributes the existing bounded
+potential, but never ends an episode successfully on its own. The potential,
+terminal reward formula, raw-cell curriculum, probe cadence, frozen exam gates,
+observations, inference and optimizer are otherwise unchanged.
 
 Existing valid checkpoints retain weights, Adam, RNG, course history and existing
-EMA values. On resumption, new EMA updates exclude opening; old EMA contributions
-are not retrospectively reclassified or silently reset. The new process-local
-crafting buckets start at zero. A schema-compatible resume is not evidence that
-the modified curriculum already improves a learned policy.
+EMA values. Historical episode/success totals can include opening-only outcomes
+from older training; they are not retrospectively reclassified or erased. New
+process-local crafting buckets start at zero. Successful resume and contract tests
+are not evidence of improved learned completion; that requires frozen full trials.
 
 ## See the separate outcomes
 
-The HUD labels opening as `practice: open target station` and operation as
-`practice: use open station`. The observatory reports finished assisted crafting
-attempts and successes by task and the number of recipe cells missing **at
-reset**, alongside a separate station-opening counter. Zero missing means output
+The HUD labels assisted operation as `practice: complete at open station`. The
+observatory reports the `task-completion` station goal and finished assisted
+crafting attempts and successes by task and the number of recipe cells missing
+**at reset**. There is no opening-only success counter. Zero missing means output
 collection is required, not that the task succeeded before an action. A five-cell
 practice is still assisted by an initially open workbench; it is not a full probe.
 

@@ -27,8 +27,7 @@ def main() -> None:
                   learner_samples_per_second=100, trained_samples=12000,
                   course_task_population=json.dumps([0]*11+[64]+[0]*6),
                   practice_success_ema=.7, probe_success_ema=0,
-                  station_acquisition_trials=100, station_acquisition_successes=90,
-                  station_acquisition_updates_completion_ema=False,
+                  station_success='task-completion',
                   crafting_practice_bucket_width=6,
                   crafting_practice_trials_by_task_and_missing=json.dumps(attempts),
                   crafting_practice_successes_by_task_and_missing=json.dumps(wins))
@@ -49,7 +48,7 @@ def main() -> None:
         assert page.locator('[data-task="11"][data-missing="0"]').inner_text() == '38 / 40'
         assert page.locator('[data-task="11"][data-missing="5"]').inner_text() == '0 / 2'
         assert page.locator('[data-task="8"][data-missing="5"]').inner_text() == '—'
-        assert '90 / 100' in page.locator('#station-opening').inner_text()
+        assert 'Opening alone is never success' in page.locator('#station-goal').inner_text()
         assert 'Completion EMA' in page.locator('#practice').inner_text()
         assert 'policy must collect' in page.locator('#crafting-practice').locator('..').inner_text()
         assert 'process only' in page.locator('#crafting-practice').locator('..').inner_text()
@@ -74,8 +73,9 @@ def main() -> None:
                          dict(crafting_practice_bucket_width=7)]:
             page.evaluate('s => craftingPractice(s)', native | override)
             assert page.locator('#crafting-practice table').count() == 0
-        page.evaluate('s => craftingPractice(s)', native | dict(station_acquisition_successes=101))
-        assert 'unavailable' in page.locator('#station-opening').inner_text()
+        for value in [None, 'opening', '<img src=x onerror=alert(1)>', 1, False]:
+            page.evaluate('s => craftingPractice(s)', native | dict(station_success=value))
+            assert 'unavailable' in page.locator('#station-goal').inner_text()
         page.evaluate('s => craftingPractice(s)', native | dict(crafting_practice_trials_by_task_and_missing=[0]*108,
                                                                crafting_practice_successes_by_task_and_missing=[0]*108))
         assert page.locator('[data-task="11"][data-missing="0"]').inner_text() == '0 / 0'
@@ -90,7 +90,7 @@ def main() -> None:
         verify_activation_health(browser, (ROOT/'host/monitor.html').read_text(), args.output)
         browser.close()
     report = dict(passed=True, source='synthetic metrics; no Minecraft server',
-                  checks=['bucket mapping', 'opening separated', 'assistance labels', 'desktop/mobile bounds',
+                  checks=['bucket mapping', 'one completion goal', 'assistance labels', 'desktop/mobile bounds',
                           'invalid counts fail closed', 'zero attempts not a percentage', 'stale metrics warning',
                           'fixed fixture clock', 'exact 15-second freshness boundary'],
                   browser_errors=errors)
