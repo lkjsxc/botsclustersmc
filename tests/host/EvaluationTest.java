@@ -31,11 +31,14 @@ public final class EvaluationTest {
     }
     public static void main(String[] args)throws Exception {
         EvaluatedBundleTest.main(args);
+        ReplaySourceTest.main(args);
         for(long seed:new long[]{0,23,Long.MAX_VALUE,Long.MIN_VALUE}) {
             JsonObject accepted=EvaluationChecks.validate(valid(seed).toString(),POLICY,TASKS,2,seed,1);
             check(accepted.getAsJsonArray("trials").size()==4);
         }
         reject(r->r.addProperty("complete",false));reject(r->r.addProperty("complete","true"));
+        reject(r->r.addProperty("diagnostic_only",true));reject(r->r.addProperty("diagnostic_only","false"));
+        reject(r->r.addProperty("reset_intervention","open-workbench"));reject(r->r.add("reset_intervention",JsonNull.INSTANCE));
         reject(r->r.addProperty("stochastic",false));reject(r->r.addProperty("schema","foreign"));
         reject(r->r.addProperty("policy_updates",8));reject(r->r.addProperty("policy_updates","7"));
         reject(r->r.addProperty("policy_trained_samples",65));reject(r->r.addProperty("new_training_samples",1));
