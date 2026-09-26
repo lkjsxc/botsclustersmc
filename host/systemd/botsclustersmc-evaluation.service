@@ -1,0 +1,35 @@
+[Unit]
+Description=BotsClustersMC isolated fixed-policy evaluation
+Wants=network-online.target
+After=network-online.target botsclustersmc-training.service
+
+[Service]
+Type=oneshot
+User=coder
+Group=coder
+WorkingDirectory=/home/coder/workspace/botsclustersmc
+ExecStart=/usr/bin/java -Xmx256m host/Host.java evaluate --cases 32 --heap-gb 1
+TimeoutStartSec=900
+TimeoutStopSec=90
+KillMode=mixed
+SuccessExitStatus=143
+Environment=JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2
+UMask=0077
+Nice=15
+CPUQuota=200%
+CPUWeight=25
+MemoryHigh=2G
+MemoryMax=2560M
+MemorySwapMax=256M
+TasksMax=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/coder/workspace/botsclustersmc/.build
+ReadWritePaths=/home/coder/workspace/botsclustersmc/.cache
+ReadWritePaths=/home/coder/workspace/botsclustersmc/dist
+ReadWritePaths=/home/coder/workspace/botsclustersmc/academy
+StandardInput=null
+StandardOutput=journal
+StandardError=journal

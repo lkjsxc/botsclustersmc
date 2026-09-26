@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically measure current BotsClustersMC skills
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=30min
+AccuracySec=30s
+Unit=botsclustersmc-evaluation.service
+
+[Install]
+WantedBy=timers.target

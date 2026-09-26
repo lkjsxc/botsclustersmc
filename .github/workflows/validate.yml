@@ -32,6 +32,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Validate optional Linux service units
+        if: runner.os == 'Linux'
+        shell: bash
+        run: systemd-analyze verify host/systemd/*.service host/systemd/*.timer
       - name: Pure Java checks and real API compilation (Linux)
         if: runner.os != 'Windows'
         shell: bash
