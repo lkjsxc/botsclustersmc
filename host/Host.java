@@ -91,6 +91,13 @@ public final class Host {
             if(Files.exists(dir))try(var children=Files.list(dir)){if(children.findAny().isPresent())throw new IOException("Refusing a nonempty, unowned academy directory: "+dir+". Start in a new clone or select an empty ACADEMY.");}
             Files.createDirectories(dir);text(marker,"botsclustersmc-owned-training\n");
         }else if(!Files.readString(marker).equals("botsclustersmc-owned-training\n"))throw new IOException("Academy ownership marker does not match");
+        // Academy names are configurable: a root .gitignore cannot enumerate their paths.
+        // Ignore directories too, so descendant negations cannot expose checkpoints/world data.
+        Path ignored=dir.resolve(".gitignore");safe(ignored);
+        if(Files.exists(ignored,LinkOption.NOFOLLOW_LINKS)) {
+            if(!Files.isRegularFile(ignored,LinkOption.NOFOLLOW_LINKS)||Files.size(ignored)!=2||!Files.readString(ignored).equals("*\n"))
+                throw new IOException("Owned Academy .gitignore must contain exactly '*\\n'; refusing to overwrite custom rules: "+ignored);
+        }else Files.writeString(ignored,"*\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);
     }
     static void copyCache(Path from,Path to)throws IOException{
         if(!Files.exists(from))return;try(var stream=Files.walk(from)){for(Path p:stream.sorted().toList()){Path dest=to.resolve(from.relativize(p));safe(dest);if(Files.isDirectory(p)){Files.createDirectories(dest);continue;}if(!Files.exists(dest)){try{Files.createLink(dest,p);}catch(IOException|UnsupportedOperationException e){Files.copy(p,dest);}}}}
@@ -207,6 +214,7 @@ public final class Host {
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
         System.out.println("PASS real-API compilation of live diagnostic fixtures; not executed by source tests.");
         for(String test:List.of("CoreTest","MechanicsTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","HarvestTraceTest","StationTest","CraftingCurriculumTest","CraftingTraceTest","BalanceTest","UpdateTest","CourseTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"AcademyBoundaryTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}
