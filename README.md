@@ -30,6 +30,9 @@ and creates `academy/`. Port **25565**; online authentication remains enabled fo
 human observers because NPCs do not log in. Startup is foreground. In another
 terminal, use `./status.sh`, `./console.sh bots status`, and `./stop.sh`.
 Wait for final save and process exit before backing up the whole `academy/`.
+Every owned Academy, including a custom `ACADEMY` name, receives a local Git-ignore
+rule before startup to keep runtime data out of ordinary source commits. Conflicting
+existing rules fail closed without being overwritten; see [Academy data](docs/ACADEMY_DATA.md).
 
 `BOTS=auto` selects `min(2048, effective CPUs * 64, selected heap GiB * 128)`.
 Explicit settings are never silently reduced. A different population needs a new
