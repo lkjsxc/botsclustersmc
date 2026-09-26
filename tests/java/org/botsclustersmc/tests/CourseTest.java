@@ -19,6 +19,7 @@ public final class CourseTest {
     }
     public static void main(String[] args)throws Exception{
         ReviewEffortTest.main(args);
+        StartupCoverageTest.main(args);
         LessonOutcomes outcomes=new LessonOutcomes();
         outcomes.record(Task.BREAK_LOG,Course.Kind.PRACTICE,false);outcomes.record(Task.BREAK_LOG,Course.Kind.PROBE,true);
         outcomes.record(Task.BREAK_LOG,Course.Kind.EXAM,true);LessonOutcomes.Totals result=outcomes.snapshot()[5];

@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.*;
 public final class TrainingPlugin extends RuntimePlugin {
     private final LessonOutcomes outcomes=new LessonOutcomes();
     private final CraftingOutcomes craftingOutcomes=new CraftingOutcomes();
+    private StartupCoverage startupCoverage;
     private Course course;private Learner learner;private Adam restoredOptimizer;private int count,islandSize;
     private final Map<Long,ArenaLayout> arenas=new ConcurrentHashMap<>();private final AtomicInteger prepared=new AtomicInteger(),preparing=new AtomicInteger(),nextArena=new AtomicInteger();
     private final LongAdder buffered=new LongAdder(),episodesEnded=new LongAdder(),examTransitions=new LongAdder();
@@ -27,11 +28,11 @@ public final class TrainingPlugin extends RuntimePlugin {
             throw new IllegalStateException("Training plugin only runs in a launcher-owned isolated server (-Dbcmc.training=true).");
         count=bounded("count",128,1,maximum);Path checkpoint=getDataFolder().toPath().resolve("training.bcmc");
         if(Files.exists(checkpoint,LinkOption.NOFOLLOW_LINKS)){
-            TrainingState state=TrainingState.read(checkpoint);course=Course.decode(state.course(),count);restoredOptimizer=state.optimizer();getLogger().info("Restored exact optimizer/model: updates="+state.policy().updates()+", samples="+state.policy().samples()+", optimizer-step="+restoredOptimizer.step());return state.policy();
+            TrainingState state=TrainingState.read(checkpoint);course=Course.decode(state.course(),count);restoredOptimizer=state.optimizer();startupCoverage=new StartupCoverage(count,true);getLogger().info("Restored exact optimizer/model: updates="+state.policy().updates()+", samples="+state.policy().samples()+", optimizer-step="+restoredOptimizer.step());return state.policy();
         }
         if(Files.exists(getDataFolder().toPath().resolve("policy.bcmc"),LinkOption.NOFOLLOW_LINKS))
             throw new IllegalStateException("Missing training.bcmc in a directory containing a policy; restore a complete stopped backup or use a fresh Academy.");
-        course=new Course(count,seed);restoredOptimizer=new Adam();return Policy.initialize(seed);
+        course=new Course(count,seed);restoredOptimizer=new Adam();startupCoverage=new StartupCoverage(count,false);return Policy.initialize(seed);
     }
     @Override protected void initialize(){
         RuntimeBudget budget=RuntimeBudget.automatic(Runtime.getRuntime().availableProcessors());
@@ -56,6 +57,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         if(session.lesson!=null)return true;
         if(course.needsExam(npc.id)){Policy snapshot=policy;course.beginExam(npc.id,snapshot.updates());session.examPolicy=snapshot;}
         Course.Lesson lesson=course.issue(npc.id);if(lesson==null)return false;
+        startupCoverage.record(npc.id,course.stage(npc.id),lesson);
         session.lesson=lesson;TrainingEnvironment.reset(this,npc,session,lesson);return false;
     }
     @Override public Policy policyFor(Npc npc){TrainingEnvironment.Session s=(TrainingEnvironment.Session)npc.context;return s.lesson!=null&&s.lesson.kind()==Course.Kind.EXAM?Objects.requireNonNull(s.examPolicy,"missing frozen actor policy"):policy;}
@@ -152,6 +154,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("crafting_practice_successes_by_task_and_missing",Arrays.toString(crafting.successes()));
         s.put("crafting_practice_bucket_width",CraftingOutcomes.BUCKETS);
         s.put("station_success","task-completion");
+        if(startupCoverage!=null)s.putAll(startupCoverage.status());
         ActivationHealth.Measurement activation=learner.activationHealth();
         if(activation!=null)s.putAll(activation.status());
         s.put("learner_algorithm","vtrace-guarded-adam");s.put("aim_curriculum","progressive-settling");s.put("harvest_curriculum","sustained-contact-cost");s.put("station_curriculum","completion-preserving-resets");s.put("update_samples",learner.updateSamples);s.put("update_learning_rate",learner.learningRate);s.put("update_mean_policy_kl",learner.meanPolicyKl);s.put("update_max_policy_kl",learner.maxPolicyKl);s.put("update_backtracks",learner.guardBacktracks.sum());s.put("update_rejected_samples",learner.guardRejectedSamples.sum());s.put("batch_wait_ns",learner.batchWaitNanos.sum());s.put("learner_compute_ns",learner.computeNanos.sum());s.put("gradient_norm",learner.gradientNorm);s.put("value_loss",learner.valueLoss);s.put("entropy",learner.entropy);s.put("importance_mean",learner.importance);return s;
