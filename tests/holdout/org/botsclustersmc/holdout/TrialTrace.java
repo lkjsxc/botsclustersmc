@@ -3,6 +3,7 @@ package org.botsclustersmc.holdout;
 import java.util.Locale;
 import java.util.Arrays;
 import org.botsclustersmc.core.Pocket;
+import org.botsclustersmc.core.MenuFocus;
 import org.botsclustersmc.core.Policy;
 import org.botsclustersmc.core.Stack;
 import java.util.Map;
@@ -19,6 +20,7 @@ final class TrialTrace {
     private final StringBuilder firstClicks=new StringBuilder();
     private int recordedClicks;
     private CraftingTrace crafting;
+    private HarvestTrace harvest;
     void observe(Npc npc,Npc.Applied previous,Frame next,Policy policy) {
         int task=npc.goal.task().ordinal();
         if(CraftingTrace.applies(task)) {
@@ -50,7 +52,13 @@ final class TrialTrace {
         }
         yaw+=Math.abs(next.yawError());pitch+=Math.abs(next.pitchError());closest=Math.min(closest,next.distance());
         String target=(int)Math.floor(npc.goal.x())+":"+(int)Math.floor(npc.goal.y())+":"+(int)Math.floor(npc.goal.z())+":";
-        if(npc.mining!=null&&npc.mining.startsWith(target))maxTargetMiningTicks=Math.max(maxTargetMiningTicks,npc.miningTicks);
+        boolean contact=npc.mining!=null&&npc.mining.startsWith(target);
+        if(contact)maxTargetMiningTicks=Math.max(maxTargetMiningTicks,npc.miningTicks);
+        if(HarvestTrace.applies(task)) {
+            if(harvest==null)harvest=new HarvestTrace();
+            harvest.observe(MenuFocus.active(previous.frame().observation()[42]!=0,action[6]),
+                action[4],Stack.kind(pocket.held().item()),contact,contact?npc.miningTicks:0);
+        }
     }
     private static long total(Map<String,Long> counts) {
         long total=0;for(long value:counts.values())total+=value;return total;
@@ -63,6 +71,7 @@ final class TrialTrace {
             ",\"gui_operations\":%s,\"clicked_slots\":%s,\"menu_observations\":%s,\"menu_open_observations\":%d,\"recipe_visible_observations\":%d,\"max_grid_units\":%d,\"max_crafted_units\":%d,\"drop_decisions\":%d,\"use_decisions\":%d,\"minimum_raw_units\":%d,\"first_clicks_op_slot_menu_cursor_kind_count\":\"%s\"}",
             Arrays.toString(guiOperations),Arrays.toString(clickedSlots),Arrays.toString(menus),openObservations,recipeObservations,
             maxGridUnits,maxCrafted,dropDecisions,useDecisions,minRawUnits,firstClicks)
-            .replaceFirst("}$",crafting==null?"}":",\"crafting\":"+crafting.json()+"}");
+            .replaceFirst("}$",(crafting==null?"":",\"crafting\":"+crafting.json())
+                +(harvest==null?"":",\"harvest\":"+harvest.json())+"}");
     }
 }

@@ -7,7 +7,19 @@ import org.botsclustersmc.core.Task;
 public final class HarvestPractice {
     private HarvestPractice() {}
     public static boolean applies(Task task) {
-        return task==Task.BREAK_LOG||task==Task.COLLECT_LOG;
+        return task==Task.BREAK_LOG||task==Task.COLLECT_LOG||task==Task.MINE_COBBLESTONE;
+    }
+    public static int targetBlockKind(Task task) {
+        return task==Task.MINE_COBBLESTONE?9:task==Task.BREAK_LOG||task==Task.COLLECT_LOG?2:-1;
+    }
+    /** Harvestable contact, not merely a dig request or progress on an unrelated block.
+     * Durations match the current primitive actuator: log 60 ticks, stone with pick 40.
+     * Bare-hand stone breaking cannot yield the cobblestone required by this goal. */
+    public static double contactProgress(Task task,boolean targetContact,int heldKind,int ticks) {
+        if(ticks<0)throw new IllegalArgumentException("Negative mining ticks");
+        if(!applies(task)||!targetContact)return 0;
+        if(task==Task.MINE_COBBLESTONE&&heldKind!=6&&heldKind!=7)return 0;
+        return Math.min(1,ticks/(task==Task.MINE_COBBLESTONE?40.0:60.0));
     }
     public static AimPractice.Pose reset(Task task,Course.Kind kind,double difficulty,
             float yaw,float pitch,double targetYaw,double targetPitch,RandomSource rng) {
@@ -25,7 +37,7 @@ public final class HarvestPractice {
         double time=ticks/4.0;
         if(targetBroken) {
             // A collected drop remains a real, provenance-checked inventory outcome.
-            return task==Task.COLLECT_LOG?-.025*Math.min(1,Math.max(0,distance-.6)/6)*time:0;
+            return task==Task.BREAK_LOG?0:-.025*Math.min(1,Math.max(0,distance-.6)/6)*time;
         }
         double alignment=.025*Math.min(1,Math.abs(yawError)/90)
             +.025*Math.min(1,Math.abs(pitchError)/45);
