@@ -1,6 +1,6 @@
 # botsclustersmc — Java製RL学習環境と推論プラグイン
 
-[English](README.md) · [設計と制約](docs/ARCHITECTURE.md) · [学習](docs/LEARNING.md) · [検証記録](docs/VALIDATION.md)
+[English](README.md) · [設計と制約](docs/ARCHITECTURE.md) · [学習](docs/LEARNING.md) · [検証記録](docs/VALIDATION.md) · [常駐運用](docs/SERVICE.md)
 
 **Minecraft内のNPCを、報酬だけで学習する共有ニューラル方策で動かす実験です。** 学習側と推論側を分離しました。学習には専用サーバーを使い、実際のワールドへの導入は `botsclustersmc.jar` と `policy.bcmc` の2ファイルです。Rust、Python、Maven、Gradle、外部の推論プロセスは通常運用に不要です。
 

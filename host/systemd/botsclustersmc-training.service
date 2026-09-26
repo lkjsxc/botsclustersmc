@@ -1,0 +1,37 @@
+[Unit]
+Description=BotsClustersMC training on the shared Coder workspace
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=coder
+Group=coder
+WorkingDirectory=/home/coder/workspace/botsclustersmc
+ExecStart=/usr/bin/java -Xmx384m host/Host.java start
+KillMode=mixed
+TimeoutStopSec=90
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=30
+Environment=JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=8
+UMask=0077
+Nice=10
+CPUQuota=600%
+CPUWeight=50
+MemoryHigh=5G
+MemoryMax=5632M
+MemorySwapMax=512M
+TasksMax=512
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/coder/workspace/botsclustersmc
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

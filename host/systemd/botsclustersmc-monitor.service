@@ -1,0 +1,29 @@
+[Unit]
+Description=BotsClustersMC private read-only dashboard
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=coder
+Group=coder
+WorkingDirectory=/home/coder/workspace/botsclustersmc
+ExecStart=/usr/bin/java -Xmx256m -XX:ActiveProcessorCount=2 host/Monitor.java academy/server/plugins/BotsClustersMC 127.0.0.1 8765
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+UMask=0077
+Nice=10
+CPUQuota=50%
+MemoryMax=512M
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

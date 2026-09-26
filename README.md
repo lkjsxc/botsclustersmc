@@ -1,6 +1,6 @@
 # botsclustersmc
 
-[日本語の起動・運用手順](README.ja.md) · [Architecture](docs/ARCHITECTURE.md) · [Learning](docs/LEARNING.md) · [Validation](docs/VALIDATION.md)
+[日本語の起動・運用手順](README.ja.md) · [Architecture](docs/ARCHITECTURE.md) · [Learning](docs/LEARNING.md) · [Validation](docs/VALIDATION.md) · [Linux service operation](docs/SERVICE.md)
 
 A Java-only, reward-trained Minecraft NPC experiment, separated into an isolated
 training server and a self-contained Paper/Folia inference plugin. One current
