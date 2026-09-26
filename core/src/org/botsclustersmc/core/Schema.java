@@ -5,7 +5,7 @@ import java.util.Arrays;
 /** One current semantic contract, independent of server protocol and actor count. */
 public final class Schema {
     private Schema() {}
-    public static final String ID = "bcmc-citizen-egocentric-context";
+    public static final String ID = "bcmc-citizen-task-experts";
     public static final int INPUTS = 512;
     public static final int HIDDEN = 96;
     public static final int[] HEADS = {9, 5, 5, 3, 4, 9, 6, 64};

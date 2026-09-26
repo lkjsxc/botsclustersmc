@@ -15,6 +15,7 @@ public final class PolicyFile {
         try(DataOutputStream d=new DataOutputStream(buffer)) {
             d.writeUTF(MAGIC); d.writeUTF(Schema.ID); d.writeInt(Schema.INPUTS); d.writeInt(Schema.HIDDEN);
             d.writeInt(Schema.HEADS.length); for(int n:Schema.HEADS) d.writeInt(n);
+            d.writeInt(Policy.EXPERTS);d.writeInt(Policy.NETWORK_PARAMETERS);
             d.writeLong(policy.updates()); d.writeLong(policy.samples());
             float[] weights=policy.copyWeights(); d.writeInt(weights.length); for(float w:weights) d.writeFloat(w);
         }
@@ -26,6 +27,7 @@ public final class PolicyFile {
             if(!MAGIC.equals(d.readUTF()) || !Schema.ID.equals(d.readUTF())) throw new IOException("incompatible policy schema; retrain with this source");
             if(d.readInt()!=Schema.INPUTS || d.readInt()!=Schema.HIDDEN || d.readInt()!=Schema.HEADS.length) throw new IOException("policy dimensions");
             for(int n:Schema.HEADS) if(d.readInt()!=n) throw new IOException("action meaning/dimensions");
+            if(d.readInt()!=Policy.EXPERTS||d.readInt()!=Policy.NETWORK_PARAMETERS)throw new IOException("expert dimensions");
             long updates=d.readLong(),samples=d.readLong();
             if(d.readInt()!=Policy.PARAMETERS) throw new IOException("parameter length");
             float[] weights=new float[Policy.PARAMETERS]; for(int i=0;i<weights.length;i++) weights[i]=d.readFloat();

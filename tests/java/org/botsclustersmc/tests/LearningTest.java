@@ -11,7 +11,7 @@ public final class LearningTest {
             for(int update=0;update<400;update++){
                 List<Trajectory> batch=new ArrayList<>();
                 for(int i=0;i<64;i++){float[] x=new float[Schema.INPUTS];x[0]=1;x[1]=(i%2==0?1:-1);p.forward(x,mask,w);Distribution.Choice action=Distribution.choose(w.probabilities,random,false);float reward=action.actions()[0]==(x[1]>0?1:0)?1:-1;Transition t=new Transition(x,mask,action.actions(),action.logProbability(),p.updates(),reward,4,x,mask,true);batch.add(new Trajectory(i,update,update,List.of(t)));}
-                Gradient.Result gradient=Gradient.compute(p,batch);Adam.Update result=adam.update(p,gradient.weights(),gradient.samples(),.0003);p=result.policy();adam=result.optimizer();
+                Gradient.Result gradient=Gradient.compute(p,batch);Adam.Update result=adam.update(p,gradient.weights(),UpdateGuard.expertSamples(batch),.0003);p=result.policy();adam=result.optimizer();
             }
             double probability=0;for(int bit:new int[]{-1,1}){float[] x=new float[Schema.INPUTS];x[0]=1;x[1]=bit;p.forward(x,mask,w);probability+=w.probabilities[bit>0?1:0]/2;}
             if(probability<.95)throw new AssertionError("bandit seed="+seed+" probability="+probability);

@@ -14,7 +14,8 @@ public final class ExportTest {
         try {
             Files.createDirectories(data);Files.writeString(academy.resolve(".botsclustersmc-academy"),"botsclustersmc-owned-training\n");
             Policy initial=Policy.initialize(7);float[] gradient=new float[Policy.PARAMETERS];gradient[0]=1;
-            Adam.Update update=new Adam().update(initial,gradient,32,.0003);
+            int[] counts=new int[Policy.EXPERTS];counts[0]=32;
+            Adam.Update update=new Adam().update(initial,gradient,counts,.0003);
             TrainingState state=new TrainingState(update.policy(),update.optimizer(),new Course(2,7).encode());
             Path checkpoint=data.resolve("training.bcmc"),cached=data.resolve("policy.bcmc");state.write(checkpoint);PolicyFile.write(cached,initial);
             try(FileChannel channel=FileChannel.open(academy.resolve("run.lock"),StandardOpenOption.CREATE,StandardOpenOption.WRITE);FileLock lock=channel.lock()){

@@ -14,7 +14,7 @@ final class ReplaySource {
     private static final int MIB=1024*1024;
     private static final Map<String,Integer> LIMITS=Map.of(
         "README.txt",16384,"evaluation.json",131072,"evaluation-details.json",2*MIB,
-        "plugins/botsclustersmc.jar",8*MIB,"plugins/BotsClustersMC/policy.bcmc",4*MIB);
+        "plugins/botsclustersmc.jar",8*MIB,"plugins/BotsClustersMC/policy.bcmc",Schema.MAX_MODEL_BYTES);
     record Snapshot(Policy policy,List<Integer> tasks,long seed,long evaluatedAt,String inferenceHash) {
         Snapshot {tasks=List.copyOf(tasks);}
         void describe(JsonObject report) {

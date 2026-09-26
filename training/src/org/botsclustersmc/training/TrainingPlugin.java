@@ -144,11 +144,15 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("frontier_ticks_this_process",effort.frontierTicks());
         s.put("review_ticks_this_process",effort.reviewTicks());
         s.put("exam_ticks_this_process",effort.examTicks());
-        s.put("task_balance","bounded-batch-loss");
+        s.put("task_balance","independent-expert-mean");
+        s.put("policy_experts",Policy.EXPERTS);s.put("policy_parameters",Policy.PARAMETERS);
+        s.put("optimizer_expert_steps",Arrays.toString(learner.optimizer().expertSteps()));
+        s.put("gradient_norm_scope","maximum-expert-mean-before-clipping");
+        s.put("learning_rate_scope","maximum-active-expert-rate");
         s.put("learned_task_samples_this_process",Arrays.toString(learner.taskSamples()));
         TaskBalance last=learner.updateBalance();
         s.put("update_task_samples",Arrays.toString(last==null?new int[TaskBalance.TASKS+1]:last.counts()));
-        s.put("update_task_weights",Arrays.toString(last==null?new double[TaskBalance.TASKS+1]:last.weights()));
+        s.put("update_task_weights",Arrays.toString(last==null?new double[TaskBalance.TASKS+1]:Arrays.stream(last.counts()).mapToDouble(n->n==0?0:1).toArray()));
         CraftingOutcomes.Totals crafting=craftingOutcomes.snapshot();
         s.put("crafting_practice_trials_by_task_and_missing",Arrays.toString(crafting.trials()));
         s.put("crafting_practice_successes_by_task_and_missing",Arrays.toString(crafting.successes()));

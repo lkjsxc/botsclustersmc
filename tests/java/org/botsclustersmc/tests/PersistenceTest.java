@@ -19,7 +19,8 @@ public final class PersistenceTest {
         Path root=Files.createTempDirectory("bcmc-persistence-").toRealPath();
         try {
             Policy initial=Policy.initialize(7);float[] gradient=new float[Policy.PARAMETERS];gradient[0]=1;
-            Adam.Update update=new Adam().update(initial,gradient,32,.0003);
+            int[] counts=new int[Policy.EXPERTS];counts[0]=32;
+            Adam.Update update=new Adam().update(initial,gradient,counts,.0003);
             TrainingState state=new TrainingState(update.policy(),update.optimizer(),new Course(2,7).encode());
             Path checkpoint=root.resolve("training.bcmc"),cached=root.resolve("policy.bcmc"),exported=root.resolve("deploy/policy.bcmc");
             state.write(checkpoint);PolicyFile.write(cached,initial);

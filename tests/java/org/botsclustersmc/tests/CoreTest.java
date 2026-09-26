@@ -35,7 +35,7 @@ public final class CoreTest {
         p.forward(obs[0],mask,ws);Distribution.Choice choice=Distribution.choose(ws.probabilities,rng,false);check(Arrays.equals(choice.actions(),Schema.IDLE),"mechanical mask");near(choice.logProbability(),0,1e-8,"deterministic probability");
         mask=Schema.unrestrictedMask();p.forward(obs[0],mask,ws);float[] gradient=new float[Policy.PARAMETERS];float[] d=new float[Schema.OUTPUTS];for(int j=0;j<d.length;j++)d[j]=rng.symmetric(.1);p.backward(obs[0],ws,d,gradient);
         int[] indices={0,1234,Policy.B1,Policy.W2+201,Policy.B2,Policy.W3+34,Policy.B3+6};
-        for(int k:indices){float[] weights=p.copyWeights();float h=.002f;weights[k]+=h;double plus=linear(new Policy(weights,0,0),obs[0],mask,d);weights[k]-=2*h;double minus=linear(new Policy(weights,0,0),obs[0],mask,d);near(gradient[k],(plus-minus)/(2*h),2e-4,"network gradient "+k);}
+        for(int local:indices){int k=Policy.expert(obs[0])*Policy.NETWORK_PARAMETERS+local;float[] weights=p.copyWeights();float h=.002f;weights[k]+=h;double plus=linear(new Policy(weights,0,0),obs[0],mask,d);weights[k]-=2*h;double minus=linear(new Policy(weights,0,0),obs[0],mask,d);near(gradient[k],(plus-minus)/(2*h),2e-4,"network gradient "+k);}
         byte[] bytes=PolicyFile.encode(p);Policy decoded=PolicyFile.decode(bytes);check(Arrays.equals(p.copyWeights(),decoded.copyWeights()),"policy exact roundtrip");
         byte[] corrupt=bytes.clone();corrupt[20]^=1;fails(()->PolicyFile.decode(corrupt),"checksum corruption");fails(()->PolicyFile.decode(Arrays.copyOf(bytes,30)),"truncated policy");
         float[] invalid=p.copyWeights();invalid[0]=Float.NaN;fails(()->new Policy(invalid,0,0),"NaN policy");
@@ -46,8 +46,9 @@ public final class CoreTest {
         if(hasLink){fails(()->PolicyFile.read(linked),"symlink read");fails(()->PolicyFile.write(linked,p),"symlink replace");}
         VTrace.Returns vt=VTrace.compute(new double[]{1,2},new double[]{.9,0},new double[]{.5,.3},new double[]{.3,0},new double[]{0,0},new boolean[]{true,false});near(vt.values()[0],2.8,1e-12,"on-policy return");near(vt.values()[1],2,1e-12,"terminal return");near(vt.advantages()[0],2.3,1e-12,"actor advantage");
         vt=VTrace.compute(new double[]{1},new double[]{.9},new double[]{.5},new double[]{.7},new double[]{Math.log(.5)},new boolean[]{false});near(vt.values()[0],1.065,1e-12,"rho half bootstrapped fragment");near(VTrace.discount(8,false),Math.pow(.997,2),1e-12,"actual ticks");
-        Adam adam=new Adam();Adam.Update updated=adam.update(p,gradient,1,.0003);check(updated.policy().updates()==1&&updated.optimizer().step()==1,"Adam identity");check(adam.step()==0&&p.updates()==0,"immutable transaction");
-        gradient[0]=Float.NaN;fails(()->adam.update(p,gradient,1,.0003),"invalid optimizer gradient");check(adam.step()==0,"failed optimizer unchanged");
+        int[] counts=new int[Policy.EXPERTS];counts[Policy.expert(obs[0])]=1;
+        Adam adam=new Adam();Adam.Update updated=adam.update(p,gradient,counts,.0003);check(updated.policy().updates()==1&&updated.optimizer().step()==1,"Adam identity");check(adam.step()==0&&p.updates()==0,"immutable transaction");
+        gradient[0]=Float.NaN;fails(()->adam.update(p,gradient,counts,.0003),"invalid optimizer gradient");check(adam.step()==0,"failed optimizer unchanged");
         TrainingState state=new TrainingState(updated.policy(),updated.optimizer(),new byte[]{1,2,3});TrainingState restored=TrainingState.decode(state.encode());check(Arrays.equals(state.policy().copyWeights(),restored.policy().copyWeights()),"training weights roundtrip");check(Arrays.equals(state.optimizer().second(),restored.optimizer().second()),"Adam exact resume");
         pool(p,obs[0]);poolCompletionBarrier(p,obs[0]);learner(p,obs[0]);
         System.out.println("PASS core checks="+checks+" parameters="+Policy.PARAMETERS);

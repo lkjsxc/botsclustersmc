@@ -82,7 +82,7 @@ public final class Learner implements AutoCloseable {
                     List<Future<MeasuredGradient>> futures=new ArrayList<>();
                     for(List<Trajectory> group:groups)futures.add(kernels.submit(()->{
                         var health=new ActivationHealth.Accumulator(target.updates(),Schema.HIDDEN,TaskBalance.TASKS+1);
-                        Gradient.Result gradient=Gradient.compute(target,group,balance,health);
+                        Gradient.Result gradient=Gradient.compute(target,group,null,health);
                         return new MeasuredGradient(gradient,health.snapshot());
                     }));
                     var health=new ActivationHealth.Accumulator(target.updates(),Schema.HIDDEN,TaskBalance.TASKS+1);

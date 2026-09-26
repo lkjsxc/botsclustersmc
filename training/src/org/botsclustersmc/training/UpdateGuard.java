@@ -35,15 +35,28 @@ public final class UpdateGuard {
         }
         return new Change(sum/samples.size(),maximum);
     }
+    public static int[] expertSamples(List<Trajectory> batch) {
+        int[] counts=new int[Policy.EXPERTS];
+        for(Trajectory trajectory:batch)for(Transition transition:trajectory.steps()) {
+            int task=Policy.expert(transition.observation());counts[task]=Math.addExact(counts[task],1);
+        }
+        return counts;
+    }
     public static Result update(Policy policy,Adam optimizer,float[] gradient,int count,List<Trajectory> batch) {
         List<Transition> samples=observations(batch);if(samples.isEmpty())throw new IllegalArgumentException("Empty update");
         List<double[]> before=distributions(policy,samples);
-        double rate=.00015*Math.sqrt(Math.min(1,count/512.0));
+        int[] counts=expertSamples(batch);
+        if(Arrays.stream(counts).sum()!=count)throw new IllegalArgumentException("expert sample accounting");
+        double[] rates=new double[Policy.EXPERTS];double rate=0;
+        for(int task=0;task<Policy.EXPERTS;task++) {
+            rates[task]=.00015*Math.sqrt(Math.min(1,counts[task]/512.0));rate=Math.max(rate,rates[task]);
+        }
         for(int attempt=0;attempt<12;attempt++,rate*=.5) {
-            Adam.Update candidate=optimizer.update(policy,gradient,count,rate);
+            Adam.Update candidate=optimizer.update(policy,gradient,counts,rates);
             Change change=measure(candidate.policy(),samples,before);
             if(Double.isFinite(change.mean())&&change.mean()<=.005&&change.maximum()<=.05)
                 return new Result(candidate,rate,change,attempt);
+            for(int task=0;task<rates.length;task++)rates[task]*=.5;
         }
         // Explicitly accounted rejection; caller retains the original policy/optimizer.
         return new Result(null,0,new Change(0,0),12);

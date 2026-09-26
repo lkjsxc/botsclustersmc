@@ -16,6 +16,7 @@ public record TrainingState(Policy policy,Adam optimizer,byte[] course) {
         try(DataOutputStream out=new DataOutputStream(bytes)) {
             out.writeUTF(MAGIC);out.writeUTF(Schema.ID);
             byte[] p=PolicyFile.encode(policy);out.writeInt(p.length);out.write(p);out.writeLong(optimizer.step());
+            out.writeInt(Policy.EXPERTS);for(long clock:optimizer.expertSteps())out.writeLong(clock);
             for(float v:optimizer.first())out.writeFloat(v);for(float v:optimizer.second())out.writeFloat(v);
             out.writeInt(course.length);out.write(course);
         }
@@ -26,11 +27,13 @@ public record TrainingState(Policy policy,Adam optimizer,byte[] course) {
             if(!in.readUTF().equals(MAGIC)||!in.readUTF().equals(Schema.ID))throw new IOException("training schema differs; no migration");
             int n=in.readInt();if(n<0||n>Schema.MAX_MODEL_BYTES)throw new IOException("policy length");
             Policy policy=PolicyFile.decode(in.readNBytes(n));long step=in.readLong();
+            if(in.readInt()!=Policy.EXPERTS)throw new IOException("optimizer expert count");
+            long[] clocks=new long[Policy.EXPERTS];for(int i=0;i<clocks.length;i++)clocks[i]=in.readLong();
             float[] first=new float[Policy.PARAMETERS],second=new float[Policy.PARAMETERS];
             for(int i=0;i<first.length;i++)first[i]=in.readFloat();for(int i=0;i<second.length;i++)second[i]=in.readFloat();
             int size=in.readInt();if(size<0||size>16_000_000)throw new IOException("course length");
             byte[] course=in.readNBytes(size);if(course.length!=size||in.read()!=-1)throw new IOException("training trailing/truncated bytes");
-            try{return new TrainingState(policy,new Adam(first,second,step),course);}catch(IllegalArgumentException e){throw new IOException("invalid training state",e);}
+            try{return new TrainingState(policy,new Adam(first,second,step,clocks),course);}catch(IllegalArgumentException e){throw new IOException("invalid training state",e);}
         }
     }
     public void write(Path file)throws IOException{PolicyFile.atomicWrite(file,encode());}
