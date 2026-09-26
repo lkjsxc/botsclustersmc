@@ -14,10 +14,12 @@ From the same checkout and Academy configuration:
 ./evaluate.sh --tasks 0,1,2,3,4,5,6 --cases 32
 ./evaluate.sh --watch --interval 600
 ./evaluate.sh --tasks 0,1,2,3,4,5,6,7,8,9,10 --export dist/evaluated.zip
+./evaluate.sh --from dist/evaluated.zip --seed 2026092607 --export dist/retested.zip
 ```
 
 Windows uses `evaluate.cmd`. The evaluation command requires an already accepted
-Minecraft EULA and an existing owned Academy with a valid `training.bcmc`.
+Minecraft EULA and an existing owned Academy. Ordinary checkpoint evaluation
+requires a valid `training.bcmc`; `--from` uses a retained evaluated ZIP instead.
 It uses the JDK and Java libraries in the pinned server distribution; no Python,
 npm, external inference server or API key is required for these operator commands.
 The optional developer acceptance scripts still use Python and a browser driver.
@@ -126,3 +128,58 @@ same-filesystem hard link. Even a target created concurrently is not replaced.
 A filesystem without this operation fails closed and cleans the temporary file;
 choose a local filesystem supporting hard links instead of a network/FAT volume.
 The private monitor does not serve the ZIP or expose a download/command endpoint.
+
+## Re-evaluate the same saved model
+
+`--from EVALUATED.zip` pins the model from a previously exported evaluated bundle.
+It does not read, restore or replace the live checkpoint or optimizer. Use this
+when comparing different case seeds without silently switching to a newer model.
+The source ZIP is read once, validated and left unchanged. Repeated evaluation
+still uses stochastic primitive actions, the full task reset and no learning.
+
+```sh
+./evaluate.sh --from dist/evaluated.zip --cases 64 --seed 2026092607 \
+  --export dist/retested.zip
+```
+
+Without `--tasks`, the new run uses the task list in the source report, not the
+live curriculum's reached stage. `--cases` still defaults to 32 and `--seed` still
+defaults to a fresh random seed; neither is implicitly copied from the old report.
+Specify both to reproduce a case specification. Identical seeds do not promise
+identical wall-clock scheduling in a real asynchronous Minecraft server.
+`--from` cannot be combined with `--watch`. The ordinary single-evaluator Academy
+lock and existing EULA, resource, publication and no-overwrite rules still apply.
+An existing owned Academy is used as a result location, but its checkpoint may
+be absent or unreadable as model data; there is no fallback to that checkpoint.
+
+The source must contain exactly the five exported entries. The reader bounds
+both compressed archive and decoded entry sizes, rejects duplicate/unknown names,
+validates model format, model/plugin byte identities, all old trial identities
+and counts, and requires the summary to agree with the complete report. Explicitly
+assisted or reset-intervention reports cannot be accepted as standard evaluations.
+This checks internal consistency, not external authenticity of someone else's
+claimed results. The new run supplies its own independently completed trials.
+
+**Only model bytes are reused. The archived JAR is never extracted or executed.**
+The current checkout supplies the inference, environment and evaluator code.
+A model-schema mismatch is rejected, without conversion or random initialization.
+Each new report records `policy_source: evaluated-bundle`, source evaluation seed
+and timestamp, the source inference build identity, and
+`same_inference_build_as_source`. A false value means the same model was tested
+with different inference code; it must not be described as an identical-build
+replication. Server, training-runtime and evaluator identities in the new report
+always describe the actual new run. Even a true value does not establish identical
+server/evaluator/environment versions; inspect those identities separately.
+
+`--export` retains a new bundle containing the unchanged model and the **current**
+inference build with its new outcomes. The prior bundle and failed trials remain
+untouched. Replaying a strong model neither installs it in the learner nor changes
+course certificates. A replay still publishes to the selected Academy's last
+completed evaluation panel, so its tested policy may be older than live training.
+
+### 運用メモ
+
+保存済みの評価ZIPに `--from` を指定すると、学習中に重みが更新されても、同じ重みを
+別の乱数条件で試せます。ZIP内のプラグインは実行せず、現在のソースから作った実行環境を
+使います。入力ZIPは変更しません。再評価結果を残す `--export` には別の新しい名前を指定し、
+成功数だけでなく失敗した試行も確認してください。学習用データや進級記録には戻しません。

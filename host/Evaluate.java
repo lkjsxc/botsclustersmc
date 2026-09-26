@@ -10,10 +10,10 @@ import org.botsclustersmc.training.*;
 
 /** Operator-facing fixed-policy evaluation. It never changes the live Academy. */
 public final class Evaluate {
-    static final String HELP="evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600] [--export FILE.zip]\nDefault tasks cover every reached stage. A completed test is not a guarantee of mastery.";
-    record Options(List<Integer> tasks,int cases,long seed,boolean fixedSeed,int heap,int port,boolean watch,int interval,Path export) {
+    static final String HELP="evaluate [--tasks 0,1,2] [--cases 32] [--seed N] [--heap-gb 2] [--port 0] [--watch --interval 600] [--from EVALUATED.zip] [--export FILE.zip]\nDefault tasks cover every reached stage, or the source bundle's task list. A completed test is not a guarantee of mastery.";
+    record Options(List<Integer> tasks,int cases,long seed,boolean fixedSeed,int heap,int port,boolean watch,int interval,Path export,Path from) {
         static Options parse(String[] args) {
-            List<Integer> tasks=List.of();int cases=32,heap=2,port=0,interval=600;long seed=0;boolean fixed=false,watch=false;Path export=null;
+            List<Integer> tasks=List.of();int cases=32,heap=2,port=0,interval=600;long seed=0;boolean fixed=false,watch=false;Path export=null,from=null;
             Set<String> seen=new HashSet<>();
             for(int i=0;i<args.length;i++) {
                 String key=args[i];if(!seen.add(key))throw new IllegalArgumentException("Duplicate option: "+key);
@@ -27,13 +27,15 @@ public final class Evaluate {
                     case "--interval"->interval=Integer.parseInt(value);
                     case "--seed"->{seed=Long.parseLong(value);fixed=true;}
                     case "--export"->export=Path.of(value);
+                    case "--from"->from=Path.of(value);
                     default->throw new IllegalArgumentException("Unknown option: "+key);
                 }
             }
             if(cases<1||cases>64||heap<1||heap>8||interval<60||interval>86400||(port!=0&&(port<1024||port>65535||port==25565)))throw new IllegalArgumentException("Options exceed the documented bounds");
             if(!watch&&seen.contains("--interval"))throw new IllegalArgumentException("--interval requires --watch");
             if(export!=null&&watch)throw new IllegalArgumentException("--export is a one-shot immutable artifact; omit --watch");
-            return new Options(tasks,cases,seed,fixed,heap,port,watch,interval,export);
+            if(from!=null&&watch)throw new IllegalArgumentException("--from pins one policy; omit --watch");
+            return new Options(tasks,cases,seed,fixed,heap,port,watch,interval,export,from);
         }
     }
     private final Host host;private final Options options;private final Path tools,folder;
@@ -48,6 +50,7 @@ public final class Evaluate {
     private void status(String state,String detail)throws IOException {
         JsonObject data=new JsonObject();data.addProperty("state",state);data.addProperty("detail",detail);data.addProperty("epoch_millis",System.currentTimeMillis());
         data.addProperty("started_epoch_millis",started);data.addProperty("watch",options.watch());data.addProperty("interval_seconds",options.interval());
+        data.addProperty("policy_source",options.from()==null?"canonical-checkpoint":"evaluated-bundle");
         data.add("tasks",new Gson().toJsonTree(selected));data.addProperty("cases_per_task",options.cases());
         Policy p=current;if(p!=null){data.addProperty("policy_updates",p.updates());data.addProperty("policy_trained_samples",p.samples());}
         EvaluationServer experiment=active.get();
@@ -71,12 +74,16 @@ public final class Evaluate {
     private void checkOwned()throws IOException {
         Path marker=host.academy().resolve(".botsclustersmc-academy");Host.safe(marker);Host.safe(folder);
         if(!Files.isRegularFile(marker,LinkOption.NOFOLLOW_LINKS)||!Files.readString(marker).equals("botsclustersmc-owned-training\n"))throw new IOException("Evaluation requires an existing owned Academy");
-        Host.safe(folder.resolve("training.bcmc"));if(!Files.isRegularFile(folder.resolve("training.bcmc"),LinkOption.NOFOLLOW_LINKS))throw new IOException("A complete training checkpoint is required");
+        if(options.from()==null) {
+            Host.safe(folder.resolve("training.bcmc"));
+            if(!Files.isRegularFile(folder.resolve("training.bcmc"),LinkOption.NOFOLLOW_LINKS))throw new IOException("A complete training checkpoint is required");
+        }
     }
-    private JsonObject once(TrainingState snapshot)throws Exception {
-        current=snapshot.policy();selected=options.tasks().isEmpty()?reached(snapshot):options.tasks();started=System.currentTimeMillis();
+    private JsonObject once(Policy snapshot,List<Integer> available,ReplaySource.Snapshot replay)throws Exception {
+        current=snapshot;selected=options.tasks().isEmpty()?available:options.tasks();started=System.currentTimeMillis();
         long seed=options.fixedSeed()?options.seed():new java.security.SecureRandom().nextLong();
-        status("preparing","Preparing an isolated evaluation of a canonical checkpoint snapshot.");
+        status("preparing",replay==null?"Preparing an isolated evaluation of a canonical checkpoint snapshot.":
+            "Re-evaluating the saved bundle's model with the current runtime; no live checkpoint is read.");
         EvaluationServer experiment=new EvaluationServer(host,tools);active.set(experiment);
         try {
             if(stopping.get())throw new InterruptedException("Evaluation was stopped during preparation");
@@ -95,6 +102,7 @@ public final class Evaluate {
             report.addProperty("exam_jar_sha256",Host.hash(experiment.server.resolve("plugins/exam.jar")));
             report.addProperty("server_version",host.pin.getProperty("version"));report.addProperty("server_build",host.pin.getProperty("build"));
             report.addProperty("scope","Fixed policy in full-difficulty Academy rooms; not open-world survival or a certificate for later policies.");
+            if(replay==null)report.addProperty("policy_source","canonical-checkpoint");else replay.describe(report);
             if(options.export()!=null) {
                 EvaluatedBundle.write(options.export(),host.academy(),policyBytes,Files.readAllBytes(experiment.inference),report);
                 System.out.println("Tested policy and matching inference build: "+options.export().toAbsolutePath().normalize());
@@ -152,13 +160,17 @@ public final class Evaluate {
                 }catch(IOException failure){System.err.println("Evaluation input closed: "+failure.getMessage());}
             });
             try {
+                if(options.from()!=null) {
+                    ReplaySource.Snapshot replay=ReplaySource.read(options.from());
+                    once(replay.policy(),replay.tasks(),replay);return;
+                }
                 String last="";
                 while(!stopping.get()) {
                     checkOwned();TrainingState snapshot=TrainingState.read(folder.resolve("training.bcmc"));
                     List<Integer> available=reached(snapshot); // Validate course bytes even for explicitly selected tasks.
                     List<Integer> tasks=options.tasks().isEmpty()?available:options.tasks();
                     String key=identity(snapshot.policy())+tasks;
-                    if(!key.equals(last)){once(snapshot);last=key;}
+                    if(!key.equals(last)){once(snapshot.policy(),available,null);last=key;}
                     if(!options.watch())break;
                     long next=System.nanoTime()+options.interval()*1_000_000_000L;
                     while(!stopping.get()&&System.nanoTime()<next) {

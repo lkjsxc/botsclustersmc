@@ -25,6 +25,10 @@ final class EvaluationChecks {
         try {
             JsonObject report=JsonParser.parseString(text).getAsJsonObject();
             require(bool(report,"complete")&&bool(report,"stochastic"),"Incomplete or non-stochastic evaluation");
+            if(report.has("diagnostic_only"))require(!bool(report,"diagnostic_only"),"Assisted diagnostics cannot become a standard evaluation");
+            if(report.has("reset_intervention"))require(report.get("reset_intervention").isJsonPrimitive()
+                &&report.getAsJsonPrimitive("reset_intervention").isString()
+                &&report.get("reset_intervention").getAsString().equals("none"),"A standard evaluation cannot use a reset intervention");
             require(Schema.ID.equals(report.get("schema").getAsString()),"Evaluation schema differs");
             require(integer(report,"new_training_samples")==0,"Evaluation performed training");
             require(integer(report,"policy_updates")==policy.updates()&&integer(report,"policy_trained_samples")==policy.samples(),"Evaluation used a different policy identity");
