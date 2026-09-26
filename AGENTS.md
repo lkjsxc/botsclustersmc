@@ -25,9 +25,12 @@ terminal flags, elapsed ticks and discontinuities. Correct policy lag explicitly
 never describe off-policy data as strictly on-policy. Exams do not train. Do not
 promote skills by wall-clock time or label reachability as learned competence.
 
-Before changing rewards, curriculum allocation or learner semantics, fork the complete
-known-good checkpoint into a separately owned Academy. Do not make the only live
-training state the first learning experiment. Declare the retained tasks, task order,
+The operator permits stopping training and restarting from scratch. Preserving
+existing weights or attained stages is not a hard requirement. Preserve experiment
+evidence and operator worlds, and state explicitly when learned progress is reset.
+Before changing rewards, curriculum allocation or learner semantics, use a separately
+owned Academy, either a complete checkpoint copy or an explicitly fresh start.
+Do not silently reinterpret an incompatible checkpoint or invent earned certificates. Declare the retained tasks, task order,
 case counts, seeds, accepted-sample budget and rejection thresholds before training.
 Compare complete frozen full-condition reports, then confirm on a fresh seed.
 Mechanical reachability, valid gradients, a batch KL bound, update counts and old
