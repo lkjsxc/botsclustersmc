@@ -96,7 +96,11 @@ public final class TrainingEnvironment {
             default->{}
         }
     }
-    private static double targetMining(Npc npc,Session s){String target=(s.arena.x()+8)+":"+(npc.goal.task().ordinal()==12?65:66)+":"+(s.arena.z()+8)+":";return npc.mining!=null&&npc.mining.startsWith(target)?Math.min(1,npc.miningTicks/60.0):0;}
+    private static double targetMining(Npc npc,Session s) {
+        String target=(s.arena.x()+8)+":"+(npc.goal.task()==Task.MINE_COBBLESTONE?65:66)+":"+(s.arena.z()+8)+":";
+        return HarvestPractice.contactProgress(npc.goal.task(),npc.mining!=null&&npc.mining.startsWith(target),
+            Stack.kind(npc.pocket.held().item()),npc.miningTicks);
+    }
     private static int kindAt(Npc npc,int x,int y,int z){Location p=new Location(npc.anchor.getWorld(),x,y,z);return WorldActions.owned(p)?Stack.kind(p.getBlock().getType().name()):-1;}
     private static int placedCells(Npc npc,Session s){ArenaLayout a=s.arena;int n=0;for(int x=7;x<=9;x++)if(kindAt(npc,a.x()+x,65,a.z()+8)==3)n++;return n;}
     public static int chestLogs(Npc npc,Session s){
@@ -117,7 +121,7 @@ public final class TrainingEnvironment {
             case 9->Math.min(4,npc.pocket.crafted.getOrDefault("STICK",0L))*.2+InitialCrafting.progress(npc.pocket,task)*.2;
             case 10->Math.min(1,npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L))*.8+InitialCrafting.progress(npc.pocket,task)*.2;
             case 11->Math.min(1,npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L))*.8+stationPotential(npc);
-            case 12->Math.min(1,count(npc.broken,9))*.3+Math.min(1,count(npc.collected,8))*.5;
+            case 12->Math.min(1,count(npc.broken,9))*.3+Math.min(1,count(npc.collected,8))*.5+targetMining(npc,s)*.15;
             case 13->Math.min(1,npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L))*.8+stationPotential(npc);
             case 14->Math.min(1,npc.pocket.extracted.getOrDefault("IRON_INGOT",0L))*.8+stationPotential(npc);
             case 15->Math.min(4,chestLogs(npc,s))*.2+stationPotential(npc);
@@ -127,7 +131,7 @@ public final class TrainingEnvironment {
         };
     }
     public static double harvestReward(Npc npc,Session session,Frame next,int ticks) {
-        boolean broken=count(npc.broken,2)>0;
+        boolean broken=count(npc.broken,HarvestPractice.targetBlockKind(npc.goal.task()))>0;
         return HarvestPractice.controlReward(npc.goal.task(),broken,next.yawError(),next.pitchError(),
             Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z()),Math.hypot(next.vx(),next.vz()),
             targetMining(npc,session),ticks);

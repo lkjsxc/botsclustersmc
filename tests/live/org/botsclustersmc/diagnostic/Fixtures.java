@@ -15,7 +15,7 @@ public final class Fixtures extends RuntimePlugin {
     private final Map<Long,TrainingEnvironment.Session> sessions=new ConcurrentHashMap<>();
     private final Set<Long> passed=ConcurrentHashMap.newKeySet();
     private final AtomicInteger prepared=new AtomicInteger();
-    private static final class Control {Frame before;int[] action=Schema.IDLE.clone();int step,placed;boolean broken;final ArrayDeque<int[]> clicks=new ArrayDeque<>();}
+    private static final class Control {Frame before;int[] action=Schema.IDLE.clone();int step,placed,harvestPeak;boolean broken,harvestContactChecked,harvestBreakChecked;final ArrayDeque<int[]> clicks=new ArrayDeque<>();}
     @Override public boolean training(){return true;}
     @Override protected Policy initialPolicy(){return new Policy(new float[Policy.PARAMETERS],0,0);}
     @Override public boolean pickupEnabled(Npc n){return true;}
@@ -53,10 +53,43 @@ public final class Fixtures extends RuntimePlugin {
         if(n.tick-n.episodeStart>2900)throw new IllegalStateException("fixture timeout task="+n.id+" menu="+n.pocket.menu()+" pos="+n.entity.getLocation()+" broken="+n.broken+" collected="+n.collected+" placed="+n.placed+" crafted="+n.pocket.crafted+" extracted="+n.pocket.extracted);
         boolean fresh=n.tick%4==0;
         if(fresh){Frame current=Sensors.capture(n);
-            if(c.before!=null){Npc.Applied previous=new Npc.Applied(c.before,new InferencePool.Result(0,c.action,0,0,0,0,0));if(TrainingEnvironment.success(n,session,previous,current)){passed.add(n.id);getLogger().info("FIXTURE PASS "+n.id+" "+n.goal.task()+" ticks="+(n.tick-n.episodeStart));c.action=Schema.IDLE.clone();WorldActions.tick(n,c.action,true);return;}}
+            if(c.before!=null){Npc.Applied previous=new Npc.Applied(c.before,new InferencePool.Result(0,c.action,0,0,0,0,0));if(TrainingEnvironment.success(n,session,previous,current)){
+                if(HarvestPractice.applies(n.goal.task())&&(!c.harvestContactChecked||!c.harvestBreakChecked))
+                    throw new IllegalStateException("Harvest fixture missed contact/collection reward checks");
+                passed.add(n.id);getLogger().info("FIXTURE PASS "+n.id+" "+n.goal.task()+" ticks="+(n.tick-n.episodeStart));c.action=Schema.IDLE.clone();WorldActions.tick(n,c.action,true);return;}}
             c.before=current;c.action=choose(n,c,session);n.action=c.action;
         }
-        WorldActions.tick(n,c.action,fresh);var at=n.entity.getLocation();n.x=at.getX();n.y=at.getY();n.z=at.getZ();
+        WorldActions.tick(n,c.action,fresh);verifyHarvest(n,session,c);
+        var at=n.entity.getLocation();n.x=at.getX();n.y=at.getY();n.z=at.getZ();
+    }
+    private static void verifyHarvest(Npc n,TrainingEnvironment.Session session,Control c) {
+        Task task=n.goal.task();if(!HarvestPractice.applies(task))return;
+        boolean stone=task==Task.MINE_COBBLESTONE;
+        boolean broken=n.broken.getOrDefault(stone?"STONE":"OAK_LOG",0L)>0;
+        String target=(session.arena.x()+8)+":"+(stone?65:66)+":"+(session.arena.z()+8)+":";
+        boolean contact=n.mining!=null&&n.mining.startsWith(target)&&n.miningTicks>0;
+        if(!broken&&contact) {
+            c.harvestPeak=Math.max(c.harvestPeak,n.miningTicks);
+            double progress=n.miningTicks/(stone?40.0:60.0),weight=task==Task.BREAK_LOG?.2:.15;
+            if(Math.abs(TrainingEnvironment.potential(n,session)-progress*weight)>1e-9)
+                throw new IllegalStateException("Real target contact missing or mis-scaled in potential");
+            Frame frame=Sensors.capture(n);
+            double expected=HarvestPractice.controlReward(task,false,frame.yawError(),frame.pitchError(),
+                Math.hypot(n.goal.x()-frame.x(),n.goal.z()-frame.z()),Math.hypot(frame.vx(),frame.vz()),progress,1);
+            if(Math.abs(TrainingEnvironment.harvestReward(n,session,frame,1)-expected)>1e-9)
+                throw new IllegalStateException("Real target contact missing in sustained harvesting cost");
+            c.harvestContactChecked=true;
+        }
+        if(broken&&!c.harvestBreakChecked) {
+            if(c.harvestPeak!=(stone?39:59))
+                throw new IllegalStateException("Harvest shaping duration differs from actual block breaking");
+            Frame frame=Sensors.capture(n);double distance=Math.hypot(n.goal.x()-frame.x(),n.goal.z()-frame.z());
+            double expected=task==Task.BREAK_LOG?0:-.025*Math.min(1,Math.max(0,distance-.6)/6)/4;
+            if(Math.abs(TrainingEnvironment.harvestReward(n,session,frame,1)-expected)>1e-9)
+                throw new IllegalStateException("Broken resource did not switch to actual collection cost");
+            c.harvestBreakChecked=true;
+            n.plugin.getLogger().info("HARVEST MECHANICS PASS "+task+" peak="+c.harvestPeak);
+        }
     }
     private static boolean aim(Npc n,int[] a,double x,double y,double z){
         Location p=n.entity.getEyeLocation();double dx=x-p.getX(),dy=y-p.getY(),dz=z-p.getZ();
