@@ -21,13 +21,14 @@ public final class CourseTest {
         ReviewEffortTest.main(args);
         StartupCoverageTest.main(args);
         LessonOutcomes outcomes=new LessonOutcomes();
-        outcomes.record(Task.BREAK_LOG,Course.Kind.PRACTICE,false);outcomes.record(Task.BREAK_LOG,Course.Kind.PROBE,true);
-        outcomes.record(Task.BREAK_LOG,Course.Kind.EXAM,true);LessonOutcomes.Totals result=outcomes.snapshot()[5];
+        var usage=new ProbePolicies.Usage(1,0,0,0);
+        outcomes.record(Task.BREAK_LOG,Course.Kind.PRACTICE,false,usage);outcomes.record(Task.BREAK_LOG,Course.Kind.PROBE,true,usage);
+        outcomes.record(Task.BREAK_LOG,Course.Kind.EXAM,true,usage);LessonOutcomes.Totals result=outcomes.snapshot()[5];
         check(result.trainingTrials()==2&&result.trainingSuccesses()==1,"exact outcomes, not an initialization prior");
         check(result.probeTrials()==1&&result.probeSuccesses()==1,"probe outcomes separate from easy practice");
         check(result.examTrials()==1&&result.examSuccesses()==1,"frozen exams never counted as training");
         check(outcomes.snapshot()[0].trainingTrials()==0,"unused tasks have zero actual trials");
-        Thread[] writers=new Thread[4];for(int i=0;i<writers.length;i++){writers[i]=new Thread(()->{for(int n=0;n<1000;n++)outcomes.record(Task.COLLECT_LOG,Course.Kind.PRACTICE,n%2==0);});writers[i].start();}
+        Thread[] writers=new Thread[4];for(int i=0;i<writers.length;i++){writers[i]=new Thread(()->{for(int n=0;n<1000;n++)outcomes.record(Task.COLLECT_LOG,Course.Kind.PRACTICE,n%2==0,usage);});writers[i].start();}
         for(Thread writer:writers)writer.join();result=outcomes.snapshot()[6];
         check(result.trainingTrials()==4000&&result.trainingSuccesses()==2000,"concurrent outcomes counted exactly once");
         Course c=new Course(2,7);ready(c,0);check(c.stage(1)==0,"another actor has not been promoted");

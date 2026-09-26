@@ -13,6 +13,7 @@ public final class TrainingEnvironment {
     private TrainingEnvironment(){}
     public static final class Session {
         public final ArenaLayout arena;public final List<Transition> fragment=new ArrayList<>(32);
+        public final ProbePolicies.Trace behaviorPolicies=new ProbePolicies.Trace();
         public Course.Lesson lesson;public Policy examPolicy;public long sequence;public int hold;public double potential;
         public int craftingMissing=-1; // Owner-thread reset diagnostics, never a policy input.
         public Session(ArenaLayout arena){this.arena=arena;}
@@ -77,7 +78,7 @@ public final class TrainingEnvironment {
                 session.craftingMissing=-1;
                 if(lesson.kind()==Course.Kind.PRACTICE&&(initial==Pocket.Menu.INVENTORY||initial==Pocket.Menu.WORKBENCH))
                     session.craftingMissing=InitialCrafting.prepare(npc.pocket,task,d,pocketRng);
-                session.hold=0;session.potential=potential(npc,session);
+                session.hold=0;session.potential=potential(npc,session);session.behaviorPolicies.clear();
             });
         }catch(Throwable e){plugin.fail(e);}});
     }

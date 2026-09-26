@@ -75,6 +75,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         TrainingEnvironment.Session s=(TrainingEnvironment.Session)npc.context;if(s.lesson==null)throw new IllegalStateException("missing lesson");
         int ticks=Math.toIntExact(next.tick()-previous.frame().tick());
         course.recordEffort(npc.id,s.lesson.serial(),ticks);
+        s.behaviorPolicies.observe(previous.result().policyVersion());
         boolean success=TrainingEnvironment.success(npc,s,previous,next);
         boolean terminal=success||next.tick()-npc.episodeStart>=npc.goal.horizon()||!s.arena.contains(next.x(),next.y(),next.z());
         double potential=TrainingEnvironment.potential(npc,s);float reward=(float)((success?3:terminal?-.3:0)-.0005*ticks/4.0+VTrace.discount(ticks,terminal)*(terminal?0:potential)-s.potential);s.potential=potential;
@@ -92,7 +93,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         if(!terminal)return true;
         if(s.lesson.kind()==Course.Kind.PRACTICE&&s.craftingMissing>=0)
             craftingOutcomes.record(s.lesson.task(),s.craftingMissing,success);
-        course.finish(npc.id,s.lesson.serial(),success);outcomes.record(s.lesson.task(),s.lesson.kind(),success);episodesEnded.increment();s.lesson=null;if(course.examVersion(npc.id)<0)s.examPolicy=null;npc.discardPending();return false;
+        course.finish(npc.id,s.lesson.serial(),success);outcomes.record(s.lesson.task(),s.lesson.kind(),success,s.behaviorPolicies.snapshot());episodesEnded.increment();s.lesson=null;if(course.examVersion(npc.id)<0)s.examPolicy=null;npc.discardPending();return false;
     }
     @Override public void interrupted(Npc npc){
         if(npc.context instanceof TrainingEnvironment.Session s&&s.lesson!=null){if(s.lesson.kind()!=Course.Kind.EXAM)flush(npc,s);course.abandon(npc.id);s.lesson=null;s.examPolicy=null;}
@@ -134,6 +135,17 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("training_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::trainingSuccesses).toArray()));
         s.put("probe_trials_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::probeTrials).toArray()));
         s.put("probe_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::probeSuccesses).toArray()));
+        ProbePolicies.Totals[] policyUse=Arrays.stream(done).map(LessonOutcomes.Totals::policyUse).toArray(ProbePolicies.Totals[]::new);
+        s.put("probe_policy_scope","completed-probes-applied-behavior-versions-this-process");
+        s.put("probe_single_policy_trials",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::singleTrials).toArray()));
+        s.put("probe_single_policy_successes",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::singleSuccesses).toArray()));
+        s.put("probe_mixed_policy_trials",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::mixedTrials).toArray()));
+        s.put("probe_mixed_policy_successes",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::mixedSuccesses).toArray()));
+        s.put("probe_behavior_decisions",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::decisions).toArray()));
+        s.put("probe_policy_changes",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::policyChanges).toArray()));
+        s.put("probe_maximum_policy_span",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::maximumVersionSpan).toArray()));
+        s.put("probe_last_minimum_policy",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::lastMinimum).toArray()));
+        s.put("probe_last_maximum_policy",Arrays.toString(Arrays.stream(policyUse).mapToLong(ProbePolicies.Totals::lastMaximum).toArray()));
         s.put("exam_trials_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examTrials).toArray()));
         s.put("exam_successes_this_process",Arrays.toString(Arrays.stream(done).mapToLong(LessonOutcomes.Totals::examSuccesses).toArray()));
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
