@@ -1,6 +1,7 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.util.*;
 
 /** Exercise the launcher boundary without starting a server or reading real Academy data. */
@@ -26,9 +27,22 @@ public final class AcademyBoundaryTest {
         if(process.waitFor()!=0)throw new IOException("Git fixture command failed: "+args[0]);
         return output;
     }
+    /** Only this synthetic temporary repository may have its DOS read-only bits cleared. */
+    private record Fixture(Path root) implements AutoCloseable {
+        @Override public void close()throws IOException{
+            if(Host.isWindows())try(var paths=Files.walk(root)){
+                for(Path path:paths.toList()){
+                    Host.safe(path);
+                    var attributes=Files.getFileAttributeView(path,DosFileAttributeView.class,LinkOption.NOFOLLOW_LINKS);
+                    if(attributes!=null&&attributes.readAttributes().isReadOnly())attributes.setReadOnly(false);
+                }
+            }
+            Host.deleteTree(root);
+        }
+    }
     public static void main(String[] args)throws Exception{
         Path root=Files.createTempDirectory("bcmc-academy-boundary-").toRealPath();
-        try{
+        try(var fixture=new Fixture(root)){
             Path fresh=root.resolve("arbitrary-session");Host first=configured(fresh);first.ownAcademy();
             check(Files.readString(fresh.resolve(".gitignore")).equals("*\n"),"custom-name Academy ignores all children");
             first.ownAcademy();try(var children=Files.list(fresh)){check(children.count()==2,"repeated ownership check is idempotent");}
@@ -81,7 +95,8 @@ public final class AcademyBoundaryTest {
             git(repository,"add","--all");
             String staged=new String(git(repository,"diff","--cached","--name-only"),StandardCharsets.UTF_8);
             check(staged.strip().equals("README.md"),"broad git add cannot stage ordinary Academy data");
-        }finally{Host.deleteTree(root);}
+        }
+        check(!Files.exists(root),"temporary Git repository fully removed");
         System.out.println("PASS owned-Academy Git boundary checks="+checks);
     }
 }
