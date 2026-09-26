@@ -37,6 +37,7 @@ All times below are UTC on 2026-09-26; add nine hours for the JST date above.
 | 20:16:01.968 | 137,422 | 35,195,694 | 512 / 512 |
 | 20:17:16.968 | 137,930 | 35,348,671 | 512 / 512 |
 | 20:25:01.968 | 141,087 | 36,294,115 | 512 / 512 |
+| 20:28:31.968 | 142,518 | 36,720,144 | 512 / 512 |
 
 The first interval added 152,977 accepted samples in 75 seconds, approximately
 2,040 samples/s. This is a short observed interval, not a general scaling result.
@@ -104,6 +105,13 @@ This includes real API compilation, pure numerical/mechanics/curriculum tests,
 asynchronous learning, persistence/export/evaluation integrity and inference-JAR
 separation. Synthetic checks are not learned Minecraft skill evidence.
 
+Implementation commit `9fbcd11d237bbbdbb66e3f361700977e40c17fd9` was pushed normally
+as `lkjsxc` and independently re-read from GitHub. CI run **36269632710**, attempt 1,
+completed with **success** at 20:30:01 UTC. Linux and Windows source checks and the
+browser observatory regression passed; the new Linux systemd-unit validation step
+also passed. Dispatch-only live/cross-version jobs were not run by this push.
+This record's completion update changes documentation only.
+
 `sudo systemd-analyze verify host/systemd/*.service host/systemd/*.timer` and
 `git diff --check` passed. The installed root-owned evaluation service and timer
 were compared byte-for-byte with the source files. Evaluation runs as `coder`.
@@ -118,9 +126,26 @@ against such overrides.
 The timer was enabled at 20:25:56 UTC. Because boot plus five minutes was already
 in the past, it immediately started the first automatic evaluation, with
 `ActiveState=activating` as expected for an unfinished one-shot service.
-At this record's initial publication, that run is still in progress; a service
-start is not a completed evaluation. Completion evidence will be recorded in a
-subsequent update to this section.
+The first automatic run completed at **20:28:47 UTC**, with `ExecMainStatus=0`,
+`Result=success`, `MainPID=0` and `ActiveState=inactive`. The timer remained active
+and scheduled the next activation for **20:58:47 UTC** (05:58:47 JST).
+There was no remaining evaluator JVM. The training supervisor and server retained
+the same PIDs and continued learning during the complete evaluation.
+
+This automatic run tested newer policy **141,339**, samples **36,368,806**, seed
+**6695400432298917380**, all 352 trials and `new_training_samples=0`. In task order
+0–10, successes out of 32 were **32, 32, 31, 32, 32, 32, 32, 31, 32, 32, 0**.
+Its policy identity is
+`aba4570e484c23c92e47f2bcfa9d8a7343aec308b5106e51e8274424beab64cf`.
+This is an operational lifecycle check on a different snapshot, not another
+same-model seed replication or proof of algorithm improvement. The bounded latest
+report is retained; unlike the two manual runs, no exact-model export was requested.
+
+The evaluation group's measured memory peak was 1,659,547,648 bytes and swap peak
+was 268,435,456 bytes (256 MiB). Other development was active in the shared
+workspace. This is not zero-swap operation or a guarantee against future pressure.
+The completed service released its processes rather than keeping this allocation
+resident for the next 30 minutes.
 
 The timer schedules the next run approximately 30 minutes after the service
 becomes inactive; it does not keep a Minecraft evaluation process alive while
@@ -128,6 +153,9 @@ waiting, change the learner or fetch source updates. Each run measures all
 reached tasks from a new canonical snapshot and fresh case seed. The existing
 Academy evaluation lock also prevents overlapping manual evaluations. The
 timer's results replace the bounded latest report, not an unlimited history.
+The one-shot API status still contains the evaluator's default `interval_seconds`
+value of 600 with `watch=false`; the actual 30-minute schedule belongs to systemd
+and was checked with `systemctl list-timers`, not inferred from that API field.
 
 Local HTTP checks returned 200 for `/`, `/api/status` and `/api/evaluation`;
 `/training.bcmc`, `/control.properties` and `/api/console` returned 404.
@@ -156,3 +184,9 @@ baseline, not evidence for a proposed redesign.
 No learner reset, source auto-updater, periodic training backup, forced-OOM test,
 container-deletion recovery test, Windows live test or new production inference
 deployment was performed. Existing learner and monitor services remain enabled.
+
+A later additional grouped shell read of checkout differences, live counters and
+observer-command documentation was blocked by the tool safety check before
+execution. That read was not retried or routed through another tool. The completed
+lifecycle and last live measurements above were obtained before that blocked
+additional check; no new gameplay or service action depended on it.
