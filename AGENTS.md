@@ -25,6 +25,20 @@ terminal flags, elapsed ticks and discontinuities. Correct policy lag explicitly
 never describe off-policy data as strictly on-policy. Exams do not train. Do not
 promote skills by wall-clock time or label reachability as learned competence.
 
+Before changing rewards, curriculum allocation or learner semantics, fork the complete
+known-good checkpoint into a separately owned Academy. Do not make the only live
+training state the first learning experiment. Declare the retained tasks, task order,
+case counts, seeds, accepted-sample budget and rejection thresholds before training.
+Compare complete frozen full-condition reports, then confirm on a fresh seed.
+Mechanical reachability, valid gradients, a batch KL bound, update counts and old
+certificates do not prove that previously learned skills have been retained.
+
+Preserve failed experiments and the last measured-good model, optimizer and course.
+A rejected rollout requires restoring state as well as code; an old JAR does not
+undo damaging gradients. Exact model/Adam restore is not proof of post-resume skill
+retention: inspect the initial task coverage and early fixed-policy results.
+Never hide a failed early checkpoint by reporting only a favorable later one.
+
 Ship stable artifact names, explicit model schemas and atomic checked writes.
 Inference fails closed without a valid model. Normal startup requires explicit
 Minecraft EULA consent; existing production server configuration is not rewritten

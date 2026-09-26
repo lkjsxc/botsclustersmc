@@ -66,6 +66,26 @@ A cohort's trial count includes its full-difficulty training probes. Empty cohor
 are absent, not 0%-success cohorts. Cohort statistics can change when actors
 advance or regress; historical certificates do not certify the latest live model.
 
+### Frozen harvesting diagnostics
+
+Complete evaluation bundles contain a read-only `harvest` object for `break-log`,
+`collect-log` and `mine-cobblestone`. It records an explicit observation denominator,
+menu-focused selections, world-dig selections, held-pick observations and separate
+target-contact samples/maxima for pickaxes and other held items. The scope is
+`decision-boundary-not-every-tick`. These counters do not choose actions, consume
+randomness, change observations or access the learner; they are not in either
+public plugin JAR.
+
+Menu focus uses the preceding observation and selected menu operation; held items
+and mining counters use the ending observation. These are not exact within-interval
+event counts. A selected dig is not proof of target contact. The final break tick
+resets the mining counter, and changes between boundaries can be missed. Actual
+broken/collected counts and the unchanged terminal outcome establish completion.
+
+A proposed stone reward/reset extension was rejected after measured retention loss
+on 2026-09-26. The log-only reward and reset behavior remains the production default.
+The new diagnostics are not evidence that cobblestone harvesting has been learned.
+
 The actuator now rejects blocks already disallowed by the runtime's edit policy
 before accumulating mining progress. This fixes misleading progress on protected
 arena floors and on inference servers with world edits disabled. The completion

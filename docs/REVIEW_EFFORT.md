@@ -84,6 +84,40 @@ Do not replace the operator's live learning history with a synthetic course or
 an older experimental checkpoint. This mechanism is not open-world survival,
 cooperation, a new learned skill, or proof against catastrophic forgetting.
 
+## First-issued lesson coverage after startup
+
+The training status also records each actor's first actually issued lesson in this
+process. `startup_coverage_scope` is `first-issued-lesson-this-process` and
+`startup_restored_checkpoint` distinguishes a decoded full checkpoint from fresh
+initialization. This is read-only accounting: the allocator, saved state, random
+stream, rewards, primitive actions and exam gates are unchanged.
+
+`startup_expected_agents`, `startup_observed_agents` and
+`startup_unobserved_agents` provide an explicit population denominator. The first
+lessons are partitioned into `startup_foundation_agents`,
+`startup_frontier_agents`, `startup_review_agents` and `startup_exam_agents`.
+The four counts sum to observed actors. `startup_task_population` includes all
+first lessons; `startup_training_task_population` excludes frozen exams. Probes
+are training and remain included. Each task array has the normal 18 task IDs.
+
+These values are available in `./status.sh`, the underlying `status.json`, and
+the private monitor's read-only `/api/status`. They are not a new visual dashboard
+panel. A snapshot is immutable and internally consistent; concurrent or repeated
+issuance for the same actor cannot add a second startup observation.
+
+Issuance is not proof that reset finished, that a transition reached the learner,
+or that a task succeeded. Missing actors are unobserved, not failed. The counts
+are not the current lesson distribution and do not update as an actor practices
+later lessons. Use actual effort, accepted samples and complete frozen evaluations
+for those separate questions. Old running processes do not acquire startup
+history retroactively when source files are updated.
+
+The present zero-debt restore can issue only frontier lessons initially even
+though long-run review time approaches 20%. A trial that gave a bounded initial
+review budget to one fifth of restored actors did not pass its predeclared fresh
+seed retention gate; that scheduling change is not included. See the complete
+[retention experiment record](verification/20260926-resume-retention.md).
+
 ## Reproducible software checks
 
 `./test.sh` (or `test.cmd`) runs `ReviewEffortTest` through the existing course
@@ -91,5 +125,8 @@ test entry point. It checks unequal and variable episode durations at five
 frontiers, exact credit conservation, balanced review time, long integer
 arithmetic, per-task probe cadence, invalid lesson identities, interrupted work,
 restart semantics, failed exams, regression and concurrent actor accounting.
+`StartupCoverageTest` adds first-issuance counts, explicit absent actors, frozen
+exam separation, immutable snapshots, invalid-input rejection, concurrent exact
+accounting and byte-identical course/RNG history with and without diagnostics.
 The allocation simulation deliberately contains no neural policy or Minecraft
 world. Its passing results establish the stated software properties only.
