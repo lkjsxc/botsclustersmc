@@ -16,6 +16,7 @@
 <div class="charts"><section><h2>Accepted experience / second</h2><svg id="speedchart" viewBox="0 0 520 150" role="img" aria-label="Training throughput history"></svg><div id="speedrange" class="note"></div></section><section><h2>Completion and full-difficulty probes</h2><svg id="skillchart" viewBox="0 0 520 150" role="img" aria-label="Practice and probe success history"></svg><div class="note">Blue: probes · Green: completion · 0–100% · Moving averages include initialization priors; raw completed outcomes are shown below. Every new station outcome requires task completion; reset assistance changes only the starting state. Resumed history is retained.</div></section></div>
 <section><h2>Curriculum population</h2><div id="population"></div><p class="note">Probe EMAs and trial totals refer to the actors currently at each stage; they can change when actors enter or leave. Training trials include probes. Historical exam passes certify the frozen policy examined, not every future policy. Neither movement nor a high sample count establishes survival or cooperation.</p></section>
 <section><h2>Assisted crafting practice</h2><p id="station-goal" class="note">Station goal: no diagnostics yet.</p><div id="crafting-practice" class="crafting-grid"></div><p class="note">Each cell is successful completions / finished attempts, grouped by missing recipe cells at reset. Zero missing means the preview is ready, but the policy must collect it. Supplied grid/cursor materials are reset assistance, not learned steps. These counts cover this process only, exclude full probes/exams and interrupted attempts, and are not certificates. Opening a workbench, furnace or chest alone never completes its task.</p></section>
+<section id="probe-policy-section"><h2>Policies used inside full probes</h2><p id="probe-policy-identity" class="note">No behavior-policy measurement yet.</p><div id="probe-policy-table" class="crafting-grid"></div><p class="note">Successful / completed probes in this process. Single means one applied policy version within that episode, not one common policy across all episodes. Mixed means the policy changed during the attempt. Neither group certifies the current model; use independent fixed-policy evaluation. Interrupted episodes are excluded. This measurement does not freeze, train or select a policy.</p></section>
 <section id="activation-section"><h2>Hidden activation diagnostics</h2><p id="activation-identity" class="note">No learner measurement yet.</p><div id="activation-table" class="crafting-grid"></div><p class="note">Only the last learner batch is measured, once per current state, without loss weighting. Full probes may train; frozen exams never enter this batch. These are state averages, not a census of NPCs or a count of permanently inactive neurons. Mean slope is the local tanh derivative (1 − activation²), not the full network gradient. High saturation can motivate investigation; it does not diagnose a learning failure or certify a skill. No rewards, actions, weights or optimizer settings are changed by this measurement.</p></section>
 <div class="cards"><div class="card"><div class="label">CPU CORES USED</div><div id="cpu" class="value">—</div></div><div class="card"><div class="label">BURNING BODIES</div><div id="burning" class="value">—</div></div><div class="card"><div class="label">INFERENCE FAILURES / REJECTIONS</div><div id="failures" class="value">—</div></div><div class="card"><div class="label">HEAP USED</div><div id="heap" class="value">—</div></div></div>
 <section><h2>Visit the training rooms</h2><p class="note">Join the Minecraft server, then use <code>/bots watch</code> for the most advanced actor, <code>/bots watch 0</code> for a particular actor, <code>/bots tour</code> to cycle, or <code>/bots overview</code> for free flight. <code>/bots unwatch</code> releases the camera. Goal particles and a live HUD identify the current lesson.</p><details><summary>Raw diagnostics</summary><pre id="raw"></pre></details></section>
@@ -84,6 +85,40 @@ function population(data){
   const track=document.createElement('div');track.className='track';const bar=document.createElement('div');bar.className='fill';bar.style.width=Math.min(100,100*Math.max(0,Number(counts[index])||0)/total)+'%';track.append(bar);
   const count=document.createElement('span');count.textContent=fmt(counts[index]);row.append(name,track,count);root.append(row);
  });
+}
+function probePolicies(s){
+ const section=$('probe-policy-section'),panel=$('probe-policy-table'),identity=$('probe-policy-identity');panel.replaceChildren();
+ const count=n=>Number.isSafeInteger(n)&&n>=0,parse=key=>Array.isArray(s[key])?s[key]:JSON.parse(s[key]);
+ try{
+  if(s.probe_policy_scope!=='completed-probes-applied-behavior-versions-this-process')throw new Error('Unavailable scope');
+  const names=['single_policy_trials','single_policy_successes','mixed_policy_trials','mixed_policy_successes','behavior_decisions','policy_changes','maximum_policy_span','last_minimum_policy','last_maximum_policy'];
+  const arrays=names.map(key=>parse('probe_'+key));
+  const [single,singleWins,mixed,mixedWins,decisions,changes,span,minimum,maximum]=arrays;
+  const trials=parse('probe_trials_this_process'),wins=parse('probe_successes_this_process');
+  if([...arrays,trials,wins].some(a=>!Array.isArray(a)||a.length!==18))throw new Error('Invalid shape');
+  let total=0;
+  for(let i=0;i<18;i++){
+   if([single[i],singleWins[i],mixed[i],mixedWins[i],decisions[i],changes[i],span[i],trials[i],wins[i]].some(n=>!count(n))||
+      singleWins[i]>single[i]||mixedWins[i]>mixed[i]||single[i]+mixed[i]!==trials[i]||singleWins[i]+mixedWins[i]!==wins[i]||
+      !Number.isSafeInteger(single[i]+mixed[i])||decisions[i]<trials[i]||changes[i]<mixed[i]||
+      (trials[i]===0?decisions[i]!==0||changes[i]!==0||span[i]!==0||minimum[i]!==-1||maximum[i]!==-1:
+       !count(minimum[i])||!count(maximum[i])||maximum[i]<minimum[i]||span[i]<maximum[i]-minimum[i])||
+      (mixed[i]===0?changes[i]!==0||span[i]!==0:span[i]===0)||changes[i]>decisions[i]-trials[i])throw new Error('Inconsistent probe counts');
+   total+=trials[i];
+  }
+  if(!Number.isSafeInteger(total))throw new Error('Count overflow');
+  const age=(Date.now()-Number(s.epoch_millis))/1000,historical=s.state!=='running'||!Number.isFinite(age)||age>15||age< -5;
+  section.dataset.state=historical?'historical':'measured';
+  identity.textContent=`${historical?'Historical process totals':'Current process totals'} · ${fmt(total)} completed probes · Single/mixed partitions refer to each episode's actual applied actions.`;
+  if(total===0){panel.textContent='No completed probes in this process; no success rate is inferred.';return;}
+  const table=document.createElement('table'),head=document.createElement('thead'),row=document.createElement('tr');
+  for(const text of ['Task','Single policy','Mixed policies','Policy changes','Max version span']){const cell=document.createElement('th');cell.scope='col';cell.textContent=text;row.append(cell);}head.append(row);table.append(head);
+  const body=document.createElement('tbody');
+  for(let i=0;i<18;i++)if(trials[i]>0){
+   const row=document.createElement('tr');row.dataset.task=i;const name=document.createElement('th');name.scope='row';name.textContent=labels[i];row.append(name);
+   [`${fmt(singleWins[i])} / ${fmt(single[i])}`,`${fmt(mixedWins[i])} / ${fmt(mixed[i])}`,fmt(changes[i]),fmt(span[i])].forEach((text,index)=>{const cell=document.createElement('td');cell.dataset.metric=index;cell.textContent=text;row.append(cell);});body.append(row);
+  }table.append(body);panel.append(table);
+ }catch{section.dataset.state='unavailable';identity.textContent='Behavior-policy diagnostics unavailable. No single-policy or mixed-policy success is inferred.';}
 }
 function craftingPractice(s){
  const panel=$('crafting-practice');panel.replaceChildren();
@@ -157,7 +192,7 @@ function render(s,history){
  $('probe').textContent=pct(s.probe_success_ema);$('practice').textContent='Completion EMA '+pct(s.practice_success_ema);
  $('exams').textContent=fmt(s.course_passed_exams)+' / '+fmt(s.course_exams);$('completed').textContent=fmt(s.course_completed_agents)+' actors have historical full-course certificates';
  $('cpu').textContent=Number(s.process_cpu_cores||0).toFixed(2)+' / '+fmt(s.available_processors);$('burning').textContent=fmt(s.burning_agents)+' / '+fmt(s.body_samples);
- $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);activationHealth(s);
+ $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);activationHealth(s);probePolicies(s);
  const rows=Array.isArray(history)?history.filter(r=>Number.isFinite(r.epoch_millis)&&r.schema===s.schema).slice(-720):[];
  const top=chart('speedchart',rows,['learner_samples_per_second']);chart('skillchart',rows,['probe_success_ema','practice_success_ema'],1);
  $('speedrange').textContent=`0–${fmt(top)} samples/s · ${rows.length} snapshots`+(rows.length?' · '+new Date(rows[0].epoch_millis).toLocaleTimeString()+'–'+new Date(rows.at(-1).epoch_millis).toLocaleTimeString():'');
@@ -168,7 +203,7 @@ async function update(){
   const responses=await Promise.all(['/api/status','/api/history'].map(path=>fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000)})));
   if(responses.some(r=>!r.ok))throw new Error('Metrics service is not ready.');
   const [status,history]=await Promise.all(responses.map(r=>r.json()));render(status,history);await renderEvaluation(status);
- }catch(error){activationHealth({});$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
+ }catch(error){activationHealth({});probePolicies({});$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
  finally{setTimeout(update,5000);}
 }
 update();

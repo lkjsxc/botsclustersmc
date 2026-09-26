@@ -79,6 +79,23 @@ def direct(directory, cache, log, flag=None):
     return subprocess.Popen(command, cwd=directory, stdin=subprocess.PIPE, stdout=open(log,'w'), stderr=subprocess.STDOUT, text=True)
 
 
+def probe_policy_partition(status):
+    """Validate one atomically published production-plugin snapshot, including zero counts."""
+    assert status.get('probe_policy_scope') == 'completed-probes-applied-behavior-versions-this-process'
+    keys=('single_policy_trials','single_policy_successes','mixed_policy_trials','mixed_policy_successes',
+          'behavior_decisions','policy_changes','maximum_policy_span','last_minimum_policy','last_maximum_policy',
+          'trials_this_process','successes_this_process')
+    arrays=[json.loads(status['probe_'+key]) for key in keys]
+    assert all(isinstance(a,list) and len(a)==18 for a in arrays)
+    for single,win_single,mixed,win_mixed,decisions,changes,span,lo,hi,total,wins in zip(*arrays):
+        assert all(type(n) is int and n>=0 for n in (single,win_single,mixed,win_mixed,decisions,changes,span,total,wins))
+        assert total==single+mixed and wins==win_single+win_mixed
+        assert win_single<=single and win_mixed<=mixed and decisions>=total
+        assert mixed<=changes<=decisions-total and ((mixed==0)==(span==0))
+        if total==0:assert (decisions,changes,span,lo,hi)==(0,0,0,-1,-1)
+        else:assert type(lo) is int and type(hi) is int and 0<=lo<=hi and hi-lo<=span
+
+
 def train(output, count, seconds):
     academy = output/'academy'
     env = os.environ | {'EULA':'true', 'ACADEMY':str(academy), 'BOTS':str(count), 'HEAP_GB':'3', 'REGION_THREADS':'2', 'LEARNER_THREADS':'1', 'INFERENCE_THREADS':'1', 'PORT':'25578', 'BIND_ADDRESS':'127.0.0.1'}
@@ -90,6 +107,7 @@ def train(output, count, seconds):
         process = subprocess.Popen([JAVA, 'host/Host.java', 'start'], cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=open(output/f'train-{phase}.log','w'), stderr=subprocess.STDOUT)
         try:
             first = wait_status(process,status_path,lambda s:s['active_agents']==count and s['ticking_agents']==count and s['progressed_agents_since_status']==count and s['trained_samples']>(previous['trained_samples'] if previous else 0),started)
+            probe_policy_partition(first)
             (output/f'{phase}-start.json').write_text(json.dumps(first,indent=2))
             samples = [first]
             end = time.monotonic() + (seconds if phase=='fresh' else 12)
@@ -98,6 +116,7 @@ def train(output, count, seconds):
                 assert current['active_agents']==count and current['ticking_agents']==count, current
                 assert current['progressed_agents_since_status']==count, current
                 assert current['inference_failed']==0 and current['retired_agents']==0, current
+                probe_policy_partition(current)
                 samples.append(current)
             last = samples[-1]
             assert last['trained_samples']>first['trained_samples'] and last['policy_updates']>first['policy_updates']
@@ -106,6 +125,7 @@ def train(output, count, seconds):
             process.wait(timeout=75); assert process.returncode==0
             previous=read_status(status_path)
             assert previous and previous['state'] != 'failed', previous
+            probe_policy_partition(previous)
             (output/f'{phase}-stopped.json').write_text(json.dumps(previous,indent=2))
             assert not (status_path.parent/'policy.bcmc').exists(), 'training must save one canonical checkpoint, not a second policy copy'
             if phase=='resume':

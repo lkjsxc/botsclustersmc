@@ -65,7 +65,9 @@ jobs:
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
       - name: Offline synthetic observatory regression
-        run: python tests/crafting_monitor.py
+        run: |
+          python -m unittest discover -s tests -p test_lifecycle_summary.py
+          python tests/crafting_monitor.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

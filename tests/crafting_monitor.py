@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 from playwright.sync_api import sync_playwright
 from activation_monitor import FIXTURE_EPOCH_MS, install_fixture, verify_activation_health
+from probe_monitor import verify_probe_policies
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -88,11 +89,13 @@ def main() -> None:
             assert ('historical' in page.locator('#error').inner_text()) == (expected == 'STALE'), age
         assert not errors, errors
         verify_activation_health(browser, (ROOT/'host/monitor.html').read_text(), args.output)
+        verify_probe_policies(browser, (ROOT/'host/monitor.html').read_text(), args.output)
         browser.close()
     report = dict(passed=True, source='synthetic metrics; no Minecraft server',
                   checks=['bucket mapping', 'one completion goal', 'assistance labels', 'desktop/mobile bounds',
                           'invalid counts fail closed', 'zero attempts not a percentage', 'stale metrics warning',
-                          'fixed fixture clock', 'exact 15-second freshness boundary'],
+                          'fixed fixture clock', 'exact 15-second freshness boundary',
+                          'probe single/mixed policy partition', 'missing behavior identities never inferred'],
                   browser_errors=errors)
     (args.output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
     print('PASS synthetic crafting dashboard; desktop/mobile, isolated counts, invalid/stale state; no browser errors')
