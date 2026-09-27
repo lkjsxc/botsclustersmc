@@ -77,6 +77,54 @@ Recompute gates independently with the native bundle/trial validator before any
 adoption. A further resource interruption is not permission to weaken a limit,
 replace a seed or publish the candidate as passed. Production remains unchanged.
 
+## Second resource interruption and isolated CI continuation protocol
+
+The serial control also hit the unchanged 1 GiB memory floor on the shared host.
+No final evaluation was reached. Both original logs and all stopped states remain
+retained, and neither resource interruption is a failed skill trial or a passed
+uninterrupted experiment. Further work will not kill another project or lower the
+memory floor. Instead, an explicitly dispatched GitHub-hosted runner per arm will
+resume the exact stopped model/Adam/course bytes without a copied world or private
+configuration. Source pins, 512 actors, seed 7, heap 2 GiB, threads 2/1/1, active CPUs
+2, total additional-sample target 1500000, maximum overshoot 50000, final tasks,
+32-case denominators and seeds 2026092822/2026092823 remain unchanged.
+
+The exact transferred states are control policy 651323 / 185295282 samples and
+candidate policy 651475 / 185174549 samples. The difference reflects the extra
+partial serial control run, not a fresh equal-state restart. The CI budgets end
+at the same originally declared total sample target, including EVERY prior accepted
+sample. Extra restores, a new disposable world, different runner hardware/JDK and
+changed execution order are explicit limitations on causal interpretation.
+No final skill score was observed before declaring this CI recovery.
+
+The bounded input ZIP has exactly `manifest.json`, `control.bcmc`, `candidate.bcmc`.
+Its SHA-256 is `a9e4dc21e676a3af5a69e1d2ff6ff401814ecf026fd4490eb54fe08c3c447693`.
+It contains model/Adam/course bytes and observed prefix workload numbers only:
+no executable JAR, world, `.env`, control credentials or other project files.
+It is retained as an unpublished draft-release asset, not a normal/latest release.
+CI accepts only this pinned archive and source pair and never extracts an archive
+path or executes code supplied by it. Native checkpoint validation precedes training.
+Every output artifact is an allowlisted evidence directory outside the Academy;
+checkpoint evidence contains no world or console credentials. Artifacts have the
+repository's normal Actions access and 14-day retention, not an encrypted archive.
+The draft input must not be published as a product release.
+
+The optional job is dispatched only with both `eula_consent` and `retention_study`.
+It does not run on ordinary pushes or PRs, and it cannot deploy to production.
+Its token is supplied only to the fixed draft-asset download step; Minecraft and
+the study controller receive no GH_TOKEN/GITHUB_TOKEN. Retain the actual runtime
+and JDK identities, complete final checkpoints, raw final/confirmation trial ZIPs,
+status history and failures. Stop each learner normally before evaluating.
+
+Final acceptance retains ALL original skill and workload thresholds. Combine the
+last observed pre-drain counters from interrupted segments with the CI segment for
+final-phase workload, without inventing drain samples. Additionally require the
+same workload bounds within the candidate CI segment itself. Audit both complete
+final reports and both same-model fresh-seed confirmations independently. A CI
+transport/runtime failure is not permission to weaken an experiment gate or claim
+learned success. Production is unchanged until all required checks establish a
+candidate suitable for a separately controlled rollout.
+
 ## Earlier disposition: not accepted; retention outcomes were unverified
 
 Implementation source: `8a2cc24061090a4be210c5332c32f1c9d848d715`.
