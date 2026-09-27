@@ -125,8 +125,54 @@ public final class ReservedReviewTest {
         Course decoded=Course.decode(a.encode(),64);
         check(decoded.reservedAgents()==0&&decoded.effort().equals(new Course.Effort(0,0,0,0)),"resume does not pretend to restore missing transient forecasts");
     }
+    private static void concurrentCourse()throws Exception{
+        Course seed=new Course(64,1703);
+        for(int actor=0;actor<64;actor++){promote(seed,actor);promote(seed,actor);}
+        Course course=Course.decode(seed.encode(),64);
+        var frontier=new java.util.concurrent.atomic.AtomicLong();
+        var review=new java.util.concurrent.atomic.AtomicLong();
+        var finished=new java.util.concurrent.atomic.AtomicLong();
+        var abandoned=new java.util.concurrent.atomic.AtomicLong();
+        long beforeFinished=course.episodes(),beforeAbandoned=course.abandoned();
+        try(var workers=java.util.concurrent.Executors.newFixedThreadPool(9)){
+            List<java.util.concurrent.Future<?>> jobs=new ArrayList<>();
+            for(int worker=0;worker<8;worker++){
+                final int first=worker*8;
+                jobs.add(workers.submit(()->{
+                    for(int iteration=0;iteration<500;iteration++)for(int actor=first;actor<first+8;actor++){
+                        var lesson=course.issue(actor);
+                        if(lesson==null||lesson.kind()==Course.Kind.EXAM||course.stage(actor)!=2)
+                            throw new AssertionError("a failing frontier must not enter or pass an exam");
+                        boolean prior=lesson.task().ordinal()<2;
+                        int ticks=1+(iteration+3*actor)%20;
+                        course.recordEffort(actor,lesson.serial(),ticks);
+                        (prior?review:frontier).addAndGet(ticks);
+                        if(iteration%9==0){course.abandon(actor);abandoned.incrementAndGet();}
+                        else{course.finish(actor,lesson.serial(),prior);finished.incrementAndGet();}
+                    }
+                }));
+            }
+            jobs.add(workers.submit(()->{
+                for(int i=0;i<2000;i++){
+                    int pending=course.reservedAgents();
+                    if(pending<0||pending>64)throw new AssertionError("concurrent reservation bounds");
+                    var effort=course.effort();
+                    if(effort.frontierTicks()<0||effort.reviewTicks()<0)
+                        throw new AssertionError("concurrent actual accounting");
+                }
+            }));
+            for(var job:jobs)job.get(30,java.util.concurrent.TimeUnit.SECONDS);
+        }
+        check(course.reservedAgents()==0&&course.running()==0,"concurrent same-stage owners drain all reservations");
+        check(course.effort().equals(new Course.Effort(0,frontier.get(),review.get(),0)),
+            "concurrent real intervals counted exactly once, excluding forecasts");
+        check(course.episodes()-beforeFinished==finished.get(),"concurrent completion accounting");
+        check(course.abandoned()-beforeAbandoned==abandoned.get(),"concurrent cancellation accounting");
+        check(review.get()>0&&frontier.get()>0,"concurrent same-stage trial exercised both roles");
+        check(course.population()[2]==64,"allocation never grants a peer a frontier certificate");
+    }
     public static void main(String[] args)throws Exception{
-        arithmetic();concurrentAllocation();lifecycle();
+        arithmetic();concurrentAllocation();lifecycle();concurrentCourse();
         System.out.println("PASS owned cohort reservation checks="+checks+"; not a learned retention result");
     }
 }
