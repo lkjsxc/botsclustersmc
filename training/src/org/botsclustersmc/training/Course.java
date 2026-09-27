@@ -10,13 +10,15 @@ public final class Course {
     public record Lesson(long serial,Task task,double difficulty,long seed,Kind kind){}
     private static final int TASKS=18;
     private static final class Agent {
-        final ReviewEffort effort=new ReviewEffort();
+        ReviewEffort.Reservation reservation;
         final RandomSource rng;final int[] episodes=new int[TASKS],probes=new int[TASKS],examSuccess=new int[TASKS];
         final double[] ema=new double[TASKS],probeEma=new double[TASKS];final long[] certified=new long[TASKS];
         int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam;long examVersion=-1;Lesson current;
         Agent(long seed){rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
     }
-    private final Agent[] agents;private long serial,episodes,successes,exams,passed,abandoned,regressions;
+    private final Agent[] agents;
+    private final ReviewEffort[] reviewPools=new ReviewEffort[TASKS];
+    private long serial,episodes,successes,exams,passed,abandoned,regressions;
     // Process-local scheduling telemetry, not optimizer samples or skill certificates.
     private long foundationTicks,frontierTicks,reviewTicks,examTicks;
     public record Effort(long foundationTicks,long frontierTicks,long reviewTicks,long examTicks) {}
@@ -26,12 +28,12 @@ public final class Course {
         if(lesson==null||lesson.serial()!=lessonSerial)throw new IllegalStateException("lesson identity mismatch");
         if(ticks<=0)throw new IllegalArgumentException("elapsed ticks");
         if(lesson.kind()==Kind.EXAM){examTicks=Math.addExact(examTicks,ticks);return;}
-        int task=lesson.task().ordinal();a.effort.record(a.stage,task,ticks);
+        int task=lesson.task().ordinal();reviewPools[a.stage].record(a.reservation,ticks);
         if(a.stage==0)foundationTicks=Math.addExact(foundationTicks,ticks);
         else if(task==a.stage)frontierTicks=Math.addExact(frontierTicks,ticks);
         else reviewTicks=Math.addExact(reviewTicks,ticks);
     }
-    public Course(int actors,long seed){if(actors<1||actors>10000)throw new IllegalArgumentException("actor count");agents=new Agent[actors];for(int i=0;i<actors;i++)agents[i]=new Agent(seed+i*7919L);}
+    public Course(int actors,long seed){if(actors<1||actors>10000)throw new IllegalArgumentException("actor count");Arrays.setAll(reviewPools,i->new ReviewEffort());agents=new Agent[actors];for(int i=0;i<actors;i++)agents[i]=new Agent(seed+i*7919L);}
     private Agent agent(long id){if(id<0||id>=agents.length)throw new IllegalArgumentException("actor identity");return agents[(int)id];}
     private boolean eligible(Agent a){return !a.exam&&a.episodes[a.stage]>=40&&a.probes[a.stage]>=8&&a.probeEma[a.stage]>=.7&&a.sinceExam>=(a.complete?256:20)&&a.probesSinceExam>=4;}
     public synchronized boolean needsExam(long actor){Agent a=agent(actor);return a.current==null&&eligible(a);}
@@ -41,7 +43,7 @@ public final class Course {
         int selected=a.stage;Kind kind;double difficulty;
         if(a.exam){kind=Kind.EXAM;selected=a.examIndex<16?a.stage:(a.examIndex-16)/4;difficulty=1;}
         else{
-            a.draws++;selected=a.effort.select(a.stage,a.rng);
+            a.draws++;a.reservation=reviewPools[a.stage].reserve(a.stage,a.rng);selected=a.reservation.task();
             // Per-task cadence cannot alias with a frontier/review scheduling cycle.
             kind=a.episodes[selected]%5==0?Kind.PROBE:Kind.PRACTICE;
             difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));
@@ -49,13 +51,15 @@ public final class Course {
         a.current=new Lesson(++serial,Task.at(selected),difficulty,a.rng.nextLong(),kind);return a.current;
     }
     public synchronized void finish(long actor,long lessonSerial,boolean success){
-        Agent a=agent(actor);Lesson lesson=a.current;if(lesson==null||lesson.serial()!=lessonSerial)throw new IllegalStateException("lesson identity mismatch");a.current=null;episodes++;if(success)successes++;
+        Agent a=agent(actor);Lesson lesson=a.current;if(lesson==null||lesson.serial()!=lessonSerial)throw new IllegalStateException("lesson identity mismatch");
+        if(lesson.kind()!=Kind.EXAM){reviewPools[a.stage].release(a.reservation);a.reservation=null;}
+        a.current=null;episodes++;if(success)successes++;
         int task=lesson.task().ordinal();
         if(lesson.kind()==Kind.EXAM){
             if(success)a.examSuccess[task]++;a.examIndex++;
             if(a.examIndex==16+a.stage*4){
                 boolean pass=a.examSuccess[a.stage]>=14;for(int i=0;i<a.stage;i++)pass&=a.examSuccess[i]>=3;
-                if(pass){for(int i=0;i<=a.stage;i++)a.certified[i]=a.examVersion;passed++;if(a.stage==TASKS-1)a.complete=true;else{a.stage++;a.effort.reset();}}
+                if(pass){for(int i=0;i<=a.stage;i++)a.certified[i]=a.examVersion;passed++;if(a.stage==TASKS-1)a.complete=true;else a.stage++;}
                 a.exam=false;a.examVersion=-1;a.sinceExam=0;a.probesSinceExam=0;
             }
         }else{
@@ -64,11 +68,11 @@ public final class Course {
             a.ema[task]=.95*a.ema[task]+.05*(success?1:0);
             if(lesson.kind()==Kind.PROBE){a.probes[task]++;a.probeEma[task]=.9*a.probeEma[task]+.1*(success?1:0);if(task==a.stage)a.probesSinceExam++;
                 // A real regression returns THIS actor to the forgotten skill, not every actor.
-                if(task<a.stage&&a.probes[task]>=8&&a.probeEma[task]<.45){a.stage=task;a.effort.reset();a.complete=false;a.sinceExam=0;a.probesSinceExam=0;regressions++;}
+                if(task<a.stage&&a.probes[task]>=8&&a.probeEma[task]<.45){a.stage=task;a.complete=false;a.sinceExam=0;a.probesSinceExam=0;regressions++;}
             }
         }
     }
-    public synchronized void abandon(long actor){Agent a=agent(actor);if(a.current!=null){a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
+    public synchronized void abandon(long actor){Agent a=agent(actor);if(a.current!=null){if(a.current.kind()!=Kind.EXAM){reviewPools[a.stage].release(a.reservation);a.reservation=null;}a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
     public synchronized long examVersion(long actor){return agent(actor).examVersion;}
     public synchronized Lesson currentLesson(long actor){return agent(actor).current;}
     public record Progress(int stage,int practiceEpisodes,int probes,double practiceSuccess,double probeSuccess,boolean exam,long examPolicy,int examCases,boolean completed) {}
@@ -102,13 +106,15 @@ public final class Course {
     public synchronized int task(){int min=17;for(Agent a:agents)min=Math.min(min,a.stage);return min;}
     public synchronized int maximumTask(){int max=0;for(Agent a:agents)max=Math.max(max,a.stage);return max;}
     public synchronized int[] population(){int[] result=new int[TASKS];for(Agent a:agents)result[a.stage]++;return result;}
+    public synchronized int reservedAgents(){int n=0;for(ReviewEffort pool:reviewPools)n+=pool.reservations();return n;}
     public synchronized int running(){int n=0;for(Agent a:agents)if(a.current!=null)n++;return n;}
     public synchronized int examAgents(){int n=0;for(Agent a:agents)if(a.exam)n++;return n;}
     public synchronized int completedAgents(){int n=0;for(Agent a:agents)if(a.complete)n++;return n;}
     public synchronized boolean completed(){return completedAgents()==agents.length;}
     public synchronized long episodes(){return episodes;}public synchronized long successes(){return successes;}public synchronized long exams(){return exams;}public synchronized long passedExams(){return passed;}public synchronized long abandoned(){return abandoned;}public synchronized long regressions(){return regressions;}
-    // Like in-flight episodes, effort debt is deliberately transient. Restart starts
-    // a new allocation interval; weights, Adam, RNG and earned certificates persist.
+    // Actual effort and outstanding episode forecasts are process-local, never checkpoint evidence.
+    // Resume starts empty pools; reservation-aware issue() provides immediate rehearsal coverage.
+    // The complete model/Adam/course format and earned certificates are unchanged.
     public synchronized byte[] encode()throws IOException{
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(DataOutputStream out=new DataOutputStream(bytes)){
             out.writeUTF("BCMC-INDEPENDENT-COURSE");out.writeInt(agents.length);for(long x:new long[]{serial,episodes,successes,exams,passed,abandoned,regressions})out.writeLong(x);

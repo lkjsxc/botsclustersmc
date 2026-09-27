@@ -151,7 +151,9 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("course_exams",course.exams());s.put("course_passed_exams",course.passedExams());s.put("course_completed",course.completed());s.put("course_abandoned",course.abandoned());s.put("learner_state",learner.state());s.put("learner_queue",learner.queued());
         s.put("learner_offered_samples",learner.offered.sum());s.put("learner_rejected_samples",learner.rejected.sum());s.put("learner_stale_samples",learner.stale.sum());s.put("actor_buffered_samples",buffered.sum());s.put("exam_transitions",examTransitions.sum());
         Course.Effort effort=course.effort();
-        s.put("review_allocation","observed-ticks");
+        s.put("review_allocation","observed-ticks-with-reservations");
+        s.put("review_reservation_scope","same-frontier-cohort");
+        s.put("review_reserved_episodes",course.reservedAgents());
         s.put("foundation_ticks_this_process",effort.foundationTicks());
         s.put("frontier_ticks_this_process",effort.frontierTicks());
         s.put("review_ticks_this_process",effort.reviewTicks());

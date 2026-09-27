@@ -140,8 +140,11 @@ public final class ReviewEffortTest {
         Course pair=new Course(2,88);
         for(int actor=0;actor<2;actor++){ready(pair,actor);exam(pair,actor,0);}
         Course.Lesson first=pair.issue(0);pair.recordEffort(0,first.serial(),3000);pair.finish(0,first.serial(),false);
-        check(pair.issue(1).task().ordinal()==1,"one actor cannot incur review debt for another");
-        check(pair.issue(0).task().ordinal()==0,"the actor that earned review receives it");
+        check(pair.issue(1).task().ordinal()==0,"same-frontier peers supply rehearsal for their shared policy");
+        check(pair.issue(0).task().ordinal()==0,"outstanding review reservations are reconciled with actual cohort effort");
+        check(pair.reservedAgents()==2,"each issued non-exam lesson owns one reservation");
+        pair.abandon(0);pair.abandon(1);
+        check(pair.reservedAgents()==0,"interrupted peers release only their own forecasts");
     }
     private static void concurrency()throws Exception {
         Course c=new Course(64,11);AtomicReference<Throwable> failure=new AtomicReference<>();Thread[] workers=new Thread[8];
@@ -161,6 +164,7 @@ public final class ReviewEffortTest {
     }
     public static void main(String[] args)throws Exception {
         arithmetic();cadenceAndLifecycle();allStagesAndIsolation();concurrency();
+        ReservedReviewTest.main(args);
         System.out.println("PASS elapsed-tick review checks="+checks);
     }
 }
