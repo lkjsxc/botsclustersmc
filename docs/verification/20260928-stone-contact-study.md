@@ -59,8 +59,15 @@ regression, not proof that one scheduling change will fix learned retention.
 The initial and early reports used different case seeds. A separately declared
 zero-training diagnostic will replay the exact saved initial model through the
 unchanged control build, all 13 tasks, 16 cases, seed 2026092811, under the new name
-`initial-matched-early`. It will not replace any early report, relax the failed
+`initial-matched-early`. It does not replace any early report, relax the failed
 gate or authorize continuation of this rejected candidate.
+
+The matched-seed diagnostic completed all 208 trials with zero evaluation training:
+initial policy 648322 scored `[16,16,16,16,16,16,16,16,16,16,15,14,0]` on exactly
+the early report's tasks, cases and seed. Workbench 15/16 and wooden pickaxe 14/16
+therefore fell to 3/16 and 0/16 even in the unchanged resumed control. Different
+case seeds alone do not explain this particular loss. The candidate's additional
+regressions remain separate evidence against its changed training objective.
 
 Evidence is retained under `.build/stone-learning-run/` in the candidate worktree:
 initial and both stopped training states, three exported evaluated bundles,
