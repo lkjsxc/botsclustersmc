@@ -1,6 +1,44 @@
 # Reserved review and checkpoint-resume retention — 2026-09-28
 
-## Disposition: not accepted for production; retention outcomes not verified
+## Continuation: the original early gate is now independently verified
+
+During the next operator-requested continuation, the retained early results could
+be read. Before any resumed training, the existing native `ReplaySource` validator
+rechecked all four initial/early evaluated bundles: 832 complete trials, original
+ordered tasks and seed 2026092821, zero evaluation training, matching model bytes,
+matching retained summaries, and exact complete early checkpoint copies. The
+independent `.build/VerifyReviewResume.java` auditor recomputed the original early
+skill and workload gates and confirmed the saved `early-gate.json` pass.
+
+| Task | Unchanged control / 16 | Reservation candidate / 16 |
+| --- | ---: | ---: |
+| 0–9 | 16 each | 16 each |
+| 10 craft-workbench | 2 | 16 |
+| 11 craft-wood-pick | 1 | 11 |
+| 12 mine-cobblestone | 0 | 0 |
+
+This resolves the earlier *unverified* status; it does not discard or replace an
+earlier failed gate. The separate stone-reward candidate in PR 20 remains rejected.
+PR 21 was reopened for the original prospective final phase: resume each exact
+early state up to 1500000 total additional accepted samples, then test 32 cases
+per task on seed 2026092822 and confirm each SAME model on seed 2026092823.
+Thresholds, source implementation `8a2cc24`, driver bytes and seeds are unchanged.
+No candidate model is installed in production by this continuation.
+
+A separate integration checkout added a shared-frontier concurrency regression:
+64 earned-stage-2 actors, eight concurrent workers, an independent status reader,
+and 32000 actual simulated lesson lifecycles with normal finishes and cancellations.
+The allocator must release every outstanding reservation, count actual ticks once,
+and never manufacture frontier progress for a peer. The dedicated suite now has
+3115052 checks. Its full source suite at `27281f9af04e1f454c9d81fdd5d57ffa566319fe`
+passed with stable input, exit 0, in 31.394224530 seconds. This test-only extension
+does not change the pinned implementation used by the real-Minecraft experiment.
+Both training and inference JARs byte-match the original candidate build.
+
+The historical closeout below describes the earlier information state, not the
+final outcome of the continued study.
+
+## Earlier disposition: not accepted; retention outcomes were unverified
 
 Implementation source: `8a2cc24061090a4be210c5332c32f1c9d848d715`.
 Exact tested tree: `fdf25ab7d0bd4af333461c9464303f626d24fa1c`.
@@ -136,6 +174,25 @@ The study controller had exited. A final Java-process inventory contained only
 the original production launcher, original production server and monitor; no
 experimental server was left running. Approximately 10675 MiB was available.
 No production checkpoint, world or earlier experiment was deleted or overwritten.
+
+### Mainline closeout validation
+
+The reports were integrated into main without either experimental implementation.
+A fresh `./test.sh` on main `6ffd447f41df913bdb715063ce7027f23bdaea88` completed the
+entire source suite and inference-artifact separation checks successfully. The
+following, separate `gh run list` in the same shell exceeded the tool call's total
+timeout; this was not a failed or timed-out source test. A later independent
+GitHub read confirmed that Markdown/docs-only pushes are excluded by the existing
+workflow's `paths-ignore`; no new main CI run is claimed for these report commits.
+The two candidate PR source/browser CI runs are identified above and in the stone
+study, and both PRs are closed unmerged (PR 20 rejected; PR 21 withheld unverified).
+
+A whole-directory diff confirmed unchanged `core`, `plugin`, `training`, `host`,
+`tests` and `tools` relative to starting main `bb0dcfd1`. The rebuilt main training
+JAR was byte-compared with the original production plugin and matched; the main
+inference JAR matched the untouched control build. Production service PIDs and
+restart counts remained unchanged. The final follow-up to this tested main only
+adds this closeout record, not code, tests or model data.
 
 ## Original prospective protocol, fixed before experimental training
 
