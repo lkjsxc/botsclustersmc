@@ -1,5 +1,86 @@
 # Reserved review and checkpoint-resume retention — 2026-09-28
 
+## Final disposition: reject this candidate at the original confirmation gate
+
+The previously unread early result was a genuine pass, and the continuation is
+now complete. The candidate improved measured retention relative to the unchanged
+control, but it did NOT meet the original fresh-seed wooden-pickaxe threshold.
+Do not merge or deploy the reservation allocator on this study's evidence, and do
+not extend this failed candidate until a favorable seed appears. Retain the source,
+all states, failed cases and the two resource-aborted execution records.
+
+The isolated CI continuation `36343677879` completed successfully on controller
+source `b16fdc57799889b1a4575ecb6bb97dcfee4f23d0`. Both final models reached the same
+originally declared additional-sample target within the 50000-sample overshoot bound.
+Control: policy **652272**, **185740543** total samples, **1509904** additional.
+Candidate: policy **652957**, **185740052** total samples, **1509413** additional.
+The difference is 491 accepted samples, not an exactly equal sample/update budget.
+Each model was tested on seed 2026092822 and the SAME model replayed on seed
+2026092823. Every task had 32 full-condition cases; no evaluator learned samples.
+
+| Task IDs | Control, seed 2026092822 | Candidate, seed 2026092822 | Control, seed 2026092823 | Candidate, seed 2026092823 |
+| --- | ---: | ---: | ---: | ---: |
+| 0,1,3,4,5,6,7,8,9 | 32 each | 32 each | 32 each | 32 each |
+| 2 aim-hold | 31 | 32 | 27 | 32 |
+| 10 craft-workbench | 32 | 32 | 31 | 32 |
+| 11 craft-wood-pick | 5 | 24 | 1 | **21** |
+| 12 mine-cobblestone | 0 | 0 | 0 | 0 |
+
+The candidate required at least **24/32 on task 11 on EACH final seed**. Its first
+final result passed exactly at 24; confirmation scored 21 and failed. Pooling the
+two seeds or comparing only against the worse control cannot change that result.
+The candidate's tasks 0–10 passed their 30/32 minimum on both seeds. Cobblestone
+remained unlearned and was never an acceptance requirement for this retention study.
+
+### Independent completed-data audit
+
+The native `ReplaySource` validator checked all four CI ZIPs, including complete
+trial identities, counts, failed cases, model/plugin identities and zero evaluation
+training. An independent Java auditor compared transferred full checkpoint bytes,
+validated the final complete checkpoints, checked the original sample budget,
+confirmed identical-model replay, reconstructed workload from the raw interrupted
+and CI status histories, and recomputed the declared gates without trusting a
+stored boolean. It reported `audit_passed=true`, `study_gate_passed=false`, with
+only `confirmation retention task 11` failing. The CI execution's success means
+that the experiment completed, not that its scientific acceptance gate passed.
+
+This final audit covered **1664 CI trials**. The previously revalidated four
+initial/early bundles add 832 trials, for **2496 completed trials** in this study.
+The original two shared-host resource aborts remain separate non-completed runs;
+no missing final evaluation was invented for them.
+
+Candidate measured review fraction over the final-phase interrupted+CI observations
+was **20.2301934%**, with **78.9157507%** of accepted samples on task 12. In the CI
+segment alone these were **20.2532024%** and **78.8349923%**. Each earlier task had
+more than 100 accepted samples in both scopes; workload requirements passed.
+These are last observed pre-drain counters, not invented exact post-drain totals.
+The result therefore cannot be described as a failure to provide any old-task data,
+nor as retained skills obtained by stopping frontier learning. Coverage improved
+but the required hard-skill reliability was not retained on the confirmation seed.
+
+Runtime source pins remain baseline `bb0dcfd1` and candidate `8a2cc240`. The CI
+runner recorded Temurin 21.0.12.1+1 and 16373452 KiB total RAM. The normal pinned
+Folia server remained 1.21.11 build 14. The native audit confirmed inference JAR
+bytes identical to the pre-study production build. The extra restores, fresh
+worlds, host/JDK changes and unequal optimizer updates limit causal interpretation;
+this is not an uninterrupted replication or a multi-training-seed superiority claim.
+
+### Delivered tooling, not the rejected allocator
+
+Retain the opt-in portable `tests/retention_ci.py` controller, its six input-boundary
+unit tests and the explicitly gated CI job separately from allocator adoption.
+They enabled a completed, checkpoint-only comparison without modifying the shared
+workspace's other project or relaxing the memory floor. No world or credentials
+were transferred. The input asset remains an unpublished draft; the workflow is
+not a deployment mechanism, and rerunning it does not turn a failed gate into a pass.
+
+The full native audit is retained at
+`/home/coder/workspace/botsclustersmc-review-study/.build/reserved-review-run/ci-results/native-audit.json`.
+That directory also retains both downloaded CI evidence artifacts, exact stopped
+checkpoints, raw final/confirmation ZIPs and status histories. The draft input is
+`retention-input-20260928`, asset `retention-input.zip`; it must stay unpublished.
+The production learner is not restarted or given either experimental model.
+
 ## Continuation: the original early gate is now independently verified
 
 During the next operator-requested continuation, the retained early results could
