@@ -38,6 +38,45 @@ Both training and inference JARs byte-match the original candidate build.
 The historical closeout below describes the earlier information state, not the
 final outcome of the continued study.
 
+## Resource interruption and prospective serial recovery
+
+The simultaneous final-phase execution aborted when measured available memory
+fell below the original 1 GiB floor. Its last printed 330-second snapshot had
+896791 additional accepted samples in the control and 905909 in the candidate.
+The controller requested orderly stops of both experimental learners. A subsequent
+process inventory contained only the original production launcher/server and
+monitor; production PIDs and restart counts were unchanged. Concurrent work in the
+shared workspace was not killed, reconfigured or used as a source of model data.
+The original `review-final.log` and `final-status.jsonl` are preserved as an aborted
+execution, not relabelled as a successful uninterrupted final phase. No final
+skill evaluation was reached by that aborted driver.
+
+Before further training, archive each complete stopped checkpoint under new
+`serial-aborted-*` names and validate it with the normal checkpoint exporter.
+Continue FROM THOSE exact states, one experimental learner at a time, retaining
+all earlier states. Keep source `8a2cc24`, seed 7, 512 actors, 2 GiB heap, two
+JVM-visible CPUs and region/inference/learner threads 2/1/1. Do not lower the 1 GiB
+memory floor. The existing 2400-second training bound applies to each serial arm.
+Keep the ORIGINAL total additional-sample target 1500000 and the 50000 maximum
+overshoot; the interrupted samples count toward it, not as a free extra budget.
+
+Use new `serial-control` / `serial-candidate` training labels and
+`serial-final-*` / `serial-confirmation-*` evaluated bundle names. Do not overwrite
+the aborted log, early results or original checkpoints. The extra restore and
+serial execution are a declared operational change, not an identical-scheduling
+replication. No final skill score was observed before this recovery decision.
+
+Final tasks, order, 32-case denominators, seeds 2026092822/2026092823, and ALL
+original final retention thresholds remain unchanged. Reconstruct final-phase
+workload by summing the last recorded actual counters from the interrupted and
+serial segments; state the unobserved shutdown-drain limitation. Require the same
+10–35% actual review, at least 50% task-12 accepted samples and at least 100 accepted
+samples of each earlier task. Also require those workload bounds in the serial
+candidate segment itself, so recovery cannot hide a new starvation interval.
+Recompute gates independently with the native bundle/trial validator before any
+adoption. A further resource interruption is not permission to weaken a limit,
+replace a seed or publish the candidate as passed. Production remains unchanged.
+
 ## Earlier disposition: not accepted; retention outcomes were unverified
 
 Implementation source: `8a2cc24061090a4be210c5332c32f1c9d848d715`.
