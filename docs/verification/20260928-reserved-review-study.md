@@ -81,6 +81,54 @@ checkpoints, raw final/confirmation ZIPs and status histories. The draft input i
 `retention-input-20260928`, asset `retention-input.zip`; it must stay unpublished.
 The production learner is not restarted or given either experimental model.
 
+## Final mainline and production closeout
+
+Only the independent experiment runner, its six Python boundary test methods,
+explicit CI dispatch job and documentation were integrated as main
+`3f62c02eda1bc41987c7f4b2969db05cd7faba23`. The reservation implementation, its
+modified Course and its candidate-only Java tests were NOT merged. PR 21 is closed
+unmerged with a measured failed confirmation gate, not merely an unread outcome.
+PR 20 remains separately rejected. The previously pending operator-guide edits
+were already published as `2bff480` during this continuation.
+
+A fresh main `./test.sh` returned exit 0 with stable clean input in
+28.118401052 seconds. Receipt: `.build/retention-ci-main-tests.json`.
+Main CI `36344880675` completed successfully: Ubuntu source, Windows source and
+browser/observatory checks passed; all optional Minecraft jobs, including the new
+retention job, were skipped on this ordinary push. Actual isolated continuation
+results belong to the separate explicitly dispatched run `36343677879`, not this
+main CI. Local boundary unittest discovery passed all six methods.
+
+A directory diff against pre-study `bb0dcfd1` confirmed unchanged `core`, `plugin`,
+`training`, `host`, `tests/java` and `tests/host`. The freshly built main training
+JAR byte-matched the installed production training JAR; the inference JAR matched
+the untouched control build. The local main tree was clean and synchronized.
+The final subsequent commit only records this closeout; it changes no test or
+executable input from the tested main above.
+
+Production observation at 2026-09-28 **04:35:53.356 JST**: policy 704517,
+201022588 accepted samples, all 512 NPCs active/ticking/progressing, about
+2065.599 samples/second over the last status interval, zero burning bodies,
+failed/rejected inference and stale/rejected learner samples. All 512 course
+positions were task 12; these are reached stages, not successful stone trials.
+
+The last completed production evaluation, dated **04:35:28.731 JST** and reread
+at 04:37:44, used fixed policy **703098**, 200599176 accepted samples, seed
+3238675422062477384, 32 cases each on tasks 0–12. All 416 cases completed with
+zero evaluation learning. Tasks 0–10 each scored **32/32**, wooden pickaxe **30/32**,
+cobblestone **0/32**. That is the continuously running original learner, not either
+isolated experimental model, and it is a different training history and model
+from the controlled comparison. The later live policy is not certified by it.
+
+At final service inspection, training remained MainPID 141387 / NRestarts 2 and
+monitor MainPID 261 / NRestarts 0, both active. Those two lifetime training restarts
+predate this continuation. Only the original training launcher, original server
+and monitor remained in the Java-process inventory. Both CI experiment jobs had
+finished, and no experimental learner was left running in the shared workspace.
+No experimental checkpoint was substituted for the live model/Adam/course.
+This closeout establishes neither cobblestone competence nor general survival or
+cooperation; it completes the declared comparison and preserves its negative gate.
+
 ## Continuation: the original early gate is now independently verified
 
 During the next operator-requested continuation, the retained early results could
