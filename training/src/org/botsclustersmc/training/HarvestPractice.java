@@ -7,13 +7,23 @@ import org.botsclustersmc.core.Task;
 public final class HarvestPractice {
     private HarvestPractice() {}
     public static boolean applies(Task task) {
-        return task==Task.BREAK_LOG||task==Task.COLLECT_LOG;
+        return task==Task.BREAK_LOG||task==Task.COLLECT_LOG||task==Task.MINE_COBBLESTONE;
     }
     public static AimPractice.Pose reset(Task task,Course.Kind kind,double difficulty,
             float yaw,float pitch,double targetYaw,double targetPitch,RandomSource rng) {
         if(!applies(task))return new AimPractice.Pose(yaw,pitch);
         // Full probes/exams retain their original pose AND random stream.
         return AimPractice.reset(kind,difficulty,yaw,pitch,targetYaw,targetPitch,rng);
+    }
+    /** Observed contact only. Stone without a pick cannot produce the required cobblestone. */
+    public static double miningProgress(Task task,boolean targetContact,int heldKind,int ticks) {
+        if(heldKind<0||ticks<0)throw new IllegalArgumentException("Invalid mining contact");
+        if(!applies(task)||!targetContact)return 0;
+        if(task==Task.MINE_COBBLESTONE) {
+            if(heldKind!=6&&heldKind!=7)return 0;
+            return Math.min(1,ticks/40.0);
+        }
+        return Math.min(1,ticks/60.0);
     }
     public static double controlReward(Task task,boolean targetBroken,double yawError,
             double pitchError,double distance,double speed,double targetProgress,int ticks) {
@@ -25,7 +35,8 @@ public final class HarvestPractice {
         double time=ticks/4.0;
         if(targetBroken) {
             // A collected drop remains a real, provenance-checked inventory outcome.
-            return task==Task.COLLECT_LOG?-.025*Math.min(1,Math.max(0,distance-.6)/6)*time:0;
+            return task==Task.COLLECT_LOG||task==Task.MINE_COBBLESTONE
+                ?-.025*Math.min(1,Math.max(0,distance-.6)/6)*time:0;
         }
         double alignment=.025*Math.min(1,Math.abs(yawError)/90)
             +.025*Math.min(1,Math.abs(pitchError)/45);

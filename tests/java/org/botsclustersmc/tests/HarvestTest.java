@@ -12,7 +12,7 @@ public final class HarvestTest {
         return HarvestPractice.controlReward(Task.COLLECT_LOG,broken,yaw,pitch,distance,speed,progress,ticks);
     }
     public static void main(String[] args) {
-        for(Task task:Task.values())check(HarvestPractice.applies(task)==(task==Task.BREAK_LOG||task==Task.COLLECT_LOG));
+        for(Task task:Task.values())check(HarvestPractice.applies(task)==(task==Task.BREAK_LOG||task==Task.COLLECT_LOG||task==Task.MINE_COBBLESTONE));
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double difficulty:new double[]{0,.1,.5,.99,1}) {
             RandomSource rng=new RandomSource(761);long before=rng.state();
             var pose=HarvestPractice.reset(task,kind,difficulty,123,-24,0,0,rng);
@@ -43,6 +43,28 @@ public final class HarvestTest {
         }
         check(reward(false,0,0,3,0,.99,4)<0);
         check(reward(false,180,90,3,0,0,4)<reward(false,0,0,3,0,0,4));
-        System.out.println("PASS harvesting practice invariants="+checks);
+        int originalChecks=checks;
+        for(Task task:Task.values())for(int held=0;held<16;held++)for(int ticks:new int[]{0,1,20,39,40,59,60,299,300,10000}) {
+            near(HarvestPractice.miningProgress(task,false,held,ticks),0);
+            double expected=task==Task.BREAK_LOG||task==Task.COLLECT_LOG?Math.min(1,ticks/60.0)
+                :task==Task.MINE_COBBLESTONE&&(held==6||held==7)?Math.min(1,ticks/40.0):0;
+            near(HarvestPractice.miningProgress(task,true,held,ticks),expected);
+        }
+        for(boolean broken:new boolean[]{false,true})for(int ticks:new int[]{1,4,5,16}) {
+            for(int i=0;i<1000;i++) {
+                double yaw=rng.symmetric(180),pitch=rng.symmetric(90),distance=rng.unit()*30;
+                double speed=rng.unit(),progress=rng.unit();
+                double stone=HarvestPractice.controlReward(Task.MINE_COBBLESTONE,broken,yaw,pitch,distance,speed,progress,ticks);
+                near(stone,reward(broken,yaw,pitch,distance,speed,progress,ticks));
+                check(Double.isFinite(stone)&&stone<=0);
+            }
+        }
+        for(int[] invalid:new int[][]{{-1,0},{0,-1}}) {
+            boolean failed=false;
+            try{HarvestPractice.miningProgress(Task.MINE_COBBLESTONE,true,invalid[0],invalid[1]);}
+            catch(IllegalArgumentException expected){failed=true;}
+            check(failed);
+        }
+        System.out.println("PASS harvesting practice invariants="+checks+"; new stone checks="+(checks-originalChecks));
     }
 }
