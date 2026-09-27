@@ -11,6 +11,11 @@ on:
         required: true
         type: boolean
         default: false
+      retention_study:
+        description: Continue the pinned, checkpoint-only retention experiment instead of deployment acceptance
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -72,6 +77,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_lifecycle_summary.py
           python -m unittest discover -s tests -p test_holdout.py
+          python -m unittest discover -s tests -p test_retention_ci.py
           python tests/crafting_monitor.py
       - uses: actions/upload-artifact@v4
         if: always()
@@ -82,7 +88,7 @@ jobs:
   live:
     needs: source
     # Only an affirmative dispatch starts disposable Minecraft servers.
-    if: github.event_name == 'workflow_dispatch' && inputs.eula_consent
+    if: github.event_name == 'workflow_dispatch' && inputs.eula_consent && !inputs.retention_study
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -170,6 +176,58 @@ jobs:
             paper-inference/*.json
             paper-fixtures/*.log
           retention-days: 14
+  retention:
+    needs: source
+    if: github.event_name == 'workflow_dispatch' && inputs.eula_consent && inputs.retention_study
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    # Draft releases require push access. The token is exposed only to the fixed download step.
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arm: control
+            source: bb0dcfd1d1c5e94f8276e92367187e064145e1a9
+          - arm: candidate
+            source: 8a2cc24061090a4be210c5332c32f1c9d848d715
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: controller
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.source }}
+          path: runtime
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Read only the explicitly retained draft experiment input
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release download retention-input-20260928 --pattern retention-input.zip --dir "$RUNNER_TEMP"
+      - name: Validate portable experiment boundaries
+        run: python3 -m unittest discover -s controller/tests -p test_retention_ci.py
+      - name: Resume only the pinned isolated learner and evaluate the stopped model
+        env:
+          EULA: 'true'
+          STUDY_ARM: ${{ matrix.arm }}
+        run: >-
+          python3 controller/tests/retention_ci.py --arm "$STUDY_ARM"
+          --source "$GITHUB_WORKSPACE/runtime" --input "$RUNNER_TEMP/retention-input.zip"
+          --out "$RUNNER_TEMP/retention-output"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: retention-${{ matrix.arm }}
+          path: ${{ runner.temp }}/retention-output/evidence/
+          retention-days: 14
+          if-no-files-found: warn
   windows-live:
     needs: live
     runs-on: windows-latest

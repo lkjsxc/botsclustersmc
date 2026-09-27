@@ -137,7 +137,8 @@ exams are described in [Learning](docs/LEARNING.md).
 
 `./build.sh` builds the two JARs; `./test.sh` adds numerical, mechanics, curriculum,
 serialization, asynchronous queue and synthetic-learning tests. Only opt-in live
-acceptance uses Python3. Real Paper/Folia and OS tests are in CI; inspect
+acceptance and the [pinned isolated retention study](docs/RETENTION_CI.md) use Python3.
+Real Paper/Folia and OS tests are in CI; inspect
 [Validation](docs/VALIDATION.md) for actual completed versions, counts and limits.
 
 Old state/configuration is deliberately rejected, never silently migrated or
