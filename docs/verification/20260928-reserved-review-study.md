@@ -137,6 +137,25 @@ the original production launcher, original production server and monitor; no
 experimental server was left running. Approximately 10675 MiB was available.
 No production checkpoint, world or earlier experiment was deleted or overwritten.
 
+### Mainline closeout validation
+
+The reports were integrated into main without either experimental implementation.
+A fresh `./test.sh` on main `6ffd447f41df913bdb715063ce7027f23bdaea88` completed the
+entire source suite and inference-artifact separation checks successfully. The
+following, separate `gh run list` in the same shell exceeded the tool call's total
+timeout; this was not a failed or timed-out source test. A later independent
+GitHub read confirmed that Markdown/docs-only pushes are excluded by the existing
+workflow's `paths-ignore`; no new main CI run is claimed for these report commits.
+The two candidate PR source/browser CI runs are identified above and in the stone
+study, and both PRs are closed unmerged (PR 20 rejected; PR 21 withheld unverified).
+
+A whole-directory diff confirmed unchanged `core`, `plugin`, `training`, `host`,
+`tests` and `tools` relative to starting main `bb0dcfd1`. The rebuilt main training
+JAR was byte-compared with the original production plugin and matched; the main
+inference JAR matched the untouched control build. Production service PIDs and
+restart counts remained unchanged. The final follow-up to this tested main only
+adds this closeout record, not code, tests or model data.
+
 ## Original prospective protocol, fixed before experimental training
 
 This is a separate hypothesis from rejected PR #20. That stone-reward candidate
