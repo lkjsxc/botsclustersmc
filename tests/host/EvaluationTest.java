@@ -39,6 +39,11 @@ public final class EvaluationTest {
         reject(r->r.addProperty("complete",false));reject(r->r.addProperty("complete","true"));
         reject(r->r.addProperty("diagnostic_only",true));reject(r->r.addProperty("diagnostic_only","false"));
         reject(r->r.addProperty("reset_intervention","open-workbench"));reject(r->r.add("reset_intervention",JsonNull.INSTANCE));
+        for(String mode:List.of("workbench-open","pickaxe-grid")) {
+            reject(r->r.addProperty("reset_intervention",mode));
+            reject(r->{r.addProperty("diagnostic_only",false);r.addProperty("reset_intervention",mode);});
+            reject(r->{r.addProperty("diagnostic_only",true);r.addProperty("reset_intervention",mode);r.addProperty("reset_intervention_trials",4);});
+        }
         reject(r->r.addProperty("stochastic",false));reject(r->r.addProperty("schema","foreign"));
         reject(r->r.addProperty("policy_updates",8));reject(r->r.addProperty("policy_updates","7"));
         reject(r->r.addProperty("policy_trained_samples",65));reject(r->r.addProperty("new_training_samples",1));

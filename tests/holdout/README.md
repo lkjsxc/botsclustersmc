@@ -4,7 +4,8 @@ This opt-in developer test evaluates one saved policy in a disposable real
 Minecraft server. Every gameplay action is sampled from the same immutable
 neural policy. There is no scripted motor controller, optimizer, trajectory
 training queue, curriculum promotion, or modification of the source checkpoint.
-The regular training reset and success predicates are used at full difficulty.
+By default, the regular training reset and success predicates are used at full
+difficulty. Explicit reset-intervention diagnostics below are not standard exams.
 
 After personally accepting the Minecraft EULA and building the current runtime:
 
@@ -55,3 +56,65 @@ timing and stochastic action variation. New seeds test more than one fixed suite
 The test does not establish natural-terrain generalization, unrestricted survival,
 long-lived NPC inventories, combat, food production, or multiplayer cooperation.
 Do not label scripted reachability diagnostics as these neural-policy results.
+
+## Reset-only workbench diagnostics
+
+`--reset-intervention` is an opt-in developer diagnostic, not a training option.
+The default `none` leaves the full-condition evaluator unchanged. The other
+choices require a saved `--policy` and only pickaxe tasks 11 or 13; a moving
+`--checkpoint` is rejected so a matrix cannot silently compare different models.
+
+| Condition | Initial menu | Initial ingredients | What is still selected by the policy |
+| --- | --- | --- | --- |
+| `none` | Closed | Raw stock | Opening, assembly and collection |
+| `workbench-open` | Workbench | Identical raw stock | Assembly and collection; closing remains possible |
+| `pickaxe-grid` | Workbench | Five supplied units already arranged | Output collection and all subsequent actions |
+
+No completed item or crafted counter is supplied. Both assisted conditions leave
+the random pose and empty cursor unchanged. Assistance runs once, on the owning
+entity thread, after the normal asynchronous reset and before any policy request.
+The test checks the stock, station ownership, zero decisions and applied coverage.
+It does not consume the action RNG, keep the menu open, move an agent, choose
+later clicks or change the success predicate. `pickaxe-grid` deliberately bypasses
+assembly and must never be used as evidence that assembly has been learned.
+
+First retain one model using the ordinary native evaluator, then extract only its
+policy data. Do not run the archived plugin; use the current built runtime:
+
+```sh
+./evaluate.sh --tasks 0,1,2,3,4,5,6,7,8,9,10,11 --cases 32 \
+  --seed 2026092703 --export .build/station-baseline.zip
+unzip -n -j .build/station-baseline.zip \
+  plugins/BotsClustersMC/policy.bcmc -d .build/station-policy
+
+for condition in none workbench-open pickaxe-grid; do
+  EULA=true JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 \
+    python3 tests/holdout.py \
+      --policy .build/station-policy/policy.bcmc \
+      --output ".build/station-cases/$condition" \
+      --tasks 11 --cases 32 --seed 2026092704 \
+      --port 25584 --reset-intervention "$condition"
+done
+```
+
+Use a new output path for every suite and another predeclared seed to replicate.
+The saved policy directory must not contain the output directory. Preserve task
+order and case counts as well as seed: actor IDs also seed policy sampling.
+Different task lists are not paired-action controls. Asynchronous server timing
+can still produce differences even with the same initial seed specification.
+Declare the matrix before looking at results and keep unsuccessful conditions.
+The developer runner uses Python; neither production JAR gains that dependency.
+
+Assisted `result.json` reports include `diagnostic_only: true`, the exact
+`reset_intervention` and `reset_intervention_trials`. The runner rejects missing
+or mismatched labels/coverage. Its metadata and console output also identify
+assistance. These local files do not replace the live observatory's standard
+result. The native evaluation validator and its evaluated-bundle/replay consumers
+reject assisted reports even when their success counts are high.
+
+Compare identical fixed models, not the continually changing learner. A large
+open-menu improvement would implicate entry/starting-state transfer; a large
+supplied-grid improvement would distinguish collection ability from raw assembly.
+Neither result alone identifies a reward, representation or optimizer defect.
+The actual measured study and its limitations are recorded in
+[the September 27 verification record](../../docs/verification/20260927-station-reset-study.md).

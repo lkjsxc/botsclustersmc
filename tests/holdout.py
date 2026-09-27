@@ -7,7 +7,7 @@ import acceptance
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def arguments():
+def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     source=parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--policy', type=Path)
@@ -19,7 +19,11 @@ def arguments():
     parser.add_argument('--cases', type=int, default=64)
     parser.add_argument('--seed', type=int, default=19517)
     parser.add_argument('--port', type=int, default=25584)
-    args = parser.parse_args()
+    parser.add_argument('--reset-intervention', choices=['none', 'workbench-open', 'pickaxe-grid'], default='none',
+                        help='Diagnostic only: modify the initial workbench state; never a standard skill evaluation.')
+    args = parser.parse_args(argv)
+    if args.reset_intervention != 'none' and (args.checkpoint or any(t not in (11, 13) for t in args.tasks)):
+        parser.error('Reset diagnostics require one saved --policy and only pickaxe tasks 11 or 13.')
     if not 1 <= args.cases <= 256 or args.cases*len(args.tasks) > 2048:
         parser.error('Use 1..256 cases per task, with at most 2048 trials total.')
     if len(set(args.tasks)) != len(args.tasks) or any(t < 0 or t > 17 for t in args.tasks):
@@ -99,6 +103,8 @@ permissions:
 '''
     count = args.cases*len(args.tasks)
     config = f'max-agents: {max(64, count)}\nmax-loaded-chunks: {max(64, count)}\ninference-threads: 1\nseed: {args.seed}\ncases-per-task: {args.cases}\ntasks: {args.tasks}\nworld-edits: false\n'
+    if args.reset_intervention != 'none':
+        config += f'reset-intervention: {args.reset_intervention}\n'
     with zipfile.ZipFile(server/'plugins/exam.jar', 'w', compression=zipfile.ZIP_DEFLATED) as jar:
         with zipfile.ZipFile(output/'runtime.jar') as source:
             for item in source.infolist():
@@ -116,6 +122,11 @@ def verify_result(args, data, frozen, process):
     assert process.returncode == 0 and result['complete'] and result['new_training_samples'] == 0
     trials, total = result['trials'], args.cases*len(args.tasks)
     assert result['stochastic'] and result['seed'] == args.seed and result['cases_per_task'] == args.cases
+    diagnostic = args.reset_intervention != 'none'
+    assert result.get('diagnostic_only', False) is diagnostic
+    assert result.get('reset_intervention', 'none') == args.reset_intervention
+    if diagnostic:
+        assert type(result.get('reset_intervention_trials')) is int and result['reset_intervention_trials'] == total
     assert len(trials) == total and {trial['actor'] for trial in trials} == set(range(total))
     assert [task['task'] for task in result['tasks']] == args.tasks
     for summary in result['tasks']:
@@ -142,7 +153,10 @@ def main():
         'exam_jar_sha256': hashlib.sha256((server/'plugins/exam.jar').read_bytes()).hexdigest(),
         'tasks': args.tasks, 'cases_per_task': args.cases, 'seed': args.seed,
         'bind': '127.0.0.1', 'port': args.port, 'terrain': 'academy-flat',
-        'claim': 'Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.',
+        'diagnostic_only': args.reset_intervention != 'none',
+        'reset_intervention': args.reset_intervention,
+        'claim': ('Assisted reset diagnostic only; not standard competence or a certificate.' if args.reset_intervention != 'none'
+                  else 'Fixed-policy full-difficulty stochastic trials; no learning or certificate mutation.'),
     }
     metadata['input_kind']='canonical-checkpoint' if args.checkpoint else 'inference-policy'
     if args.checkpoint:
@@ -158,7 +172,8 @@ def main():
         (output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
         print(json.dumps({k: v for k, v in result.items() if k != 'trials'}, indent=2), flush=True)
         print('PASS evaluation integrity: every trial completed, weights unchanged, zero new training samples.', flush=True)
-        print('Exit success means the experiment completed, not that every skill passed.', flush=True)
+        print('Diagnostic reset results are NOT full-condition skill results.' if args.reset_intervention != 'none'
+              else 'Exit success means the experiment completed, not that every skill passed.', flush=True)
     finally:
         acceptance.stop_direct(process)
 

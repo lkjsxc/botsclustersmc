@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.*;
 /** Independent stochastic neural evaluation. No scripted gameplay or optimizer. */
 public final class FrozenPolicyExam extends RuntimePlugin {
     private int cases,count;private List<Integer> tasks;private long examSeed;
+    private ResetIntervention intervention=ResetIntervention.NONE;
+    private final Set<Long> intervened=ConcurrentHashMap.newKeySet();
     private final AtomicInteger prepared=new AtomicInteger();
     private final Map<Long,TrainingEnvironment.Session> sessions=new ConcurrentHashMap<>();
     private final Map<Long,Outcome> outcomes=new ConcurrentHashMap<>();
@@ -29,7 +31,8 @@ public final class FrozenPolicyExam extends RuntimePlugin {
     @Override protected void initialize() {
         cases=bounded("cases-per-task",64,1,256);tasks=List.copyOf(getConfig().getIntegerList("tasks"));
         if(tasks.isEmpty()||tasks.size()>18||new HashSet<>(tasks).size()!=tasks.size())throw new IllegalArgumentException("Distinct task IDs are required");
-        for(int task:tasks)Task.at(task);count=cases*tasks.size();
+        intervention=ResetIntervention.parse(getConfig().getString("reset-intervention","none"));
+        for(int task:tasks)intervention.requireTask(Task.at(task));count=cases*tasks.size();
         if(count>2048)throw new IllegalArgumentException("Holdout is bounded to 2048 trials");
         examSeed=getConfig().getLong("seed",19517);started=System.nanoTime();
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->{
@@ -64,6 +67,25 @@ public final class FrozenPolicyExam extends RuntimePlugin {
         TrainingEnvironment.Session session=sessions.get(npc.id);npc.context=session;traces.put(npc.id,new TrialTrace());
         TrainingEnvironment.reset(this,npc,session,session.lesson);
     }
+    @Override protected void startNpc(Npc npc) {
+        if(intervention==ResetIntervention.NONE){super.startNpc(npc);return;}
+        // Reset teleports and stock initialization are asynchronous. Do not start the
+        // policy loop until the owning entity thread has applied this one reset.
+        npc.entity.getScheduler().runAtFixedRate(this,scheduled->{
+            try {
+                if(failed.get()!=null){scheduled.cancel();return;}
+                if(npc.resetting)return;
+                if(npc.tick!=0||npc.decisions!=0||npc.observedFrame!=null||intervened.contains(npc.id))
+                    throw new IllegalStateException("Reset intervention must precede every policy decision");
+                Location station=new Location(npc.anchor.getWorld(),npc.goal.x(),npc.goal.y(),npc.goal.z());
+                if(!WorldActions.owned(station)||station.getBlock().getType()!=Material.CRAFTING_TABLE)
+                    throw new IllegalStateException("Reset intervention requires the owned workbench");
+                intervention.apply(npc.pocket,npc.goal.task());npc.container=station;
+                if(!intervened.add(npc.id))throw new IllegalStateException("Duplicate reset intervention");
+                scheduled.cancel();super.startNpc(npc);
+            }catch(Throwable failure){scheduled.cancel();fail(failure);}
+        },()->fail(new IllegalStateException("NPC retired before diagnostic reset")),1,1);
+    }
     @Override public boolean greedy(Npc npc){return false;}
     @Override public boolean canPickup(Npc npc,String token){return npc.token().equals(token);}
     @Override public boolean pickupEnabled(Npc npc){return true;}
@@ -93,6 +115,12 @@ public final class FrozenPolicyExam extends RuntimePlugin {
         }
         for(int task:tasks)summary.add(String.format(Locale.ROOT,"{\"task\":%d,\"label\":\"%s\",\"passed\":%d,\"cases\":%d}",task,Task.at(task).label(),passed.get(task),cases));
         String report=String.format(Locale.ROOT,"{\"complete\":true,\"schema\":\"%s\",\"policy_updates\":%d,\"policy_trained_samples\":%d,\"new_training_samples\":0,\"stochastic\":true,\"cases_per_task\":%d,\"seed\":%d,\"epoch_millis\":%d,\"tasks\":[%s],\"trials\":[%s]}\n",Schema.ID,policy.updates(),policy.samples(),cases,examSeed,System.currentTimeMillis(),summary,trials);
+        if(intervention!=ResetIntervention.NONE) {
+            if(intervened.size()!=count)throw new IllegalStateException("Incomplete reset intervention coverage");
+            report=report.stripTrailing();
+            report=report.substring(0,report.length()-1)+",\"diagnostic_only\":true,\"reset_intervention\":\""
+                +intervention.label()+"\",\"reset_intervention_trials\":"+intervened.size()+"}\n";
+        }
         PolicyFile.atomicWrite(getDataFolder().toPath().resolve("exam-result.json"),report.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         getLogger().info("FROZEN POLICY EXAM: "+summary+", new training samples=0, policy="+policy.updates());
         Bukkit.getGlobalRegionScheduler().run(this,t->Bukkit.shutdown());
