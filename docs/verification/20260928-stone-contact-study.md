@@ -1,6 +1,74 @@
 # Stone contact learning study — 2026-09-28
 
-## Prospective gate (fixed before either experimental learner starts)
+## Decision: rejected after the early retention screen
+
+Candidate implementation `ebbc08dc0f64372891d6f0548847b853a3361c2d` is NOT
+approved for production. Both isolated learners stopped normally. The original
+production learner, weights, world and services were not restarted or replaced.
+The predeclared early gate failed; the final 1.5-million-sample phase and its
+confirmation seed must not run for this candidate.
+
+The common initial checkpoint contained policy 648322, 184230639 accepted
+samples, Adam state and 512 actors (six at task 11, 506 at task 12). Its policy
+identity is `7b3cd742be2edcc429dd17aa46946428460e04363004e620dc625b31770ad6a3`.
+Both arms received exactly those complete checkpoint bytes, not newly initialized
+weights. The inference JAR and full-condition success predicates were unchanged.
+
+| Task | Initial, seed 2026092810 / 32 | Control, seed 2026092811 / 16 | Candidate, seed 2026092811 / 16 |
+| --- | ---: | ---: | ---: |
+| 0 forward-stop | 32 | 16 | 10 |
+| 1 turn-stop | 32 | 16 | 1 |
+| 2 aim-hold | 32 | 15 | 4 |
+| 3 navigate-stop | 32 | 16 | 4 |
+| 4 step-over | 32 | 16 | 10 |
+| 5 break-log | 32 | 16 | 7 |
+| 6 collect-log | 32 | 16 | 4 |
+| 7 place-block | 32 | 15 | 5 |
+| 8 craft-planks | 32 | 16 | 16 |
+| 9 craft-sticks | 32 | 16 | 3 |
+| 10 craft-workbench | 31 | 3 | 0 |
+| 11 craft-wood-pick | 26 | 0 | 0 |
+| 12 mine-cobblestone | 0 | 0 | 0 |
+
+All 832 trials in these three reports completed with zero evaluation training.
+The control stopped at policy 649010 / 184498249 samples (+267610); the candidate
+at policy 648969 / 184484493 samples (+253854). Normal shutdown drains account for
+the unequal budget overshoot; these are not exact equal-sample experiments.
+The source unit/API suite, 21762 new stone checks and four deliberately incorrect
+mutants passed, but they do not overturn failed real-Minecraft retention.
+PR CI 36336449509 passed Ubuntu, Windows and the synthetic observatory. Its
+optional live, Paper and Windows-live jobs were skipped.
+
+### Resume-time rehearsal starvation: measured, not yet a proven fix
+
+At the control's last pre-drain telemetry sample, frontier work was 1344985 ticks
+and review work only 420 ticks: about 0.0312% review. Of 262138 accepted samples,
+259072 came from task 12, zero from task 10 and 2982 from task 11. All 512 actors
+started on their frontier. The candidate likewise started with zero review actors
+and recorded 1295140 frontier ticks against 420 review ticks. Neither arm reported
+inference errors or stale/rejected learning samples. Their installed training JARs
+were byte-compared against the intended builds.
+
+The current per-actor allocator resets transient effort debt on resume. All
+actors therefore start a frontier episode; allocation cannot revisit that choice
+until the episode ends. Long unsuccessful stone episodes can leave many shared
+network updates without earlier-skill data. Current-batch KL checks cannot measure
+unrepresented tasks. This is a concrete starvation mechanism consistent with the
+regression, not proof that one scheduling change will fix learned retention.
+
+The initial and early reports used different case seeds. A separately declared
+zero-training diagnostic will replay the exact saved initial model through the
+unchanged control build, all 13 tasks, 16 cases, seed 2026092811, under the new name
+`initial-matched-early`. It will not replace any early report, relax the failed
+gate or authorize continuation of this rejected candidate.
+
+Evidence is retained under `.build/stone-learning-run/` in the candidate worktree:
+initial and both stopped training states, three exported evaluated bundles,
+complete trial reports, `early-status.jsonl`, `early-mix-diagnostic.json`, and
+`early-gate.json`. The driver `.build/run_stone_study.py` explicitly refuses the
+final phase when the early gate is false. No failed trial or checkpoint was erased.
+
+## Original prospective gate (fixed before either experimental learner starts)
 
 Baseline source: `bb0dcfd1d1c5e94f8276e92367187e064145e1a9`.
 Workspace: `lkjsxc/tomato-ocelot-73`.
