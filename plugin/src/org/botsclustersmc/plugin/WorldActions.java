@@ -35,6 +35,7 @@ public final class WorldActions {
         return null;
     }
     public static void tick(Npc npc,int[] action,boolean justApplied){
+        if(!Bukkit.isOwnedByCurrentRegion(npc.entity)||!npc.entity.isValid()||npc.dropping)return;
         Mob mob=npc.entity;Location p=mob.getLocation();
         boolean focused=MenuFocus.active(npc.pocket.menu()!=Pocket.Menu.CLOSED,action[6]);
         float yaw=(p.getYaw()+(focused?0:new int[]{-8,-2,0,2,8}[action[1]]))%360;
@@ -48,7 +49,8 @@ public final class WorldActions {
         if(justApplied){
             if(!focused)npc.pocket.select(action[5]);
             if(action[6]!=0){npc.pocket.click(action[6],action[7],ExternalInventory.locate(npc));if(npc.pocket.menu()==Pocket.Menu.CLOSED)npc.container=null;}
-            if(!focused){if(action[4]==2)use(npc);else if(action[4]==3)drop(npc);}
+            if(!focused){if(action[4]==2)use(npc);else if(action[4]==3)DroppedItems.drop(npc);}
+            if(!Bukkit.isOwnedByCurrentRegion(mob)||!mob.isValid())return;
             ItemStack held=ExternalInventory.to(npc.pocket.held());npc.entity.getEquipment().setItemInMainHand(held);
         }
         if(!focused&&action[4]==1)mine(npc);else{npc.mining=null;npc.miningTicks=0;}
@@ -123,7 +125,8 @@ public final class WorldActions {
         Location at=npc.entity.getLocation();
         if(!Bukkit.isOwnedByCurrentRegion(at,1))return;
         for(Entity e:npc.entity.getNearbyEntities(1.1,1.2,1.1)){
-            if(!(e instanceof Item item)||!Bukkit.isOwnedByCurrentRegion(item)||item.isDead()||item.getPickupDelay()>0)continue;
+            if(!(e instanceof Item item)||!Bukkit.isOwnedByCurrentRegion(item)||item.isDead()||item.getPickupDelay()>0||!item.canMobPickup())continue;
+            UUID owner=item.getOwner();if(owner!=null&&!owner.equals(npc.entity.getUniqueId()))continue;
             String token=item.getPersistentDataContainer().get(npc.plugin.provenance,PersistentDataType.STRING);
             if(!npc.plugin.canPickup(npc,token))continue;
             ItemStack observed=item.getItemStack().clone();
@@ -132,8 +135,8 @@ public final class WorldActions {
             EntityPickupItemEvent event=new EntityPickupItemEvent(npc.entity,item,s.count()-moved);Bukkit.getPluginManager().callEvent(event);if(event.isCancelled())continue;
             // Event listeners may remove or replace the item. Never insert the stale snapshot.
             if(!Bukkit.isOwnedByCurrentRegion(npc.entity)||!Bukkit.isOwnedByCurrentRegion(item)
-                    ||!npc.entity.isValid()||item.isDead()||!item.isValid()||item.getPickupDelay()>0
-                    ||!observed.equals(item.getItemStack())
+                    ||!npc.entity.isValid()||item.isDead()||!item.isValid()||item.getPickupDelay()>0||!item.canMobPickup()
+                    ||!Objects.equals(owner,item.getOwner())||!observed.equals(item.getItemStack())
                     ||!Objects.equals(token,item.getPersistentDataContainer().get(npc.plugin.provenance,PersistentDataType.STRING))
                     ||!npc.plugin.pickupEnabled(npc)||!npc.plugin.canPickup(npc,token))continue;
             if(npc.entity.getWorld()!=item.getWorld()
@@ -142,12 +145,5 @@ public final class WorldActions {
             if(remaining.empty())item.remove();else item.setItemStack(ExternalInventory.to(remaining));
             npc.collected.merge(s.item(),(long)taken,Long::sum);
         }
-    }
-    private static void drop(Npc npc){
-        Stack s=npc.pocket.held();if(s.empty())return;
-        Item item=npc.entity.getWorld().dropItem(npc.entity.getLocation(),ExternalInventory.to(s.withCount(1)));
-        EntityDropItemEvent event=new EntityDropItemEvent(npc.entity,item);Bukkit.getPluginManager().callEvent(event);
-        if(event.isCancelled()){item.remove();return;}npc.pocket.consumeHeld(1);item.setPickupDelay(20);
-        item.getPersistentDataContainer().set(npc.plugin.provenance,PersistentDataType.STRING,npc.token());
     }
 }
