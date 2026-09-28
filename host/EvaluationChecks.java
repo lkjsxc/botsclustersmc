@@ -54,6 +54,7 @@ final class EvaluationChecks {
                 require(integer(summary,"passed")==successes[i],"Summary disagrees with actual trials");
                 require(Task.at(tasks.get(i)).label().equals(summary.get("label").getAsString()),"Task label differs");
             }
+            EvaluationHarvest.enrich(report);
             return report;
         }catch(JsonParseException|IllegalStateException|UnsupportedOperationException|NullPointerException|ArithmeticException e){throw new IOException("Malformed evaluation report",e);}
     }

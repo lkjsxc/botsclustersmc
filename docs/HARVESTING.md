@@ -91,3 +91,27 @@ before accumulating mining progress. This fixes misleading progress on protected
 arena floors and on inference servers with world edits disabled. The completion
 permission check and third-party block-change event remain in place. A later
 third-party cancellation can still reject a previously permissible attempt.
+
+### Operator-facing fixed-policy breakdown
+
+The normal `evaluate` command now validates the existing per-trial harvesting
+traces and adds `harvest` to the task summaries for tasks 5, 6 and 12. The private
+observatory shows pooled decision-boundary counts with their observation denominator,
+trials with target contact, separate pickaxe/other-item contact maxima, and trials
+with any actual block break or item pickup. These are measurements of the tested
+snapshot, never the continuously changing live policy.
+
+Observation shares overlap; they are not a funnel, episode averages, percentages
+of ticks, or estimates of causal effects. A trial with any break/pickup need not
+have completed the designated task. A final successful break can reset the contact
+counter before its next observation. The original success counts remain decisive.
+
+Every trace that is present must pass integer, coverage, count-partition and
+cross-field checks. A saved aggregate must equal the aggregate derived from all
+trials. When older reports lack traces entirely, the summary says `not-recorded`;
+with incomplete coverage it says `partial` and emits no aggregate measurements.
+Neither state is rendered as zero. Assisted reset diagnostics are rejected by the
+normal evaluator and by the browser's independent-result panel.
+
+This is host-side validation and display only. No policy, observations, actions,
+reward, curriculum, optimizer, checkpoint format, reset or inference code changes.
