@@ -342,6 +342,8 @@ public final class Host {
         System.out.println("PASS real-API compilation of live diagnostic fixtures; not executed by source tests.");
         for(String test:List.of("CoreTest","GoalTransferTest","MechanicsTest","SharedInventoryTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","HarvestTraceTest","StationTest","ResetInterventionTest","CraftingCurriculumTest","CraftingTraceTest","BalanceTest","UpdateTest","CourseTest","ProbePoliciesTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"SupervisorTest"),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"MonitorTest"),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"MonitorReadTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"AcademyBoundaryTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);

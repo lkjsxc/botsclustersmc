@@ -51,7 +51,8 @@ async function renderEvaluation(live){
   if(report.complete!==true||report.stochastic!==true||report.new_training_samples!==0||!Array.isArray(report.tasks)||
      (report.diagnostic_only!==undefined&&report.diagnostic_only!==false)||
      (report.reset_intervention!==undefined&&report.reset_intervention!=='none'))throw new Error('Invalid independent evaluation report.');
-  $('evaluation-identity').textContent=`Tested policy #${fmt(report.policy_updates)} · ${new Date(report.epoch_millis).toLocaleString()} · Live policy #${fmt(live.policy_updates)}. Results belong only to the tested snapshot.`+(report.schema!==live.schema?' The observation schema differs from the live run.':'');
+  const observed=live?`Last observed policy #${fmt(live.policy_updates)}${currentStatus(live)?' (fresh running snapshot)':' (not current health)'}`:'Live policy unavailable';
+  $('evaluation-identity').textContent=`Tested policy #${fmt(report.policy_updates)} · ${new Date(report.epoch_millis).toLocaleString()} · ${observed}. Results belong only to the tested snapshot.`+(live&&report.schema!==live.schema?' The observation schema differs from the observed run.':'');
   for(const task of report.tasks){
    if(!Number.isInteger(task.task)||task.task<0||task.task>=labels.length||!Number.isInteger(task.cases)||task.cases<1||!Number.isInteger(task.passed)||task.passed<0||task.passed>task.cases)throw new Error('Invalid evaluation counts.');
    const row=document.createElement('div');row.className='row';
@@ -234,27 +235,49 @@ function activationHealth(s){
   section.dataset.state='unavailable';identity.textContent='Activation diagnostics unavailable. No network-health or skill conclusion is inferred.';
  }
 }
+function freshStatus(s){
+ const age=Date.now()-s?.epoch_millis;
+ return Number.isSafeInteger(s?.epoch_millis)&&s.epoch_millis>0&&age>=-5000&&age<=15000;
+}
+function currentStatus(s){return freshStatus(s)&&s.state==='running';}
 function render(s,history){
- const age=Math.max(0,(Date.now()-Number(s.epoch_millis))/1000),stale=!Number.isFinite(age)||age>15;
+ const age=(Date.now()-Number(s.epoch_millis))/1000,stale=!freshStatus(s),current=currentStatus(s);
  $('state').textContent=stale?'STALE':String(s.state||'unknown').toUpperCase();$('state').classList.toggle('bad',stale||s.state!=='running');
  $('updated').textContent=`Snapshot: ${new Date(s.epoch_millis).toLocaleString()} · ${age.toFixed(0)} seconds ago · ${s.schema}`;
- $('agents').textContent=fmt(s.active_agents);$('rate').textContent=stale?'—':fmt(s.learner_samples_per_second);$('samples').textContent=fmt(s.trained_samples)+' total accepted samples';
+ $('agents').textContent=current?fmt(s.active_agents):'—';$('rate').textContent=current?fmt(s.learner_samples_per_second):'—';$('samples').textContent=fmt(s.trained_samples)+' accepted samples at this snapshot';
  $('probe').textContent=pct(s.probe_success_ema);$('practice').textContent='Completion EMA '+pct(s.practice_success_ema);
  $('exams').textContent=fmt(s.course_passed_exams)+' / '+fmt(s.course_exams);$('completed').textContent=fmt(s.course_completed_agents)+' actors have historical full-course certificates';
- $('cpu').textContent=Number(s.process_cpu_cores||0).toFixed(2)+' / '+fmt(s.available_processors);$('burning').textContent=fmt(s.burning_agents)+' / '+fmt(s.body_samples);
+ $('cpu').textContent=current?Number(s.process_cpu_cores||0).toFixed(2)+' / '+fmt(s.available_processors):'—';$('burning').textContent=current?fmt(s.burning_agents)+' / '+fmt(s.body_samples):'—';
  $('failures').textContent=fmt(s.inference_failed)+' / '+fmt(s.inference_rejected);$('heap').textContent=fmt(s.heap_used_mib)+' MiB';$('raw').textContent=JSON.stringify(s,null,2);population(s);craftingPractice(s);activationHealth(s);probePolicies(s);
- const rows=Array.isArray(history)?history.filter(r=>Number.isFinite(r.epoch_millis)&&r.schema===s.schema).slice(-720):[];
+ const rows=Array.isArray(history)?history.filter(r=>r&&typeof r==='object'&&Number.isFinite(r.epoch_millis)&&r.schema===s.schema).slice(-720):[];
  const top=chart('speedchart',rows,['learner_samples_per_second']);chart('skillchart',rows,['probe_success_ema','practice_success_ema'],1);
  $('speedrange').textContent=`0–${fmt(top)} samples/s · ${rows.length} snapshots`+(rows.length?' · '+new Date(rows[0].epoch_millis).toLocaleTimeString()+'–'+new Date(rows.at(-1).epoch_millis).toLocaleTimeString():'');
- $('error').textContent=stale?'The server has not produced a fresh snapshot. These are historical measurements, not live health.':s.state==='failed'?'Training has failed. Inspect the server log; no fallback policy is running.':'';
+ $('error').textContent=stale?'The snapshot timestamp is stale, invalid or too far in the future. These are historical measurements, not live health.':s.state==='failed'?'Training has failed. Inspect the server log; no fallback policy is running.':current?'':'Training is not running. Snapshot counters are historical measurements, not live health.';
+}
+function unavailableStatus(error){
+ activationHealth({});probePolicies({});craftingPractice({});$('population').replaceChildren();
+ for(const id of ['agents','rate','samples','probe','practice','exams','completed','cpu','burning','failures','heap'])$(id).textContent='—';
+ $('raw').textContent='';$('speedchart').replaceChildren();$('skillchart').replaceChildren();$('speedrange').textContent='No current training snapshot.';
+ $('updated').textContent='Current training metrics are unavailable. Independent evaluation remains separate.';
+ $('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error?.message||error||'Current metrics unavailable.');
+}
+async function metricJson(path){
+ const response=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000)});
+ if(!response.ok)throw new Error('Metrics endpoint unavailable: '+path);
+ return response.json();
 }
 async function update(){
+ let status=null;
  try{
-  const responses=await Promise.all(['/api/status','/api/history'].map(path=>fetch(path,{cache:'no-store',signal:AbortSignal.timeout(4000)})));
-  if(responses.some(r=>!r.ok))throw new Error('Metrics service is not ready.');
-  const [status,history]=await Promise.all(responses.map(r=>r.json()));render(status,history);await renderEvaluation(status);
- }catch(error){activationHealth({});probePolicies({});$('state').textContent='UNAVAILABLE';$('state').classList.add('bad');$('error').textContent=String(error.message||error);}
- finally{setTimeout(update,5000);}
+  const [live,history]=await Promise.allSettled(['/api/status','/api/history'].map(metricJson));
+  if(live.status!=='fulfilled')throw live.reason;
+  const s=live.value;
+  if(!s||Array.isArray(s)||typeof s!=='object'||typeof s.state!=='string')throw new Error('Invalid training snapshot.');
+  const haveHistory=history.status==='fulfilled'&&Array.isArray(history.value);
+  render(s,haveHistory?history.value:[]);status=s;
+  if(!haveHistory)$('error').textContent+=($('error').textContent?' ':'')+'Metric history unavailable; current status and fixed-policy evaluation remain separate.';
+ }catch(error){unavailableStatus(error);}
+ try{await renderEvaluation(status);}finally{setTimeout(update,5000);}
 }
 update();
 </script></html>
