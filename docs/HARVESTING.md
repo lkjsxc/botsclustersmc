@@ -115,3 +115,6 @@ normal evaluator and by the browser's independent-result panel.
 
 This is host-side validation and display only. No policy, observations, actions,
 reward, curriculum, optimizer, checkpoint format, reset or inference code changes.
+
+See the [2026-09-28 implementation and real-report verification](verification/20260928-harvest-observability.md)
+for the measured snapshot, complete outcomes, browser/CI evidence and limitations.
