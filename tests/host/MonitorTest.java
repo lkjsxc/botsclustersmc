@@ -29,6 +29,21 @@ public final class MonitorTest {
     static void oversized(Path path,int size)throws IOException{
         try(var file=new RandomAccessFile(path.toFile(),"rw")){file.setLength(size);}
     }
+    /** Retry transient fixture-file locks only after confirming that the child exited. */
+    static void deleteFixture(Path folder)throws Exception{
+        List<Path> files;
+        try(var paths=Files.walk(folder)){files=paths.sorted(Comparator.reverseOrder()).toList();}
+        for(Path path:files){
+            long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(5);
+            while(true){
+                try{Files.deleteIfExists(path);break;}
+                catch(FileSystemException busy){
+                    if(System.nanoTime()>=deadline)throw busy;
+                    Thread.sleep(100);
+                }
+            }
+        }
+    }
     public static void main(String[] args)throws Exception{
         Path folder=Files.createTempDirectory("bcmc-monitor-test-").toAbsolutePath(),data=folder.resolve("metrics");
         Files.createDirectory(data);
@@ -90,11 +105,16 @@ public final class MonitorTest {
             try(var files=Files.list(data)){check(files.count()==3,"Monitor did not create metrics files");}
             completed=true;
         }finally{
-            child.destroy();if(!child.waitFor(10,TimeUnit.SECONDS)){child.destroyForcibly();child.waitFor(5,TimeUnit.SECONDS);}
+            HTTP.close();
+            child.destroy();
+            if(!child.waitFor(10,TimeUnit.SECONDS)){
+                child.destroyForcibly();
+                if(!child.waitFor(5,TimeUnit.SECONDS))throw new AssertionError("Monitor child did not exit; retained fixture "+folder);
+            }
+            child.getInputStream().close();child.getErrorStream().close();child.getOutputStream().close();
             // Keep failed evidence. A successful test owns and removes only this temp tree.
-            if(completed&&failures.isEmpty()){
-                try(var paths=Files.walk(folder)){for(Path p:paths.sorted(Comparator.reverseOrder()).toList())Files.delete(p);}
-            }else System.err.println("Retained monitor failure evidence: "+folder);
+            if(completed&&failures.isEmpty())deleteFixture(folder);
+            else System.err.println("Retained monitor failure evidence: "+folder);
         }
         for(String failure:failures)System.err.println("FAIL "+failure);
         if(!failures.isEmpty())throw new AssertionError(failures.size()+" failures / "+checks+" checks");
