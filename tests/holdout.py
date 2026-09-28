@@ -6,6 +6,9 @@ from pathlib import Path
 import acceptance
 
 ROOT = Path(__file__).resolve().parents[1]
+RESET_INTERVENTIONS = ('none', 'workbench-open', 'pickaxe-grid',
+    'pickaxe-missing-top-left', 'pickaxe-missing-top-center', 'pickaxe-missing-top-right',
+    'pickaxe-missing-handle-upper', 'pickaxe-missing-handle-lower')
 
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -19,7 +22,7 @@ def arguments(argv=None):
     parser.add_argument('--cases', type=int, default=64)
     parser.add_argument('--seed', type=int, default=19517)
     parser.add_argument('--port', type=int, default=25584)
-    parser.add_argument('--reset-intervention', choices=['none', 'workbench-open', 'pickaxe-grid'], default='none',
+    parser.add_argument('--reset-intervention', choices=RESET_INTERVENTIONS, default='none',
                         help='Diagnostic only: modify the initial workbench state; never a standard skill evaluation.')
     args = parser.parse_args(argv)
     if args.reset_intervention != 'none' and (args.checkpoint or any(t not in (11, 13) for t in args.tasks)):

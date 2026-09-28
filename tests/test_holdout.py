@@ -10,6 +10,11 @@ from unittest.mock import patch
 import holdout
 
 
+MISSING_CONDITIONS = tuple('pickaxe-missing-' + cell for cell in
+    ('top-left', 'top-center', 'top-right', 'handle-upper', 'handle-lower'))
+CONDITIONS = ('none', 'workbench-open', 'pickaxe-grid') + MISSING_CONDITIONS
+
+
 class ResetDiagnosticTests(unittest.TestCase):
     def arguments(self, *extra):
         with patch.dict('os.environ', {'EULA': 'true'}), contextlib.redirect_stderr(io.StringIO()):
@@ -17,7 +22,7 @@ class ResetDiagnosticTests(unittest.TestCase):
 
     def test_arguments(self):
         self.assertEqual(self.arguments().reset_intervention, 'none')
-        for condition in ('none', 'workbench-open', 'pickaxe-grid'):
+        for condition in CONDITIONS:
             with self.subTest(condition=condition):
                 self.assertEqual(self.arguments('--reset-intervention', condition).reset_intervention, condition)
         for extra in (['--reset-intervention', 'unknown'], ['--reset-intervention', 'workbench-open', '--tasks', '10'],
@@ -28,6 +33,22 @@ class ResetDiagnosticTests(unittest.TestCase):
             holdout.arguments(['--checkpoint', 'moving.bcmc', '--output', 'unused', '--tasks', '11', '--reset-intervention', 'workbench-open'])
         with patch.dict('os.environ', {'EULA': 'false'}), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             holdout.arguments(['--policy', 'saved.bcmc', '--output', 'unused'])
+
+    def test_missing_cell_argument_boundaries(self):
+        self.assertEqual(tuple(holdout.RESET_INTERVENTIONS), CONDITIONS)
+        for condition in MISSING_CONDITIONS:
+            for task in ('10', '12', '17'):
+                with self.subTest(condition=condition, task=task), self.assertRaises(SystemExit):
+                    self.arguments('--reset-intervention', condition, '--tasks', task)
+            with patch.dict('os.environ', {'EULA': 'true'}), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                holdout.arguments(['--checkpoint', 'moving.bcmc', '--output', 'unused', '--tasks', '11', '--reset-intervention', condition])
+            args, result = self.fixture(condition)
+            for other in CONDITIONS:
+                if other == condition:
+                    continue
+                with self.subTest(condition=condition, wrong_label=other), self.assertRaises(AssertionError):
+                    changed = dict(result, reset_intervention=other)
+                    self.verify(args, changed)
 
     def fixture(self, condition):
         args=SimpleNamespace(cases=1, tasks=[11], seed=17, reset_intervention=condition)
@@ -48,13 +69,13 @@ class ResetDiagnosticTests(unittest.TestCase):
             return holdout.verify_result(args, data, b'unchanged', SimpleNamespace(returncode=0))
 
     def test_valid_reports(self):
-        for condition in ('none', 'workbench-open', 'pickaxe-grid'):
+        for condition in CONDITIONS:
             with self.subTest(condition=condition):
                 args,result=self.fixture(condition)
                 self.assertIsNotNone(self.verify(args,result))
 
     def test_diagnostic_report_rejections(self):
-        for condition in ('workbench-open', 'pickaxe-grid'):
+        for condition in CONDITIONS[1:]:
             for field,value in [('diagnostic_only', False), ('diagnostic_only', 'true'), ('reset_intervention', 'none'),
                                 ('reset_intervention_trials', 0), ('reset_intervention_trials', True), ('new_training_samples', 1)]:
                 with self.subTest(condition=condition,field=field,value=value), self.assertRaises(AssertionError):
@@ -65,7 +86,7 @@ class ResetDiagnosticTests(unittest.TestCase):
 
     def test_assistance_never_accepted_as_control(self):
         args,_=self.fixture('none')
-        for condition in ('workbench-open', 'pickaxe-grid'):
+        for condition in CONDITIONS[1:]:
             with self.subTest(condition=condition), self.assertRaises(AssertionError):
                 _,result=self.fixture(condition);self.verify(args,result)
 
