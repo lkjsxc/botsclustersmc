@@ -5,7 +5,11 @@ import java.util.*;
 /** NPC inventory mechanics. No action chooses a recipe, ingredient, tool, or destination. */
 public final class Pocket {
     public enum Menu {CLOSED,INVENTORY,WORKBENCH,FURNACE,CHEST}
-    public interface External {int size();Stack get(int slot);void set(int slot,Stack stack);boolean accepts(int slot,Stack stack);}
+    public interface External {
+        int size();Stack get(int slot);void set(int slot,Stack stack);boolean accepts(int slot,Stack stack);
+        /** False for unavailable or unrepresentable slots; never a goal-dependent preference. */
+        default boolean accessible(int slot){return slot>=0&&slot<size();}
+    }
     public static final External NONE=new External(){public int size(){return 0;}public Stack get(int i){return Stack.EMPTY;}public void set(int i,Stack s){throw new IllegalArgumentException("no external slot");}public boolean accepts(int i,Stack s){return false;}};
     private final Stack[] storage=new Stack[36],grid=new Stack[9];
     private Stack cursor=Stack.EMPTY;private Menu menu=Menu.CLOSED;private int selected;
@@ -33,15 +37,16 @@ public final class Pocket {
     public Stack get(int slot,External external){
         if(slot<0||slot>=slots())return Stack.EMPTY;if(slot<36)return storage[slot];
         if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH){if(slot==resultSlot()){Recipes.Recipe r=Recipes.match(grid,menu==Menu.INVENTORY?2:3);return r==null?Stack.EMPTY:r.output();}return grid[gridIndex(slot)];}
-        return slot-36<external.size()?external.get(slot-36):Stack.EMPTY;
+        return external.accessible(slot-36)?external.get(slot-36):Stack.EMPTY;
     }
-    private boolean accepts(int slot,Stack stack,External external){if(slot<36)return true;if(slot==resultSlot())return false;if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH)return true;return slot-36<external.size()&&external.accepts(slot-36,stack);}
+    private boolean accepts(int slot,Stack stack,External external){if(slot<36)return true;if(slot==resultSlot())return false;if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH)return true;return external.accessible(slot-36)&&external.accepts(slot-36,stack);}
     private void set(int slot,Stack s,External external){if(slot<36)storage[slot]=s;else if(menu==Menu.INVENTORY||menu==Menu.WORKBENCH)grid[gridIndex(slot)]=s;else external.set(slot-36,s);}
     /** Pure mechanical affordance, independent of the goal and any preferred recipe. */
     public boolean wouldChange(int operation,int slot,External external) {
         if(operation==4)return menu==Menu.CLOSED;
         if(operation==5)return menu!=Menu.CLOSED;
         if(operation<1||operation>3||menu==Menu.CLOSED||slot<0||slot>=slots())return false;
+        if(slot>=36&&(menu==Menu.CHEST||menu==Menu.FURNACE)&&!external.accessible(slot-36))return false;
         Stack item=get(slot,external);
         if(slot==resultSlot()) {
             if(item.empty())return false;
@@ -53,7 +58,7 @@ public final class Pocket {
             if(slot>=36)return capacity(item)>0;
             if(menu==Menu.CHEST||menu==Menu.FURNACE) {
                 for(int i=0;i<external.size();i++)
-                    if(external.accepts(i,item)&&room(external.get(i),item))return true;
+                    if(external.accessible(i)&&external.accepts(i,item)&&room(external.get(i),item))return true;
             } else {
                 int from=slot<9?9:0,to=slot<9?36:9;
                 for(int i=from;i<to;i++)if(room(storage[i],item))return true;
@@ -71,12 +76,15 @@ public final class Pocket {
     public void click(int operation,int slot,External external){
         if(operation==0)return;if(operation==4){if(menu==Menu.CLOSED)open(Menu.INVENTORY);return;}if(operation==5){close();return;}
         if(operation<1||operation>3||slot<0||slot>=slots()||menu==Menu.CLOSED)return;
+        // A mask describes the observation, not a reservation. Recheck the live owner-thread
+        // inventory before any pocket mutation; another actor may have changed the container.
+        if(!wouldChange(operation,slot,external))return;
         if(slot==resultSlot()){craft(operation);return;}
         Stack original=get(slot,external),s=original;
         if(operation==3){
             if(slot>=36){Stack remaining=insert(s);set(slot,remaining,external);}
             else if(menu==Menu.CHEST||menu==Menu.FURNACE){
-                int remaining=s.count();for(int i=0;i<external.size()&&remaining>0;i++){Stack t=external.get(i);if(external.accepts(i,s)&&(t.empty()||t.item().equals(s.item()))){int n=Math.min(remaining,s.maximum()-t.count());if(n>0){external.set(i,new Stack(s.item(),t.count()+n));remaining-=n;}}}storage[slot]=s.withCount(remaining);
+                int remaining=s.count();for(int i=0;i<external.size()&&remaining>0;i++){if(!external.accessible(i))continue;Stack t=external.get(i);if(external.accepts(i,s)&&(t.empty()||t.item().equals(s.item()))){int n=Math.min(remaining,s.maximum()-t.count());if(n>0){external.set(i,new Stack(s.item(),t.count()+n));remaining-=n;}}}storage[slot]=s.withCount(remaining);
             }else{
                 int from=slot<9?9:0,to=slot<9?36:9,remaining=s.count();for(int i=from;i<to&&remaining>0;i++){Stack t=storage[i];if(t.empty()||t.item().equals(s.item())){int n=Math.min(remaining,s.maximum()-t.count());if(n>0){storage[i]=new Stack(s.item(),t.count()+n);remaining-=n;}}}storage[slot]=s.withCount(remaining);
             }

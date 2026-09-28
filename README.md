@@ -12,6 +12,11 @@ Rust toolchain, native inference libraries, Python runtime, Maven or Gradle.
 Player skins, hunger, complete vanilla mechanics and persistent NPC lives are
 not implemented. There is no pretrained general-survival policy in the repository.
 
+[Shared resource mechanics](docs/SHARED_RESOURCES.md) recheck stale container actions
+and preserve items that the simplified pocket cannot represent without data loss.
+Named/damaged/enchanted items and mismatched stack limits are left untouched;
+this is not complete item-component support or evidence of learned teamwork.
+
 ## Start from source
 
 Install Git and a **Java 21 JDK**, then:
