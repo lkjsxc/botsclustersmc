@@ -26,7 +26,7 @@ public final class SupervisorTest {
         Host.Supervision t = new Host.Supervision(3000, 1000, 2000, 1000, 10);
         Host.SupervisionHealth h = new Host.SupervisionHealth(start, t);
         check(h.observe(null, 2999, start + 2999) == null, "startup grace");
-        check(h.observe(null, 3000, start + 3000).contains("startup"), "missing startup expires");
+        check(Objects.toString(h.observe(null, 3000, start + 3000), "").contains("startup"), "missing startup expires");
         for (String invalid : List.of(status(start - 1, "failed"), status(start + 10000, "running"),
                 "{}", "{\"state\":\"running\",\"epoch_millis\":1.5}",
                 "{\"state\":\"running\",\"epoch_millis\":9223372036854775808}",
@@ -35,23 +35,23 @@ public final class SupervisorTest {
                 status(start, "unrecognized"))) {
             h = new Host.SupervisionHealth(start, t);
             check(h.observe(invalid, 0, start) == null && !h.seen, "invalid startup does not acquire health");
-            check(h.observe(invalid, 3000, start + 3000).contains("startup"), "invalid startup expires");
+            check(Objects.toString(h.observe(invalid, 3000, start + 3000), "").contains("startup"), "invalid startup expires");
         }
         h = new Host.SupervisionHealth(start, t);
         check(h.observe(status(start, "running"), 0, start) == null && h.seen, "first live report");
         check(h.observe(status(start, "running"), 999, start + 999) == null, "same report grace");
-        check(h.observe(status(start, "running"), 1000, start + 1000).contains("stopped advancing"), "same report cannot renew health");
+        check(Objects.toString(h.observe(status(start, "running"), 1000, start + 1000), "").contains("stopped advancing"), "same report cannot renew health");
         h = new Host.SupervisionHealth(start, t);
         for (int i = 0; i < 100; i++)
             check(h.observe(status(start + i * 500, i % 2 == 0 ? "running" : "paused"), i * 500, start + i * 500) == null,
                     "paused and running are live when reports advance");
         check(h.observe(status(start + 49000, "running"), 50499, start + 50499) == null, "older report cannot renew");
-        check(h.observe(null, 50500, start + 50500).contains("stopped advancing"), "removed report expires");
+        check(Objects.toString(h.observe(null, 50500, start + 50500), "").contains("stopped advancing"), "removed report expires");
         h = new Host.SupervisionHealth(start, t);
-        check(h.observe(status(start, "failed"), 0, start).contains("reported a failure"), "immediate failed report");
+        check(Objects.toString(h.observe(status(start, "failed"), 0, start), "").contains("reported a failure"), "immediate failed report");
         h = new Host.SupervisionHealth(start, t);
         h.observe(status(start, "running"), 0, start);
-        check(h.observe(status(start, "running"), 1000, start - 100).contains("stopped advancing"), "monotonic deadline despite clock rewind");
+        check(Objects.toString(h.observe(status(start, "running"), 1000, start - 100), "").contains("stopped advancing"), "monotonic deadline despite clock rewind");
         check(Host.SUPERVISION.startupMillis() == 180000 && Host.SUPERVISION.staleMillis() == 60000
                 && Host.SUPERVISION.stopMillis() == 35000, "production deadlines not shortened by tests");
     }
@@ -183,9 +183,10 @@ public final class SupervisorTest {
         ByteArrayOutputStream errors = new ByteArrayOutputStream();
         try (PrintStream discard = new PrintStream(OutputStream.nullOutputStream()); PrintStream diagnostics = new PrintStream(errors)) {
             System.setOut(discard); System.setErr(diagnostics);
-            for (String mode : List.of("healthy", "failed", "stalled", "missing", "oversized", "ignore-stop")) {
+            for (String mode : List.of("healthy", "failed", "stalled", "missing", "oversized", "ignore-stop", "mirror-failed")) {
                 Path dir = Files.createDirectory(root.resolve("child-" + mode)); Path server = Files.createDirectory(dir.resolve("server"));
                 System.setIn(new ByteArrayInputStream(new byte[0])); long start = System.nanoTime();
+                System.setOut(mode.equals("mirror-failed") ? new PrintStream(new FaultSink("write")) : discard);
                 if (mode.equals("healthy")) { Host.supervise(server, dir, command(mode), FAST); checks++; }
                 else rejected(() -> Host.supervise(server, dir, command(mode), FAST), "failed supervision cannot be reported successful: " + mode);
                 processes++;
@@ -196,6 +197,8 @@ public final class SupervisorTest {
                 if (!mode.equals("healthy") && !mode.equals("ignore-stop"))
                     check(Files.readString(server.resolve("stop.received")).equals("stop"), "graceful stop received: " + mode);
                 if (mode.equals("ignore-stop")) check(!Files.exists(server.resolve("stop.received")), "ignored stop required termination");
+                if (mode.equals("mirror-failed")) check(Files.readString(dir.resolve("console.log")).contains("clean stop acknowledged"),
+                        "sink failure requests a clean stop and still captures its final output");
             }
             check(errors.toString(StandardCharsets.UTF_8).contains("Final checkpoint is not guaranteed"), "termination cannot masquerade as saved state");
         } finally { System.setOut(oldOut); System.setErr(oldErr); System.setIn(oldIn); }
@@ -215,6 +218,7 @@ public final class SupervisorTest {
         if (mode.equals("oversized")) Files.write(path, new byte[Host.STATUS_BYTES + 1]);
         else if (!mode.equals("missing")) Host.text(path, status(System.currentTimeMillis(), mode.equals("failed") ? "failed" : "running"));
         if (mode.equals("ignore-stop")) { Thread.sleep(30000); return; }
+        if (mode.equals("mirror-failed")) System.out.println("Trigger the failing parent mirror");
         try (var reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
             String line; while ((line = reader.readLine()) != null) if (line.equals("stop")) { Files.writeString(Path.of("stop.received"), line); System.out.println("clean stop acknowledged"); return; }
         }

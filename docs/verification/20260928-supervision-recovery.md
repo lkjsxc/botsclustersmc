@@ -128,7 +128,110 @@ JVM-visible processors and loopback-only port 25589. Verify actual actor progres
 and a canonical checkpoint, issue a normal stop through its own authenticated
 console, and require a successful supervisor exit with no listener or live child.
 Do not install or restart the production service to manufacture this test.
-Fresh synthetic-task training here is lifecycle coverage, not a learning claim.
+Fresh task-zero training here is lifecycle coverage, not a learning claim.
 
-The real checks, mutation results, final identities and publication decision are
-recorded below once completed; no pending check is counted as passing.
+## Completed real checks and publication decision
+
+Accept the host-only correction after source/CI and lifecycle verification. Do not
+change the live policy or learner. The production supervisor is intentionally
+left running; the corrected launcher takes effect at its next controlled start,
+not through a source checkout update. Underlying quota capacity was not repaired
+or enlarged by this increment.
+
+Implementation/declaration source: `18965aad1c25db56655318eb6f290d4206092a72`, tree
+`166b2b0aaad7b347ee745f4f2ba7edec7c980d02`. A subsequent test-only enhancement
+makes missing expected reasons fail by assertion rather than NullPointerException
+and covers a failed parent mirror through the complete supervisor lifecycle.
+`host/Host.java`, both runtime JARs and the tested Folia launcher remain identical
+to this declared implementation.
+
+### Frozen post-recovery skill snapshot
+
+The declared evaluation completed all **256 trials** without intervention or
+new training. The frozen input was policy **76690**, accepted samples
+**19,097,871**. The report timestamp is **2026-09-28 17:02:05.221 JST**.
+
+| Task | Passed /32 |
+| --- | ---: |
+| 0 forward-stop | 32 |
+| 1 turn-stop | 32 |
+| 2 aim-hold | 30 |
+| 3 navigate-stop | 32 |
+| 4 step-over | 28 |
+| 5 break-log | 32 |
+| 6 collect-log | 32 |
+| 7 place-block | 29 |
+
+All failures remain in the [256 public trial outcomes](data/20260928-recovery-trials.json).
+The fixed policy is not the continually changing live model. Without a paired
+pre-interruption model, these results cannot measure how much skill the restart
+retained or lost. Later tasks, including stone mining and cooperation, were not
+assessed by this snapshot. No second seed was substituted or pooled with it.
+
+An independent audit verified all 256 unique actor identities, eight task partitions,
+32 trials per task, the exact seed, positive elapsed ticks, summary success counts,
+unchanged policy/runtime/checkpoint identities, and the absence of evaluation
+training checkpoints. The disposable server exited and port 25588 was released.
+
+- Frozen policy: `2ee02c2e6887dd747fa43416b6b18a8da3c3f540d32956d8b82d3831f45da426`.
+- Frozen canonical checkpoint: `bc6b8aafa509e8ea62c7bbd677803781b7e8f970cf19e769513212917a1c46dd`.
+- Full report: `4c96e3af435f8845a475129a7d1243c2ffc32fa3d0a76bee937735b1b675032b`.
+- Exam JAR: `9675c40ce9ac300d563e8602477b428ebc5ab65712caf5860c685ebae2d47021`.
+
+### Real launcher lifecycle
+
+The new launcher ran the declared fresh eight-NPC Folia 1.21.11 build 14 Academy
+on loopback port 25589 from **17:06:01 to 17:06:36 JST**. Two fresh status samples
+showed all eight actors progressing, no inference failures/rejections, and
+accepted samples increasing **256 -> 512** (updates 1 -> 2). Both reported
+`startup_restored_checkpoint=false`, as required for this fresh fixture.
+
+Its own authenticated console accepted `stop`; the supervisor returned **0**.
+The server process exited, the control metadata was removed and port 25589 could
+be bound again. Strict checkpoint-to-policy export returned **0**. No force stop
+was needed for this real-server check. These few task-zero updates establish
+lifecycle operation, not learned competence or vanilla-player equivalence.
+
+The exact installed test runtime matched the base, build and production-installed
+training JAR: `bf75154c58e56c91918aa1e05baaa6cf1465a9afac119da01f59e0d21b45b006`.
+The inference JAR remains `d076ec6e18bc9be7fe6da825d01e01930dd86573ff6be147d52243620948dee5`.
+The test-owned final checkpoint is
+`3f63e4d4fde764368679ca334c5584cef2df1d87834571b4966bc10e0d5a97ea`.
+
+### Assertion-based regressions and CI
+
+The final focused suite performs **589 checks with eight synthetic child JVMs**,
+including the 24-MiB output flood and the additional mirror-failure stop/last-output
+check. Four deliberately incorrect, separately compiled implementations were
+rejected by semantic assertions: abandoning the child pipe after log failure,
+renewing liveness from an unchanged timestamp, removing the steady-state watchdog,
+and overwriting the previous log with an empty restart. The unchanged copy passed.
+Compile failures, crashes unrelated to the assertion and test timeouts did not
+count as detected mutants.
+
+Initial PR CI [36394837532](https://github.com/lkjsxc/botsclustersmc/actions/runs/36394837532)
+passed Ubuntu and Windows full-source/API checks and the synthetic observatory.
+Optional broad live, Paper, Windows-live and retention jobs were skipped, not
+passed. The Folia and frozen-policy checks above were separate workspace runs.
+
+### Preserved evidence and continuing production
+
+[Compact lifecycle and mutation receipts](data/20260928-supervision-checks.json)
+are published without control tokens or credentials. The worktree retains:
+
+- `.build/quota-incident-journal.log`, the original observed error/restart sequence;
+- `.build/recovery-fixed-policy/`, complete trials, frozen inputs and server output;
+- `.build/supervision-live-academy/`, its owned world, logs and canonical checkpoint;
+- `.build/supervision-live-receipt.json`, both status samples and the lifecycle driver;
+- `.build/supervisor-mutants/`, independently compiled control/mutants and assertion logs;
+- `.build/supervision-full-repeat.log`, the complete source-test receipt.
+
+At **17:07:10.718 JST**, production still used supervisor **756010**, server
+**756100**, and `NRestarts=3`, unchanged throughout this continuation. It reported
+**512** active/ticking/progressing actors, policy **79397**, samples **19,462,631**,
+and zero inference failures/rejections, retired or burning actors. This is a
+later operational snapshot, not an extension of the fixed-policy skill results.
+No study server remained listening, no candidate weights were installed, and
+no production restart, checkpoint reset, quota change or unrelated deletion was
+performed. The live supervisor's newly implemented protections are not yet active;
+changing source and testing a separate process is not hot deployment.
