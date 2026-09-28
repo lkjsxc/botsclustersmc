@@ -6,6 +6,8 @@ public final class MenuFocus {
     public static boolean active(boolean menuOpen,int operation) {
         return menuOpen||operation==4;
     }
+    /** Opening inventory consumes world input; an already-open menu masks it to idle. */
+    public static boolean worldBranch(int operation) { return operation!=4; }
     public static void restrict(boolean[] mask) {
         for(int head=0;head<6;head++)Task.only(mask,head,Schema.IDLE[head]);
     }

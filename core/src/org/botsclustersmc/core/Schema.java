@@ -31,5 +31,7 @@ public final class Schema {
         if(a.length != HEADS.length) throw new IllegalArgumentException("action dimension");
         for(int h=0;h<a.length;h++) if(a[h]<0 || a[h]>=HEADS[h]) throw new IllegalArgumentException("action range");
         if(!slotActive(a[6]) && a[7]!=0) throw new IllegalArgumentException("inactive slot must be zero");
+        if(!MenuFocus.worldBranch(a[6]))for(int h=0;h<6;h++)
+            if(a[h]!=IDLE[h])throw new IllegalArgumentException("inactive world control must be idle");
     }
 }
