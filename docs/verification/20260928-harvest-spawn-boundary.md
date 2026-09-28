@@ -123,5 +123,57 @@ EULA=true JAVA_TOOL_OPTIONS="-XX:ActiveProcessorCount=2" \
 ```
 
 Do not replace retained failures with later successful output. The shared
-Academy's controlled activation is recorded separately after mainline integration;
+Academy's controlled activation is recorded below after mainline integration;
 source/JAR tests alone are not an activation claim.
+
+## Mainline integration and shared Academy activation
+
+PR #29 merged as `4b1839c89cc038c6cb47f50c3b4bc6c20b9049c8`, independently
+re-read through the GitHub ref endpoint. The production checkout was clean and
+fast-forward synchronized. CI runs `36420956606` (implementation), `36421350203`
+(final PR head) and `36421657388` (merged main) completed successfully, including
+Ubuntu, Windows and the synthetic observatory checks. Optional cloud live jobs
+were skipped; the Folia/Paper evidence above comes from the separately executed
+local real-server runs, not from skipped CI jobs.
+
+The merged mainline was rebuilt and both artifacts matched the tested JARs.
+The evaluation timer/service were stopped, then the training service stopped
+normally and saved 183,216 updates and 49,503,195 accepted samples. Its log also
+reported 5,023 buffered-untrained samples; these are not claimed as saved learned
+state. No checkpoint, course, configuration or operator world was deleted.
+
+Before starting the new process, the activation driver waited for an exclusive
+bind check on the unchanged existing port 25566 to succeed. It succeeded on the
+32nd check. The driver did not change socket policy, network exposure or kill a
+competing process. The exact reason for the earlier unavailable port was not
+established by this check. This activation started successfully without automatic
+service retries; the previous service's one retry belongs to the earlier record.
+
+The new supervisor PID is 121202 and its Minecraft child is 121289. Installed
+`academy/server/plugins/training.jar` matches the tested training artifact. The
+startup log restored exactly 183,216 updates, 49,503,195 samples and Adam step
+183,216. Compatible learning state was retained; a reset was unnecessary.
+
+| Live observation, 2026-09-28 JST | First: 21:26:25 | Last: 21:27:00 |
+| --- | ---: | ---: |
+| Active / progressed actors | 512 / 512 | 512 / 512 |
+| Pending actors | 0 | 0 |
+| Accepted training samples | 49,519,720 | 49,590,867 |
+| Policy updates | 183,308 | 183,542 |
+| Decision transitions in new process | 24,643 | 96,198 |
+| Inference failures / rejections / retired actors | 0 / 0 / 0 | 0 / 0 / 0 |
+
+Across the 35-second observation, accepted samples increased by 71,147 and
+policy updates by 234. Both statuses reported `running`, restored checkpoint
+state and frontier task 10. The supervisor PID, invocation and zero automatic
+restart count remained unchanged throughout the observation. The unchanged
+monitor PID 84532 returned fresh status and required no restart. The previously
+active evaluation timer was restored after successful checks.
+
+The compact activation receipt is `data/20260928-harvest-activation.json`.
+The isolated worktree retains `.build/activate_harvest.py`, the full
+`.build/harvest-activation.json`, driver/build logs and old/new invocation
+journals. This proves deployment and resumed learning, not retention of every
+skill or increased task success. The final activation record changes only
+Markdown/JSON documentation; runtime inputs remain byte-identical, so it does
+not require another service restart.
