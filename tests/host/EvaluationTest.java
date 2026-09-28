@@ -40,7 +40,9 @@ public final class EvaluationTest {
         reject(r->r.addProperty("complete",false));reject(r->r.addProperty("complete","true"));
         reject(r->r.addProperty("diagnostic_only",true));reject(r->r.addProperty("diagnostic_only","false"));
         reject(r->r.addProperty("reset_intervention","open-workbench"));reject(r->r.add("reset_intervention",JsonNull.INSTANCE));
-        for(String mode:List.of("workbench-open","pickaxe-grid")) {
+        for(String mode:List.of("workbench-open","pickaxe-grid","pickaxe-missing-top-left",
+                "pickaxe-missing-top-center","pickaxe-missing-top-right",
+                "pickaxe-missing-handle-upper","pickaxe-missing-handle-lower")) {
             reject(r->r.addProperty("reset_intervention",mode));
             reject(r->{r.addProperty("diagnostic_only",false);r.addProperty("reset_intervention",mode);});
             reject(r->{r.addProperty("diagnostic_only",true);r.addProperty("reset_intervention",mode);r.addProperty("reset_intervention_trials",4);});
