@@ -23,16 +23,25 @@ public final class CraftingCurriculumTest {
     }
     private static void composedResets() {
         for(Task task:new Task[]{Task.CRAFT_WOOD_PICK,Task.CRAFT_STONE_PICK})for(double d:new double[]{0,.1,.32,.54,.55,.7,.99}) {
-            int[] buckets=new int[6],singleCell=new int[5];int operation=0;
+            int[] buckets=new int[6],singleCell=new int[5],storagePractice=new int[5];int operation=0;
             for(long seed=0;seed<2048;seed++) {
                 Course.Lesson l=lesson(task,Course.Kind.PRACTICE,d,seed);Pocket p=stock(task);
                 RandomSource rng=StationPractice.resetRandom(l);Pocket.Menu initial=StationPractice.initialMenu(l,rng);
                 p.open(initial);
                 operation++;check(StationPractice.operation(l)&&initial==Pocket.Menu.WORKBENCH,"operation starts at usable workbench");
+                boolean placement=d>0&&new RandomSource(rng.state()).unit()<.5;
                 int missing=InitialCrafting.prepare(p,task.ordinal(),d,rng),actual=0;
                 for(int i=0;i<GRID.length;i++)if(p.get(GRID[i],Pocket.NONE).empty())actual++;
                 check(missing==actual&&missing<=(int)Math.ceil(d*5),"reported and actual initial cell counts");buckets[missing]++;
                 if(missing==1)for(int i=0;i<GRID.length;i++)if(p.get(GRID[i],Pocket.NONE).empty())singleCell[i]++;
+                if(placement) {
+                    check(missing==1&&p.cursor().empty(),"reserved placement starts with one missing cell and empty cursor");
+                    int empty=0;while(!p.get(GRID[empty],Pocket.NONE).empty())empty++;
+                    storagePractice[empty]++;
+                    int source=empty<3?0:1;
+                    check(p.storage(source).count()==1&&p.storage(1-source).empty(),"remaining unit stays in its original storage slot");
+                    check(p.get(45,Pocket.NONE).empty(),"placement reset has no ready result");
+                }
                 String raw=task==Task.CRAFT_STONE_PICK?"COBBLESTONE":"OAK_PLANKS",output=task==Task.CRAFT_STONE_PICK?"STONE_PICKAXE":"WOODEN_PICKAXE";
                 check(p.count(raw)==3&&p.count("STICK")==2,"no raw materials created or destroyed");
                 check(p.crafted.isEmpty()&&p.count(output)==0,"reset never grants owned output or earned crafting");
@@ -50,10 +59,13 @@ public final class CraftingCurriculumTest {
             int frontier=(int)Math.ceil(d*5);
             for(int i=0;i<=frontier;i++)check(buckets[i]>40,"each earlier and frontier start is reachable");
             if(frontier>0) {
-                check(buckets[frontier]>operation*.4&&buckets[frontier]<operation*.6,"frontier retains half of operation work");
+                double expected=frontier==1?.75:.25;
+                check(buckets[frontier]>operation*(expected-.08)&&buckets[frontier]<operation*(expected+.08),"remaining mixture retains frontier work");
+                check(Arrays.stream(storagePractice).sum()>operation*.4&&Arrays.stream(storagePractice).sum()<operation*.6,"half of starts reserve storage-to-placement practice");
+                for(int n:storagePractice)check(n>140&&n<270,"all five storage-to-placement positions receive balanced exposure");
                 for(int n:singleCell)check(n>5,"all individual missing cells can be practiced, not one fixed prefix");
             }
-            System.out.println("RESET "+task+" difficulty="+d+" operation="+operation+" missing="+Arrays.toString(buckets));
+            System.out.println("RESET "+task+" difficulty="+d+" operation="+operation+" missing="+Arrays.toString(buckets)+" storage-practice="+Arrays.toString(storagePractice));
         }
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double d:new double[]{.2,.9,1})for(long seed=0;seed<64;seed++) {
             Course.Lesson l=lesson(task,kind,d,seed);RandomSource rng=StationPractice.resetRandom(l);long before=rng.state();
