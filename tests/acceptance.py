@@ -172,6 +172,11 @@ def fixtures(output, cache):
         assert (directory/'plugins/BotsClustersMC/fixtures-passed.txt').is_file()
         log=(output/'fixtures.log').read_text(errors='replace')
         assert log.count('FIXTURE PASS ')==18, log[-4000:]
+        assert log.count('SHARED INVENTORY LIVE PASS ')==1, 'shared inventory diagnostics did not complete'
+        assert log.count('PICKUP EVENT LIVE PASS ')==1, 'pickup event diagnostics did not complete'
+        for line in log.splitlines():
+            if any(marker in line for marker in ('SHARED ITEM DEFAULTS PASS ', 'SHARED INVENTORY LIVE PASS ', 'PICKUP EVENT LIVE PASS ')):
+                print(line, flush=True)
         status=read_status(directory/'plugins/BotsClustersMC/status.json')
         assert status['trained_samples']==0 and status['inference_completed']==0
         print('PASS 18 full-difficulty scripted real-world fixtures; zero learner/inference samples',flush=True)

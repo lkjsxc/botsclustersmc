@@ -30,7 +30,13 @@ public final class PocketViewTest {
             check(before.equals(p.menu()+":"+p.cursor()+":"+p.crafted));
             p.close();check(view.menu()==menu);
         }
-        try {new PocketView(Pocket.Menu.WORKBENCH,Stack.EMPTY,Stack.EMPTY,List.of());throw new AssertionError("shape");}
+        try {new PocketView(Pocket.Menu.WORKBENCH,Stack.EMPTY,Stack.EMPTY,List.of(),0);throw new AssertionError("shape");}
+        catch(IllegalArgumentException expected){checks++;}
+        pocket.clear();pocket.open(Pocket.Menu.CHEST);
+        PocketView missing=PocketView.capture(pocket,Pocket.NONE);
+        check(missing.unavailableSlots()==(1L<<27)-1&&missing.contents().contains("36=unavailable"));
+        check(!missing.contents().contains("=empty"));
+        try {new PocketView(Pocket.Menu.CLOSED,Stack.EMPTY,Stack.EMPTY,List.of(),1);throw new AssertionError("availability shape");}
         catch(IllegalArgumentException expected){checks++;}
         System.out.println("PASS immutable operator pocket view checks="+checks);
     }

@@ -15,14 +15,15 @@ public final class Fixtures extends RuntimePlugin {
     private final Map<Long,TrainingEnvironment.Session> sessions=new ConcurrentHashMap<>();
     private final Set<Long> passed=ConcurrentHashMap.newKeySet();
     private final AtomicInteger prepared=new AtomicInteger();
-    private static final class Control {Frame before;int[] action=Schema.IDLE.clone();int step,placed;boolean broken;final ArrayDeque<int[]> clicks=new ArrayDeque<>();}
+    private static final class Control {Frame before;int[] action=Schema.IDLE.clone();int step,placed;boolean broken,checked;final ArrayDeque<int[]> clicks=new ArrayDeque<>();}
     @Override public boolean training(){return true;}
     @Override protected Policy initialPolicy(){return new Policy(new float[Policy.PARAMETERS],0,0);}
     @Override public boolean pickupEnabled(Npc n){return true;}
-    @Override public boolean canPickup(Npc n,String token){return n.token().equals(token);}
-    @Override public boolean canChange(Npc n,org.bukkit.block.Block b){return WorldActions.owned(b.getLocation())&&b.getY()>=65&&b.getY()<70;}
+    @Override public boolean canPickup(Npc n,String token){return !PickupChecks.denied(n)&&n.token().equals(token);}
+    @Override public boolean canChange(Npc n,org.bukkit.block.Block b){return !SharedInventoryChecks.denied(n)&&WorldActions.owned(b.getLocation())&&b.getY()>=65&&b.getY()<70;}
     @Override protected void initialize(){
         if(!Boolean.getBoolean("bcmc.fixtures"))throw new IllegalStateException("diagnostics require explicit isolated-test flag");
+        PickupChecks.install(this);
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->{
             int actor=prepared.getAndIncrement();if(actor>=18)return;World w=Bukkit.getWorld("world");ArenaLayout a=ArenaLayout.forActor(actor,18,64);
             Location at=new Location(w,a.x()+8.5,65,a.z()+5.5);
@@ -41,8 +42,10 @@ public final class Fixtures extends RuntimePlugin {
     private void tick(Npc n){
         n.tick++;n.lastStepNanos=System.nanoTime();if(n.resetting||failed.get()!=null||passed.contains(n.id))return;
         Control c=(Control)n.context;TrainingEnvironment.Session session=sessions.get(n.id);
-        if(c.before==null&&c.step==0) {
+        if(!c.checked) {
+            c.checked=true;
             InputChecks.verify(n);StationChecks.verify(n,session);
+            SharedInventoryChecks.verify(n);PickupChecks.verify(n);
             Location original=n.entity.getLocation();n.entity.setRotation(0,89);
             int[] rejected=Schema.IDLE.clone();rejected[4]=1;WorldActions.tick(n,rejected,true);
             if(n.miningTicks!=0||n.mining!=null||!n.broken.isEmpty())

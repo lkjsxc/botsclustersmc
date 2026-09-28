@@ -96,8 +96,18 @@ public final class WorldActions {
             if(!(e instanceof Item item)||!Bukkit.isOwnedByCurrentRegion(item)||item.isDead()||item.getPickupDelay()>0)continue;
             String token=item.getPersistentDataContainer().get(npc.plugin.provenance,PersistentDataType.STRING);
             if(!npc.plugin.canPickup(npc,token))continue;
-            Stack s=ExternalInventory.from(item.getItemStack());int moved=Math.min(npc.pocket.capacity(s),s.count());if(moved<=0)continue;
+            ItemStack observed=item.getItemStack().clone();
+            if(!ExternalInventory.supported(observed))continue;
+            Stack s=ExternalInventory.from(observed);int moved=Math.min(npc.pocket.capacity(s),s.count());if(moved<=0)continue;
             EntityPickupItemEvent event=new EntityPickupItemEvent(npc.entity,item,s.count()-moved);Bukkit.getPluginManager().callEvent(event);if(event.isCancelled())continue;
+            // Event listeners may remove or replace the item. Never insert the stale snapshot.
+            if(!Bukkit.isOwnedByCurrentRegion(npc.entity)||!Bukkit.isOwnedByCurrentRegion(item)
+                    ||!npc.entity.isValid()||item.isDead()||!item.isValid()||item.getPickupDelay()>0
+                    ||!observed.equals(item.getItemStack())
+                    ||!Objects.equals(token,item.getPersistentDataContainer().get(npc.plugin.provenance,PersistentDataType.STRING))
+                    ||!npc.plugin.pickupEnabled(npc)||!npc.plugin.canPickup(npc,token))continue;
+            if(npc.entity.getWorld()!=item.getWorld()
+                    ||!npc.entity.getBoundingBox().expand(1.1,1.2,1.1).overlaps(item.getBoundingBox()))continue;
             Stack remaining=npc.pocket.insert(s);int taken=s.count()-remaining.count();
             if(remaining.empty())item.remove();else item.setItemStack(ExternalInventory.to(remaining));
             npc.collected.merge(s.item(),(long)taken,Long::sum);
