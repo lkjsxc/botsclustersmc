@@ -125,3 +125,13 @@ shared-resource episode against matched controls and retain every trial.
 Before claiming durable survival, test the joint save/recovery boundary between
 world items and actor inventories. See [shared resource mechanics](../SHARED_RESOURCES.md)
 and [the long-term gates](../COOPERATIVE_SURVIVAL.md).
+
+## Subsequent activation
+
+At the operator's later explicit request, the merged runtime was applied to the
+learning server at 13:43:40 JST on September 28 with a completely fresh Academy.
+Old weights, optimizer state and certificates were not restored. See the
+[fresh main activation record](20260928-fresh-main-activation.md) for the deployed
+JAR identity, 512-actor learning checks and the new policy's independent evaluation.
+The earlier non-deployment statements above describe this implementation study,
+not the server's state after that subsequent activation.
