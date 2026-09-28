@@ -33,6 +33,9 @@ final class PickupChecks implements Listener {
         Item item=npc.entity.getWorld().dropItem(npc.entity.getLocation().add(0,.2,0),source);
         item.setVelocity(new org.bukkit.util.Vector());item.setGravity(false);item.setPickupDelay(0);
         item.getPersistentDataContainer().set(npc.plugin.provenance,PersistentDataType.STRING,npc.token());
+        if(mode.equals("mob-disabled"))item.setCanMobPickup(false);
+        if(mode.equals("foreign-owner"))item.setOwner(new UUID(0,1));
+        if(mode.equals("own-owner"))item.setOwner(npc.entity.getUniqueId());
         int[] events={0};ItemStack[] after={source.clone()};
         callbacks.put(item.getUniqueId(),event->{
             events[0]++;
@@ -45,14 +48,16 @@ final class PickupChecks implements Listener {
                 case "provenance"->item.getPersistentDataContainer().set(npc.plugin.provenance,PersistentDataType.STRING,"different-owner");
                 case "delay"->item.setPickupDelay(20);
                 case "permission"->denied.add(npc.id);
+                case "mob-disabled-event"->item.setCanMobPickup(false);
+                case "owner-event"->item.setOwner(new UUID(0,1));
                 default->{}
             }
             if(!item.isDead())after[0]=item.getItemStack().clone();
         });
         try{
             WorldActions.tick(npc,Schema.IDLE.clone(),true);
-            check(events[0]==(mode.equals("unsupported")?0:1),"unexpected pickup event count: "+mode);
-            if(mode.equals("normal")){
+            check(events[0]==(Set.of("unsupported","mob-disabled","foreign-owner").contains(mode)?0:1),"unexpected pickup event count: "+mode);
+            if(mode.equals("normal")||mode.equals("own-owner")){
                 check(npc.pocket.count("OAK_LOG")==8&&npc.collected.getOrDefault("OAK_LOG",0L)==8,"plain pickup failed");
                 check(item.isDead(),"picked-up item remained in world");
             }else{
@@ -70,8 +75,9 @@ final class PickupChecks implements Listener {
         var collected=new HashMap<>(npc.collected);var velocity=npc.entity.getVelocity().clone();
         ItemStack held=npc.entity.getEquipment().getItemInMainHand().clone();
         try{
-            for(String mode:List.of("normal","cancel","remove","replace","count","metadata","provenance","delay","permission","unsupported"))trial(npc,mode);
-            System.out.println("PICKUP EVENT LIVE PASS checks="+checks+" event_modes=10");
+            List<String> modes=List.of("normal","cancel","remove","replace","count","metadata","provenance","delay","permission","unsupported","mob-disabled","foreign-owner","own-owner","mob-disabled-event","owner-event");
+            for(String mode:modes)trial(npc,mode);
+            System.out.println("PICKUP EVENT LIVE PASS checks="+checks+" event_modes="+modes.size());
         }finally{
             npc.pocket.clear();for(int i=0;i<36;i++)npc.pocket.setStorage(i,storage[i]);npc.pocket.select(selected);
             npc.collected.clear();npc.collected.putAll(collected);npc.tick=tick;

@@ -16,6 +16,7 @@ public final class Npc {
     private InferenceTicket pending;
     public Goal goal;public Location container;public String mining;public int miningTicks;public volatile long tick;public long episodeStart;
     public int[] action=Schema.IDLE.clone();public Object context;
+    boolean dropping; // Owner-thread guard across drop/spawn callbacks; not persistent state.
     private boolean wasPaused;private int leasedX=Integer.MIN_VALUE,leasedZ=Integer.MIN_VALUE;private java.util.UUID leasedWorld;
     private long requestId,requestedTick,nextDecision;private boolean waiting;private Frame requestFrame;private Applied applied;
     public volatile boolean resetting=true,ready,paused;public volatile String status="initializing";public volatile double x,y,z;

@@ -1,0 +1,121 @@
+{
+  "source": "85be01d9c8935065d9893f1a469ccd36325fc8e7",
+  "tree": "5d6b74453148af1e7dea466626310030e1619656",
+  "base": "5fa2a2b99a7691b7b0a7203b0ef79c25f67c2b08",
+  "source_suite_exit": 0,
+  "source_log": {
+    "path": ".build/drop-source-final.log",
+    "bytes": 6913,
+    "sha256": "d19dfaa1bfb7a36e6baa837e189c283568d21c07d9e300b2947321f05f5db0f1"
+  },
+  "runtime_jars": [
+    {
+      "path": "dist/botsclustersmc.jar",
+      "bytes": 120424,
+      "sha256": "8c0ae39c925454356dd4ea5fd984d7368edc81e3ed4591cb533ec163b66bc7b7"
+    },
+    {
+      "path": "dist/training.jar",
+      "bytes": 212836,
+      "sha256": "be7bdd8f79456ee3b1d5cbc2a1d2a2ed3e2812322c5889e3eda562542fe3a1bc"
+    }
+  ],
+  "baseline": {
+    "reproduced_failure": "drop consumed stale inventory: drop held-kind slot=0",
+    "log": {
+      "path": ".build/drop-baseline-built/fixtures.log",
+      "bytes": 10434,
+      "sha256": "b4dec274b79554fb124b3f40962befca350f1595723b535599af461e861a88b4"
+    }
+  },
+  "servers": [
+    {
+      "server": "folia",
+      "exit": 0,
+      "task_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "drop_cases": 47,
+      "drop_assertions": 1870,
+      "pickup_modes": 15,
+      "pickup_assertions": 46,
+      "world_cases": 29,
+      "world_assertions": 180,
+      "continuous_chain_assertions": 155,
+      "continuous_chain_ticks": 68,
+      "trained_samples": 0,
+      "inference_completed": 0,
+      "runtime_classes_matched": 103,
+      "log": {
+        "path": ".build/drop-folia-final/fixtures.log",
+        "bytes": 10180,
+        "sha256": "83cb751ba65de53c875b73fdad226938c00b2938953fe08cfba251ea84c3fb49"
+      },
+      "pass_marker": "PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.",
+      "server_identity": [
+        "[11:43:27 INFO]: This server is running Folia version 1.21.11-14-ver/1.21.11@529aabc (2026-02-22T20:22:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)"
+      ]
+    },
+    {
+      "server": "paper",
+      "exit": 0,
+      "task_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "drop_cases": 47,
+      "drop_assertions": 1870,
+      "pickup_modes": 15,
+      "pickup_assertions": 46,
+      "world_cases": 29,
+      "world_assertions": 180,
+      "continuous_chain_assertions": 155,
+      "continuous_chain_ticks": 68,
+      "trained_samples": 0,
+      "inference_completed": 0,
+      "runtime_classes_matched": 103,
+      "log": {
+        "path": ".build/drop-paper-final/fixtures.log",
+        "bytes": 7948,
+        "sha256": "f0af4c83f57ab99cebceca65815ccb17df628366cb34fab2c41d51c1268affaa"
+      },
+      "pass_marker": "PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.",
+      "server_identity": [
+        "[11:43:51 INFO]: This server is running Paper version 1.21.1-133-ver/1.21.1@3cb8529 (2025-03-28T16:14:36Z) (Implementing API version 1.21.1-R0.1-SNAPSHOT)"
+      ]
+    }
+  ]
+}
