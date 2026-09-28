@@ -70,5 +70,59 @@ class ResetDiagnosticTests(unittest.TestCase):
                 _,result=self.fixture(condition);self.verify(args,result)
 
 
+class TableTraceTests(unittest.TestCase):
+    def trace(self):
+        return {
+            'scope': 'table-inventory-pre-action', 'transitions': 10, 'inventory_states': 8,
+            'correct_mask_states': [8] + [0] * 15, 'max_correct_cells': 0, 'max_surplus_units': 0,
+            'partial_inventory_exits': 0, 'carried_planks_below_four_without_table_states': 0,
+            'compatible_cursor_states_by_correct_cells': [4, 0, 0, 0, 0],
+            'fill_probability_sum_by_correct_cells': [2.0, 0, 0, 0, 0],
+            'single_unit_fill_probability_sum_by_correct_cells': [1.0, 0, 0, 0, 0],
+            'filled_cell_transitions': [0] * 4, 'removed_cell_transitions': [0] * 4,
+            'target_preview_states': 0, 'other_preview_states': 0,
+            'target_collection_probability_sum': 0.0, 'other_collection_probability_sum': 0.0,
+            'chosen_target_result_clicks': 0, 'chosen_other_result_clicks': 0,
+            'observed_stick_gain_transitions': 0, 'observed_stick_units_gained': 0,
+            'observed_table_units_gained': 0,
+        }
+
+    def test_valid_and_required_fields(self):
+        holdout.verify_table_trace(self.trace(), 10)
+        for key in self.trace():
+            with self.subTest(missing=key), self.assertRaises(AssertionError):
+                trace = self.trace(); del trace[key]; holdout.verify_table_trace(trace, 10)
+
+    def test_malformed_values(self):
+        for key, values in (
+            ('scope', ['pickaxe-pre-action-observation', None]),
+            ('transitions', [9, 11, True, '10', float('nan')]),
+            ('inventory_states', [11, -1, True, 8.0]),
+            ('correct_mask_states', [[8] * 15, [8] * 16, [True] + [0] * 15]),
+            ('max_correct_cells', [5, -1]), ('max_surplus_units', [253]),
+            ('other_collection_probability_sum', [.01, True, float('nan'), float('inf')]),
+            ('observed_stick_units_gained', [4]), ('chosen_other_result_clicks', [1]),
+            ('compatible_cursor_states_by_correct_cells', [[0, 0, 0, 0, 1], [9, 0, 0, 0, 0]]),
+            ('fill_probability_sum_by_correct_cells', [[4.1, 0, 0, 0, 0], [float('nan'), 0, 0, 0, 0]]),
+            ('single_unit_fill_probability_sum_by_correct_cells', [[2.1, 0, 0, 0, 0]]),
+        ):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    trace = self.trace(); trace[key] = value; holdout.verify_table_trace(trace, 10)
+
+    def test_report_scope_and_missing_trace(self):
+        helper = ResetDiagnosticTests()
+        args, result = helper.fixture('none')
+        result['trials'][0]['diagnostics']['table_crafting'] = self.trace()
+        with self.assertRaises(AssertionError):
+            helper.verify(args, result)
+        args.tasks = [10]; result['tasks'][0]['task'] = 10; result['trials'][0]['task'] = 10
+        result['trials'][0]['diagnostics']['observations'] = 10
+        self.assertIsNotNone(helper.verify(args, result))
+        del result['trials'][0]['diagnostics']['table_crafting']
+        with self.assertRaises(AssertionError):
+            helper.verify(args, result)
+
+
 if __name__=='__main__':
     unittest.main()
