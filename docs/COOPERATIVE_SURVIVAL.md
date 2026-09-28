@@ -22,6 +22,11 @@ hunger, tool durability or complete combat. Local entity observations and chest
 clicks make later cooperation experiments possible; they do not constitute
 learned cooperation. Increasing NPC count cannot fill these gaps.
 
+The [shared-resource boundary](SHARED_RESOURCES.md) now checks stale container
+operations and preserves items that the simplified pocket cannot represent.
+Two-pocket conservation tests and real Folia/Paper adapter tests establish
+mechanical prerequisites only; they do not pass the cooperative-policy gate below.
+
 ## Development order
 
 ### 1. Reliable reusable skills, with measured retention
