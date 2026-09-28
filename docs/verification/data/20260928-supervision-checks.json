@@ -1,0 +1,101 @@
+{
+  "implementation": "18965aad1c25db56655318eb6f290d4206092a72",
+  "scope": "Host supervision verification, not a new learning result",
+  "lifecycle": {
+    "scope": "isolated fresh eight-NPC launcher lifecycle, not learned skill evidence",
+    "source": "18965aad1c25db56655318eb6f290d4206092a72",
+    "port": 25589,
+    "bind": "127.0.0.1",
+    "actors": 8,
+    "started_utc": "2026-09-28T08:06:01.063891+00:00",
+    "production_stop_or_restart_requested": false,
+    "complete": true,
+    "supervisor_pid": 844433,
+    "server_pid": 844514,
+    "stop_request_exit": 0,
+    "stop_request_output": "Sent: stop",
+    "supervisor_exit": 0,
+    "child_exited": true,
+    "control_metadata_removed": true,
+    "port_released": true,
+    "checkpoint_export_exit": 0,
+    "checkpoint_sha256": "3f63e4d4fde764368679ca334c5584cef2df1d87834571b4966bc10e0d5a97ea",
+    "policy_sha256": "0e5a8320dbf2fa3b10a0f20af0296f0329587e0d9980a0062427476aed5229bf",
+    "installed_runtime_sha256": "bf75154c58e56c91918aa1e05baaa6cf1465a9afac119da01f59e0d21b45b006",
+    "runtime_sha256": "bf75154c58e56c91918aa1e05baaa6cf1465a9afac119da01f59e0d21b45b006",
+    "status_samples": [
+      {
+        "epoch_millis": 1790582783747,
+        "policy_updates": 1,
+        "trained_samples": 256,
+        "active_agents": 8,
+        "progressed_agents_since_status": 8,
+        "startup_restored_checkpoint": false,
+        "inference_failed": 0,
+        "inference_rejected": 0
+      },
+      {
+        "epoch_millis": 1790582793747,
+        "policy_updates": 2,
+        "trained_samples": 512,
+        "active_agents": 8,
+        "progressed_agents_since_status": 8,
+        "startup_restored_checkpoint": false,
+        "inference_failed": 0,
+        "inference_rejected": 0
+      }
+    ],
+    "finished_utc": "2026-09-28T08:06:36.451203+00:00"
+  },
+  "mutants": [
+    {
+      "name": "control",
+      "compiled": true,
+      "exit": 0,
+      "evidence": "PASS supervisor I/O/health: 589 checks; 8 synthetic child JVMs; no Minecraft/Academy changes"
+    },
+    {
+      "name": "abandon-child-on-log-error",
+      "compiled": true,
+      "exit": 1,
+      "evidence": "Exception in thread \"main\" java.lang.AssertionError: failed local sink must not stop drain: write"
+    },
+    {
+      "name": "replayed-stamp-renews-health",
+      "compiled": true,
+      "exit": 1,
+      "evidence": "Exception in thread \"main\" java.lang.AssertionError: same report cannot renew health"
+    },
+    {
+      "name": "missing-steady-state-watchdog",
+      "compiled": true,
+      "exit": 1,
+      "evidence": "Exception in thread \"main\" java.lang.AssertionError: same report cannot renew health"
+    },
+    {
+      "name": "empty-retry-erases-previous",
+      "compiled": true,
+      "exit": 1,
+      "evidence": "Exception in thread \"main\" java.lang.AssertionError: empty restart keeps preceding failure"
+    }
+  ],
+  "production_snapshot": {
+    "state": "running",
+    "epoch_millis": 1790582830718,
+    "policy_updates": 79397,
+    "trained_samples": 19462631,
+    "active_agents": 512,
+    "progressed_agents_since_status": 512,
+    "ticking_agents": 512,
+    "inference_failed": 0,
+    "inference_rejected": 0,
+    "retired_agents": 0,
+    "burning_agents": 0,
+    "course_task_population": "[0, 0, 0, 0, 1, 2, 5, 76, 330, 98, 0, 0, 0, 0, 0, 0, 0, 0]"
+  },
+  "production_supervisor_pid": 756010,
+  "production_server_pid": 756100,
+  "production_restart_count": 3,
+  "new_supervisor_activated_in_production": false,
+  "quota_capacity_changed": false
+}
