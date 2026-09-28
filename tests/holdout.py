@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run a disposable frozen neural-policy exam; never update policy or course state."""
 from __future__ import annotations
-import argparse, hashlib, json, os, shutil, socket, subprocess, zipfile
+import argparse, hashlib, json, math, os, shutil, socket, subprocess, zipfile
 from pathlib import Path
 import acceptance
 
@@ -114,6 +114,55 @@ permissions:
             entry(jar, path.relative_to(classes).as_posix(), path.read_bytes())
         entry(jar, 'plugin.yml', descriptor); entry(jar, 'config.yml', config)
 
+def verify_table_trace(trace, observations):
+    """Validate denominators and bounded measured sums, not learned competence."""
+    assert isinstance(trace, dict) and trace.get('scope') == 'table-inventory-pre-action'
+    def count(key, maximum):
+        value = trace.get(key)
+        assert type(value) is int and 0 <= value <= maximum, key
+        return value
+    def vector(key, length, maximum, integral=True):
+        values = trace.get(key)
+        assert isinstance(values, list) and len(values) == length, key
+        for value in values:
+            assert (type(value) is int if integral else type(value) in (int, float)), key
+            assert math.isfinite(value) and 0 <= value <= maximum, key
+        return values
+    def mass(key, denominator):
+        value = trace.get(key)
+        assert type(value) in (int, float) and math.isfinite(value) and 0 <= value <= denominator + 1e-7, key
+    assert type(observations) is int and observations > 0
+    assert count('transitions', observations) == observations
+    inventory = count('inventory_states', observations)
+    patterns = vector('correct_mask_states', 16, inventory)
+    assert sum(patterns) == inventory
+    maximum = count('max_correct_cells', 4)
+    assert all(not n or mask.bit_count() <= maximum for mask, n in enumerate(patterns))
+    count('max_surplus_units', 252)
+    count('partial_inventory_exits', inventory)
+    count('carried_planks_below_four_without_table_states', inventory)
+    opportunities = vector('compatible_cursor_states_by_correct_cells', 5, inventory)
+    assert opportunities[4] == 0
+    fill = vector('fill_probability_sum_by_correct_cells', 5, inventory + 1e-7, False)
+    single = vector('single_unit_fill_probability_sum_by_correct_cells', 5, inventory + 1e-7, False)
+    for cells in range(5):
+        assert opportunities[cells] <= sum(n for mask, n in enumerate(patterns) if mask.bit_count() == cells)
+        assert single[cells] <= fill[cells] + 1e-7 and fill[cells] <= opportunities[cells] + 1e-7
+    vector('filled_cell_transitions', 4, inventory)
+    vector('removed_cell_transitions', 4, inventory)
+    previews = 0
+    for kind in ('target', 'other'):
+        denominator = count(kind + '_preview_states', inventory)
+        previews += denominator
+        mass(kind + '_collection_probability_sum', denominator)
+        count('chosen_' + kind + '_result_clicks', denominator)
+    assert previews <= inventory
+    gains = count('observed_stick_gain_transitions', inventory)
+    units = count('observed_stick_units_gained', 64 * gains)
+    assert units >= gains
+    count('observed_table_units_gained', 64 * inventory)
+
+
 def verify_result(args, data, frozen, process):
     failure = data/'exam-failed.txt'
     if failure.exists():
@@ -136,6 +185,10 @@ def verify_result(args, data, frozen, process):
         assert sum(trial['success'] for trial in selected) == summary['passed']
     for trial in trials:
         detail=trial['diagnostics']
+        if trial['task'] == 10:
+            verify_table_trace(detail.get('table_crafting'), detail['observations'])
+        else:
+            assert 'table_crafting' not in detail, 'Table diagnostics belong only to task 10.'
         assert detail['observations'] > 0 and 0 <= detail['dig_decisions'] <= detail['observations']
         assert detail['observed_max_target_mining_ticks'] >= 0
         assert 0 <= detail['mean_abs_yaw_error'] <= 180 and 0 <= detail['mean_abs_pitch_error'] <= 180

@@ -57,6 +57,47 @@ The test does not establish natural-terrain generalization, unrestricted surviva
 long-lived NPC inventories, combat, food production, or multiplayer cooperation.
 Do not label scripted reachability diagnostics as these neural-policy results.
 
+## Read-only workbench-construction diagnostics
+
+Task 10 (`craft-workbench`, the 2x2 personal inventory recipe) now records
+`diagnostics.table_crafting`. This is an observer, not an assisted reset or a
+recipe selector. It re-evaluates the immutable policy distribution on the actual
+pre-action observation and checks the applied action likelihood. It never samples,
+modifies an action, accesses a world, updates a weight or enters a training JAR.
+
+The sixteen `correct_mask_states` describe which physical grid cells contain
+planks. Four units stacked in one cell are one correct cell, not four. Target
+workbench previews and other previews (notably the two-plank stick recipe) have
+separate counts, selected result clicks and joint collection-probability sums.
+Clicks are requests, not proof of crafting. `crafted_stick_units` and
+`crafted_workbench_units` in the enclosing diagnostics are actual final
+`Pocket.crafted` counters. `observed_*_units_gained` inside the trace instead sum
+positive changes of carried stock while the inventory remains visible; picking
+up a previously dropped item can increase these again. Do not equate those sums
+with manufactured output or use them as a resource-conservation ledger.
+
+Fill opportunities and probability sums are grouped by the number of already
+correct cells. Divide each probability sum by its matching opportunity count;
+zero opportunities mean no measurement, not zero competence. The single-unit
+sum distinguishes right-click placement from depositing an entire cursor stack.
+Cell removal counters exclude observed output gains so ordinary ingredient
+consumption is not mislabeled as dismantling. Partial menu exits are separate.
+
+`carried_planks_below_four_without_table_states` counts pre-action **visible
+inventory** states with fewer than four carried planks and no carried table.
+It excludes the preview and does not treat a closed menu's hidden grid as lost
+stock. It is not an impossibility certificate: world items might be recoverable.
+`final_carried_plank_units` in the enclosing diagnostics includes the retained
+hidden grid through the ordinary pocket count. These are observation counts,
+not elapsed-time or training-sample fractions.
+
+The Python runner checks required fields, types, finite probability sums,
+array sizes and denominators for this trace, and rejects it on other tasks.
+The native evaluator retains the detailed trace but its operator-facing skill
+summary continues to use the ordinary completion predicate. The diagnostics do
+not select a policy, promote a lesson, change any success threshold, or establish
+why a learner failed to acquire the behavior.
+
 ## Reset-only workbench diagnostics
 
 `--reset-intervention` is an opt-in developer diagnostic, not a training option.

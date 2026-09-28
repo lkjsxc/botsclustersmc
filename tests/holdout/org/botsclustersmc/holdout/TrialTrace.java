@@ -20,12 +20,18 @@ final class TrialTrace {
     private final StringBuilder firstClicks=new StringBuilder();
     private int recordedClicks;
     private CraftingTrace crafting;
+    private TableCraftingTrace tableCrafting;
     private HarvestTrace harvest;
     void observe(Npc npc,Npc.Applied previous,Frame next,Policy policy) {
         int task=npc.goal.task().ordinal();
         if(CraftingTrace.applies(task)) {
             if(crafting==null)crafting=new CraftingTrace();
             crafting.observe(policy,task,previous.frame().observation(),previous.frame().mask(),
+                next.observation(),previous.result().actions(),previous.result().logProbability());
+        }
+        if(task==10) {
+            if(tableCrafting==null)tableCrafting=new TableCraftingTrace();
+            tableCrafting.observe(policy,previous.frame().observation(),previous.frame().mask(),
                 next.observation(),previous.result().actions(),previous.result().logProbability());
         }
         observations++;int[] action=previous.result().actions();
@@ -68,10 +74,13 @@ final class TrialTrace {
         String motor=String.format(Locale.ROOT,"{\"observations\":%d,\"dig_decisions\":%d,\"observed_max_target_mining_ticks\":%d,\"mean_abs_yaw_error\":%.6f,\"mean_abs_pitch_error\":%.6f,\"closest_distance\":%.6f,\"blocks_broken\":%d,\"items_collected\":%d}",
             observations,digDecisions,maxTargetMiningTicks,yaw/observations,pitch/observations,closest,total(npc.broken),total(npc.collected));
         return motor.substring(0,motor.length()-1)+String.format(Locale.ROOT,
-            ",\"gui_operations\":%s,\"clicked_slots\":%s,\"menu_observations\":%s,\"menu_open_observations\":%d,\"recipe_visible_observations\":%d,\"max_grid_units\":%d,\"max_crafted_units\":%d,\"drop_decisions\":%d,\"use_decisions\":%d,\"minimum_raw_units\":%d,\"first_clicks_op_slot_menu_cursor_kind_count\":\"%s\"}",
+            ",\"gui_operations\":%s,\"clicked_slots\":%s,\"menu_observations\":%s,\"menu_open_observations\":%d,\"recipe_visible_observations\":%d,\"max_grid_units\":%d,\"max_crafted_units\":%d,\"drop_decisions\":%d,\"use_decisions\":%d,\"minimum_raw_units\":%d,\"crafted_stick_units\":%d,\"crafted_workbench_units\":%d,\"final_carried_plank_units\":%d,\"first_clicks_op_slot_menu_cursor_kind_count\":\"%s\"}",
             Arrays.toString(guiOperations),Arrays.toString(clickedSlots),Arrays.toString(menus),openObservations,recipeObservations,
-            maxGridUnits,maxCrafted,dropDecisions,useDecisions,minRawUnits,firstClicks)
+            maxGridUnits,maxCrafted,dropDecisions,useDecisions,minRawUnits,
+            npc.pocket.crafted.getOrDefault("STICK",0L),npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L),
+            npc.pocket.countKind(3),firstClicks)
             .replaceFirst("}$",(crafting==null?"":",\"crafting\":"+crafting.json())
+                +(tableCrafting==null?"":",\"table_crafting\":"+tableCrafting.json())
                 +(harvest==null?"":",\"harvest\":"+harvest.json())+"}");
     }
 }
