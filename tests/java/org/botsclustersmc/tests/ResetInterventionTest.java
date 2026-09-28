@@ -25,6 +25,50 @@ public final class ResetInterventionTest {
         for(int i=0;i<46;i++)s.append(':').append(p.get(i,Pocket.NONE));
         p.open(menu);return s+":"+p.crafted+":"+p.extracted;
     }
+    private static void oneMissing() {
+        String[] labels={"top-left","top-center","top-right","handle-upper","handle-lower"};
+        int[] slots={36,37,38,40,43};
+        for(Task task:List.of(Task.CRAFT_WOOD_PICK,Task.CRAFT_STONE_PICK))for(int missing=0;missing<5;missing++) {
+            var mode=ResetIntervention.parse("pickaxe-missing-"+labels[missing]);
+            String material=task==Task.CRAFT_WOOD_PICK?"OAK_PLANKS":"COBBLESTONE";
+            String output=task==Task.CRAFT_WOOD_PICK?"WOODEN_PICKAXE":"STONE_PICKAXE";
+            Pocket p=raw(task);p.select(8);mode.apply(p,task);
+            check(p.menu()==Pocket.Menu.WORKBENCH&&p.selected()==8&&p.cursor().empty());
+            check(p.count(material)==3&&p.count("STICK")==2&&p.count(output)==0);
+            check(p.crafted.isEmpty()&&p.extracted.isEmpty()&&p.get(45,Pocket.NONE).empty());
+            for(int slot=36;slot<45;slot++) {
+                String expected=slot==slots[missing]?"AIR":slot<=38?material:slot==40||slot==43?"STICK":"AIR";
+                check(expected.equals("AIR")?p.get(slot,Pocket.NONE).empty():p.get(slot,Pocket.NONE).equals(new Stack(expected,1)));
+            }
+            for(int slot=0;slot<36;slot++) {
+                String expected=slot==(missing<3?0:1)?(missing<3?material:"STICK"):"AIR";
+                check(expected.equals("AIR")?p.storage(slot).empty():p.storage(slot).equals(new Stack(expected,1)));
+            }
+            String before=state(p);rejects(()->mode.apply(p,task));check(state(p).equals(before));
+            // A real policy must still pick up, place, and collect; these are mechanical tests only.
+            p.click(1,missing<3?0:1,Pocket.NONE);check(p.cursor().count()==1);
+            p.click(2,slots[missing],Pocket.NONE);check(p.cursor().empty());
+            check(p.get(45,Pocket.NONE).item().equals(output));check(p.count(output)==0&&p.crafted.isEmpty());
+            p.click(3,45,Pocket.NONE);check(p.count(output)==1&&p.crafted.getOrDefault(output,0L)==1);
+            check(p.count(material)==0&&p.count("STICK")==0);
+            for(Task other:Task.values())if(other!=Task.CRAFT_WOOD_PICK&&other!=Task.CRAFT_STONE_PICK) {
+                Pocket raw=raw(task);String unchanged=state(raw);rejects(()->mode.apply(raw,other));check(state(raw).equals(unchanged));
+            }
+            for(int invalid=0;invalid<7;invalid++) {
+                Pocket raw=raw(task);
+                switch(invalid) {
+                    case 0 -> raw.setStorage(0,new Stack(material,2));
+                    case 1 -> raw.setStorage(1,new Stack("STICK",1));
+                    case 2 -> raw.setStorage(35,new Stack("DIRT",1));
+                    case 3 -> raw.crafted.put(output,1L);
+                    case 4 -> raw.extracted.put("IRON_INGOT",1L);
+                    case 5 -> {raw.open(Pocket.Menu.WORKBENCH);raw.click(1,0,Pocket.NONE);raw.close();}
+                    case 6 -> {raw.open(Pocket.Menu.WORKBENCH);raw.click(1,0,Pocket.NONE);raw.click(2,36,Pocket.NONE);raw.click(1,0,Pocket.NONE);raw.setStorage(0,new Stack(material,3));raw.close();}
+                }
+                String unchanged=state(raw);rejects(()->mode.apply(raw,task));check(state(raw).equals(unchanged));
+            }
+        }
+    }
     public static void main(String[] args) {
         rejects(()->ResetIntervention.parse("open"));rejects(()->ResetIntervention.parse(null));
         for(var intervention:ResetIntervention.values())check(ResetIntervention.parse(intervention.label())==intervention);
@@ -78,6 +122,7 @@ public final class ResetInterventionTest {
                 String before=state(p);rejects(()->ResetIntervention.PICKAXE_GRID.apply(p,task));check(state(p).equals(before));
             }
         }
+        oneMissing();
         System.out.println("PASS reset intervention checks: "+checks);
     }
 }

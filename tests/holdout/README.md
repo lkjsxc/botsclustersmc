@@ -110,8 +110,17 @@ choices require a saved `--policy` and only pickaxe tasks 11 or 13; a moving
 | `none` | Closed | Raw stock | Opening, assembly and collection |
 | `workbench-open` | Workbench | Identical raw stock | Assembly and collection; closing remains possible |
 | `pickaxe-grid` | Workbench | Five supplied units already arranged | Output collection and all subsequent actions |
+| `pickaxe-missing-top-left` / `-top-center` / `-top-right` | Workbench | Four arranged units; missing head unit in storage slot 0 | Pick up, place and collect; earlier cells can still be disturbed |
+| `pickaxe-missing-handle-upper` / `-handle-lower` | Workbench | Four arranged units; missing stick in storage slot 1 | Pick up, place and collect; earlier cells can still be disturbed |
 
-No completed item or crafted counter is supplied. Both assisted conditions leave
+The single-cell labels identify physical recipe slots 36, 37, 38, 40 and 43,
+respectively. Use the full prefix `pickaxe-missing-` for every command-line label.
+The missing unit is deliberately **not** placed on the cursor. These conditions
+separate positions, not just a count of unfinished cells. They do not establish
+that a model can assemble the preceding four cells or sequence the whole recipe.
+Task 13 uses cobblestone instead of planks, with the same two handle sticks.
+
+No completed item or crafted counter is supplied. All assisted conditions leave
 the random pose and empty cursor unchanged. Assistance runs once, on the owning
 entity thread, after the normal asynchronous reset and before any policy request.
 The test checks the stock, station ownership, zero decisions and applied coverage.
@@ -157,5 +166,7 @@ Compare identical fixed models, not the continually changing learner. A large
 open-menu improvement would implicate entry/starting-state transfer; a large
 supplied-grid improvement would distinguish collection ability from raw assembly.
 Neither result alone identifies a reward, representation or optimizer defect.
-The actual measured study and its limitations are recorded in
+The initial measured study and its limitations are recorded in
 [the September 27 verification record](../../docs/verification/20260927-station-reset-study.md).
+The five-cell extension and newer frozen model are recorded separately in
+[the September 29 single-cell study](../../docs/verification/20260929-pickaxe-cell-diagnosis.md).
