@@ -1,0 +1,140 @@
+{
+  "source": "75e6706f70d1f1220803ea88a27433ee126bfcbf",
+  "tree": "6d988f0efbc4d8e965f17a7f2faa2f8f4d370852",
+  "base": "47a857ae88982d19706cf725b42fa0f4ffb54133",
+  "baseline": {
+    "failure": "java.lang.AssertionError: harvest spawn boundary: 50 failures / 268 checks / 20 cases",
+    "categories": {
+      "provenance unavailable inside spawn event": 20,
+      "initial delay unavailable inside spawn event": 20,
+      "listener delay overwritten": 2,
+      "provenance changed after listener": 6,
+      "old harvest eligible for new episode": 2
+    },
+    "runtime_class_entries": 103,
+    "matches_original_main_runtime": true,
+    "runtime_sha256": "be7bdd8f79456ee3b1d5cbc2a1d2a2ed3e2812322c5889e3eda562542fe3a1bc",
+    "log_sha256": "ac30eb485f2f9782cf2643b01ed50ff492367dfc4ae6be9356e9294d4c9f158c"
+  },
+  "source_test": {
+    "command": [
+      "bash",
+      "./test.sh"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 40.695,
+    "log": ".build/harvest-source-final.log",
+    "log_sha256": "d19dfaa1bfb7a36e6baa837e189c283568d21c07d9e300b2947321f05f5db0f1"
+  },
+  "runtime": {
+    "training_sha256": "7e3df712d2b9d9bb5afcf8e5a1010004d60c00a36f71448f7bc0457443764dfc",
+    "inference_sha256": "e16b1ade2e0a1a3d17f5532c3476929ecb8e45137bc636c6344698190d555ed0",
+    "class_entries": 103
+  },
+  "servers": {
+    "folia": {
+      "command": [
+        "python3",
+        "tests/acceptance.py",
+        "fixtures",
+        "--cache",
+        "/home/coder/workspace/botsclustersmc/.cache/server",
+        "--output",
+        "/home/coder/workspace/botsclustersmc-harvest-spawn/.build/harvest-folia-final"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 24.866,
+      "log": ".build/harvest-folia-final-driver.log",
+      "log_sha256": "83abe7c4dae7a02ec0b9d001081c4e0df500ecd93212f2078041b23d6aa2eece",
+      "identity": [
+        "[12:18:33 INFO]: Starting minecraft server version 1.21.11",
+        "[12:18:33 INFO]: This server is running Folia version 1.21.11-14-ver/1.21.11@529aabc (2026-02-22T20:22:23Z) (Implementing API version 1.21.11-R0.1-SNAPSHOT)"
+      ],
+      "server_jar_sha256": "f52c408490a0225611e67907a3ca19f7e6da2c6bc899e715d5f46844e7103c39",
+      "markers": [
+        "SHARED INVENTORY LIVE PASS checks=3109 serialized_transfer_cycles=100",
+        "PICKUP EVENT LIVE PASS checks=46 event_modes=15",
+        "DROP EVENT LIVE PASS checks=1870 cases=47",
+        "WORLD MUTATION LIVE PASS checks=180 cases=29",
+        "HARVEST DROP LIVE PASS checks=268 cases=20",
+        "COOPERATIVE CHAIN LIVE PASS actors=2 checks=155 ticks=68 scripted=true new_learning_samples=0"
+      ],
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "trained_samples": 0,
+      "inference_completed": 0,
+      "runtime_class_entries_matching": 103,
+      "fixture_log_sha256": "1382cada140f21272f8b91f69a4e9c764ff9c7010d601ddd7cc0a9d44d60e271"
+    },
+    "paper": {
+      "command": [
+        "python3",
+        "tests/acceptance.py",
+        "fixtures",
+        "--cache",
+        "/home/coder/workspace/botsclustersmc-drop-conservation/.build/drop-paper-cache",
+        "--output",
+        "/home/coder/workspace/botsclustersmc-harvest-spawn/.build/harvest-paper-final"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 26.414,
+      "log": ".build/harvest-paper-final-driver.log",
+      "log_sha256": "26985decbee8c934eafc6f5bdf5c3d699993ded5d5d8928cc5f5db7f301ccd58",
+      "identity": [
+        "[12:18:57 INFO]: Starting minecraft server version 1.21.1",
+        "[12:18:57 INFO]: This server is running Paper version 1.21.1-133-ver/1.21.1@3cb8529 (2025-03-28T16:14:36Z) (Implementing API version 1.21.1-R0.1-SNAPSHOT)"
+      ],
+      "server_jar_sha256": "39bd8c00b9e18de91dcabd3cc3dcfa5328685a53b7187a2f63280c22e2d287b9",
+      "markers": [
+        "SHARED INVENTORY LIVE PASS checks=2829 serialized_transfer_cycles=100",
+        "PICKUP EVENT LIVE PASS checks=46 event_modes=15",
+        "DROP EVENT LIVE PASS checks=1870 cases=47",
+        "WORLD MUTATION LIVE PASS checks=180 cases=29",
+        "HARVEST DROP LIVE PASS checks=268 cases=20",
+        "COOPERATIVE CHAIN LIVE PASS actors=2 checks=155 ticks=68 scripted=true new_learning_samples=0"
+      ],
+      "tasks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "trained_samples": 0,
+      "inference_completed": 0,
+      "runtime_class_entries_matching": 103,
+      "fixture_log_sha256": "f2de22d6728b867e3d696b5bbf9e53d2dae992c761adbc1b2ce8ce215b3f9983"
+    }
+  }
+}

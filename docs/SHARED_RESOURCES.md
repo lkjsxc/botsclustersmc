@@ -117,6 +117,21 @@ it does not implement vanilla container spilling or general block-entity compone
 preservation. Loot tables, richer block components and post-edit physics remain
 separate mechanics to validate. These checks are not a crash-atomic transaction.
 
+## Harvest provenance precedes the spawn callback
+
+Harvest is not a held-item drop: the block has already been removed when its
+items are spawned. The adapter captures the original episode token and sets it,
+along with the usual zero pickup delay, before `ItemSpawnEvent`. A callback that
+advances the actor's goal cannot cause this old harvest to acquire the new
+episode's token. The runtime does not overwrite the listener's provenance,
+delay, contents, pickup permission or ownership changes after spawning.
+
+Spawn cancellation is respected without recreating the yield or restoring the
+source block. This does not provide arbitrary-plugin isolation, crash-atomic
+saves, or a proof that neural actors can mine. The
+[harvest callback record](verification/20260928-harvest-spawn-boundary.md)
+reproduces the old episode misattribution and tests both named server versions.
+
 ## A continuous two-body mechanical chain
 
 The opt-in real-server fixtures now include two actual NPC bodies, initialized
