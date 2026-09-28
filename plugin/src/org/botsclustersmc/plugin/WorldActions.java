@@ -101,9 +101,15 @@ public final class WorldActions {
         if(++npc.miningTicks<ticks)return;npc.miningTicks=0;
         if(!mayChange(npc,b,Material.AIR)||((kind==14||kind==15)&&!emptyContainer(b)))return;
         ItemStack held=ExternalInventory.to(npc.pocket.held());if(held==null)held=new ItemStack(Material.AIR);
+        String token=npc.token();
         Collection<ItemStack> drops=b.getDrops(held,npc.entity);b.setType(Material.AIR,true);
         if(!b.getType().isAir())return;npc.broken.merge(type.name(),1L,Long::sum);
-        for(ItemStack stack:drops){Item item=b.getWorld().dropItem(b.getLocation().add(.5,.4,.5),stack);item.setPickupDelay(0);item.getPersistentDataContainer().set(npc.plugin.provenance,PersistentDataType.STRING,npc.token());}
+        for(ItemStack stack:drops)b.getWorld().dropItem(b.getLocation().add(.5,.4,.5),stack,item->{
+            // The source block has already paid for this drop. Initialize its original
+            // episode before ItemSpawnEvent, then preserve listeners' changes/cancellation.
+            // In particular, never relabel an old harvest with a callback's new goal.
+            item.setPickupDelay(0);item.getPersistentDataContainer().set(npc.plugin.provenance,PersistentDataType.STRING,token);
+        });
         npc.entity.swingMainHand();
     }
     private static void use(Npc npc){
