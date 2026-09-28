@@ -34,15 +34,40 @@ Run `./monitor.sh [private-address] [port]` (`monitor.cmd` on Windows) in anothe
 terminal. It defaults to loopback port 8765. Explicit LAN or Tailscale IPv4 binds
 allow trusted peers to read it; wildcard/public binds are refused. This is not an
 authenticated public website. Do not expose it through a public reverse proxy.
-The JDK-only service exposes only `/`, `/api/status` and `/api/history`; non-GET
-requests are rejected. There is no command endpoint, model download or CORS grant.
+The JDK-only service exposes only `/`, `/api/status`, `/api/history` and
+`/api/evaluation`; non-GET requests are rejected. There is no command endpoint,
+model download or CORS grant.
 
 The plugin produces `status.json` every five seconds and appends compact records
 to `history.jsonl`. History rotates at 8 MiB and retains one previous file. The
 monitor serves at most 720 valid snapshots and bounds its request queue. Metric
 history is not a checkpoint; it cannot restore optimizer or curriculum state.
-Snapshots older than fifteen seconds are marked stale. A cached `state=running`
-is not evidence that a stopped process is still alive.
+Snapshots older than fifteen seconds, more than five seconds in the future, or
+with invalid timestamps are marked stale. Only a fresh `running` snapshot shows
+current actor count, throughput, CPU and burning-body values. Failed status
+requests clear previous current values; stopped/failed snapshots do not display
+an old sample rate as current throughput. A cached `state=running` or HTTP 200
+is not evidence that a stopped process is still alive: the API returns recorded
+snapshots, not a new process-liveness certificate. Its timestamps are compared
+with the browser clock, which must be reasonably synchronized.
+
+Current status, history and independent evaluation have separate availability.
+An unreadable/oversized history returns HTTP 503 only for `/api/history`; the
+page shows a history warning while still displaying valid current status and
+refreshing evaluation. If status is unavailable, current cards are cleared but
+fixed-policy evaluation still refreshes without inventing a live policy number.
+Evaluation result and heartbeat file read failures are isolated from each other.
+No fallback overwrites, truncation, repair or deletion of source metrics occurs.
+
+Reads reject non-regular files and symlinked paths. Individual status/report
+objects are limited to 128 KiB, each history segment to 9 MiB, each retained line
+to 32,768 characters, and the combined history to the last 720 lines. Limits
+apply during reads as well as before opening; overlong lines are drained without
+unbounded line accumulation. Invalid UTF-8 is unavailable, not silently replaced.
+The monitor checks object/line envelopes, not the complete JSON grammar or every
+metric's semantics; browser parsing and existing panel validators remain necessary.
+This is bounded local-file failure isolation, not protection against a stalled
+filesystem or arbitrary concurrent replacement of ancestor directories.
 
 ## Interpret the numbers
 
@@ -81,8 +106,8 @@ prior from looking like an observed resource success before any success occurred
 ## Fixed-policy measurements
 
 The independent evaluation panel reads `/api/evaluation`, showing the most recent
-completed test and the evaluator heartbeat. It names both the frozen tested policy
-and the current live policy. Run `./evaluate.sh` for one evaluation or
+completed test and the evaluator heartbeat. It names the frozen tested policy
+and, when available, the last observed training policy with its freshness scope. Run `./evaluate.sh` for one evaluation or
 `./evaluate.sh --watch` for repeated changed-policy tests. Zero-success tasks are
 not hidden. Evaluation never updates weights or curriculum certificates. See
 [Evaluation](EVALUATION.md) before treating these results as deployment evidence.

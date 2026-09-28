@@ -79,6 +79,14 @@ sudo journalctl -u botsclustersmc-training.service -n 60 --no-pager
 Coder の認証付きポート転送か SSH トンネルを使い、無認証で公開しないでください。
 制御ファイル、モデル、チェックポイントも外部公開しません。
 
+HTTP 200は保存済みスナップショットを読めたことを示し、現在の稼働保証ではありません。
+画面は15秒超の古い時刻・5秒超の未来時刻・不正な時刻を古い情報として扱います。
+停止中や通信断では以前の処理速度・稼働数を現在値として残しません。
+履歴の読み込み異常は現在値・固定方策評価から分離され、履歴だけの異常で学習停止とは表示しません。
+現在値が取得できない間も、固定方策評価は試験時のモデルに属する結果として確認できます。
+監視だけの修正は `sudo systemctl restart botsclustersmc-monitor.service` で反映し、
+学習側の実装・設定が不変なら、そのためだけに学習プロセスを再起動する必要はありません。
+
 ```sh
 sudo systemctl stop botsclustersmc-training.service
 systemctl show botsclustersmc-training.service -p ActiveState -p Result
