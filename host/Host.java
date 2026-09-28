@@ -128,25 +128,152 @@ public final class Host {
             supervise(server,dir,List.of(java(),"-Xms512m","-Xmx"+heap+"G","-Dbcmc.training=true","-jar",cache.resolve("server.jar").toString(),"--nogui"));
         }
     }
-    static void supervise(Path server,Path dir,List<String> command)throws Exception{
-        long started=System.currentTimeMillis();Process child=new ProcessBuilder(command).directory(server.toFile()).redirectErrorStream(true).start();
+    /** Operational deadlines only; never a lesson, reward, or checkpoint setting. */
+    record Supervision(long startupMillis,long staleMillis,long stopMillis,long terminateMillis,long pollMillis){
+        Supervision{if(startupMillis<1||staleMillis<1||stopMillis<1||terminateMillis<1||pollMillis<1)throw new IllegalArgumentException("supervision deadlines");}
+    }
+    static final Supervision SUPERVISION=new Supervision(180000,60000,35000,5000,1000);
+    static final int CONSOLE_BYTES=8*1024*1024,STATUS_BYTES=64*1024;
+
+    /** Two bounded byte segments, not an unbounded run archive. Never follow a log symlink. */
+    static final class ConsoleLog extends OutputStream{
+        final Path current,previous;final int limit;OutputStream output;long size;boolean closed;
+        ConsoleLog(Path dir,int limit)throws IOException{
+            if(limit<1||limit>CONSOLE_BYTES)throw new IllegalArgumentException("console bound");
+            this.limit=limit;current=dir.resolve("console.log");previous=dir.resolve("console.previous.log");
+            validate();if(Files.exists(current)&&Files.size(current)>0)archive();open();
+        }
+        void validate()throws IOException{
+            for(Path path:List.of(current,previous)){
+                safe(path);
+                if(Files.exists(path,LinkOption.NOFOLLOW_LINKS)&&(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS)||Files.size(path)>limit))
+                    throw new IOException("Archive the existing non-regular/oversized console path explicitly before restart: "+path);
+            }
+        }
+        void archive()throws IOException{
+            validate();Files.move(current,previous,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
+        }
+        void open()throws IOException{
+            validate();
+            output=Files.exists(current,LinkOption.NOFOLLOW_LINKS)
+                ?Files.newOutputStream(current,StandardOpenOption.WRITE,StandardOpenOption.APPEND,LinkOption.NOFOLLOW_LINKS)
+                :Files.newOutputStream(current,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE,LinkOption.NOFOLLOW_LINKS);
+            privateFile(current);size=Files.size(current);
+        }
+        @Override public void write(int value)throws IOException{write(new byte[]{(byte)value},0,1);}
+        @Override public void write(byte[] bytes,int offset,int length)throws IOException{
+            Objects.checkFromIndexSize(offset,length,bytes.length);
+            if(closed)throw new IOException("Console log is closed");
+            while(length>0){
+                if(size==limit){output.close();output=null;archive();open();}
+                int count=(int)Math.min(length,limit-size);output.write(bytes,offset,count);
+                size+=count;offset+=count;length-=count;
+            }
+        }
+        @Override public void flush()throws IOException{if(output!=null)output.flush();}
+        @Override public void close()throws IOException{closed=true;if(output!=null){OutputStream closing=output;output=null;closing.close();}}
+    }
+
+    /** A failed sink is disabled once; the child pipe continues to be drained into the other sink. */
+    static final class ConsoleCapture implements Runnable{
+        final InputStream source;final OutputStream mirror;final OutputStream local;
+        volatile IOException failure;
+        ConsoleCapture(InputStream source,OutputStream mirror,OutputStream local,IOException openingFailure){
+            this.source=source;this.mirror=mirror;this.local=local;failure=openingFailure;
+        }
+        void failed(String stage,IOException error){if(failure==null)failure=new IOException(stage+": "+error.getMessage(),error);}
+        void closeLocal(OutputStream stream){try{stream.close();}catch(IOException error){failed("Closing local console log failed",error);}}
+        @Override public void run(){
+            OutputStream screen=mirror,file=local;byte[] bytes=new byte[8192];
+            try(source){int count;while((count=source.read(bytes))!=-1){
+                if(screen!=null)try{
+                    screen.write(bytes,0,count);screen.flush();
+                    if(screen instanceof PrintStream print&&print.checkError())throw new IOException("Parent console stream reports an error");
+                }catch(IOException error){failed("Forwarding console output failed",error);screen=null;}
+                if(file!=null)try{file.write(bytes,0,count);file.flush();}
+                catch(IOException error){failed("Writing local console log failed",error);closeLocal(file);file=null;}
+            }}catch(IOException error){failed("Reading child console output failed",error);}
+            finally{if(file!=null)closeLocal(file);}
+        }
+    }
+
+    /** Monotonic silence deadlines; missing/ambiguous timing fields and replayed/future stamps are not heartbeats. */
+    static final class SupervisionHealth{
+        final long started;final Supervision timing;long latestEpoch=-1,lastFresh;boolean seen;
+        static final Pattern EPOCH=Pattern.compile("\"epoch_millis\"\\s*:\\s*([0-9]{1,19})(?=\\s*[,}])");
+        static final Pattern STATE=Pattern.compile("\"state\"\\s*:\\s*\"(running|paused|failed)\"");
+        SupervisionHealth(long started,Supervision timing){this.started=started;this.timing=timing;}
+        String observe(String json,long elapsed,long wallNow){
+            if(json!=null){
+                Matcher time=EPOCH.matcher(json),state=STATE.matcher(json);
+                if(time.find()&&state.find()){
+                    String stamp=time.group(1),mode=state.group(1);
+                    if(!time.find()&&!state.find())try{
+                        long epoch=Long.parseLong(stamp);
+                        if(epoch>=started&&epoch<=wallNow+5000&&wallNow-epoch<=timing.staleMillis()){
+                            if(epoch>latestEpoch){latestEpoch=epoch;lastFresh=elapsed;seen=true;}
+                            if(epoch==latestEpoch&&mode.equals("failed"))return "Training reported a failure";
+                        }
+                    }catch(NumberFormatException ignored){/* Invalid reports do not extend a deadline. */}
+                }
+            }
+            if(!seen&&elapsed>=timing.startupMillis())return "No fresh training status after startup";
+            if(seen&&elapsed-lastFresh>=timing.staleMillis())return "Training status stopped advancing";
+            return null;
+        }
+    }
+    static String supervisedStatus(Path path)throws IOException{
+        safe(path);if(!Files.exists(path,LinkOption.NOFOLLOW_LINKS))return null;
+        if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS))throw new IOException("Training status is not a regular file");
+        try(InputStream input=Files.newInputStream(path,LinkOption.NOFOLLOW_LINKS)){
+            byte[] bytes=input.readNBytes(STATUS_BYTES+1);if(bytes.length>STATUS_BYTES)throw new IOException("Training status exceeds its read bound");
+            return new String(bytes,StandardCharsets.UTF_8);
+        }
+    }
+    static void stopChild(Process child,java.util.function.Consumer<String> send,Supervision timing)throws InterruptedException{
+        if(!child.isAlive())return;send.accept("stop");
+        if(child.waitFor(timing.stopMillis(),TimeUnit.MILLISECONDS))return;
+        child.destroy();if(child.waitFor(timing.terminateMillis(),TimeUnit.MILLISECONDS))return;
+        child.destroyForcibly();child.waitFor(timing.terminateMillis(),TimeUnit.MILLISECONDS);
+    }
+    static void supervise(Path server,Path dir,List<String> command)throws Exception{supervise(server,dir,command,SUPERVISION);}
+    static void supervise(Path server,Path dir,List<String> command,Supervision timing)throws Exception{
+        Path controlFile=dir.resolve("control.properties");safe(controlFile);
+        ConsoleLog log=new ConsoleLog(dir,CONSOLE_BYTES);
+        long started=System.currentTimeMillis(),begin=System.nanoTime();Process child;
+        try{child=new ProcessBuilder(command).directory(server.toFile()).redirectErrorStream(true).start();}
+        catch(IOException|RuntimeException error){try{log.close();}catch(IOException closing){error.addSuppressed(closing);}throw error;}
         BufferedWriter input=new BufferedWriter(new OutputStreamWriter(child.getOutputStream(),StandardCharsets.UTF_8));Object inputLock=new Object();
         java.util.function.Consumer<String> send=s->{try{synchronized(inputLock){input.write(s);input.newLine();input.flush();}}catch(IOException ignored){}};
-        Thread hook=new Thread(()->{if(child.isAlive()){send.accept("stop");try{if(!child.waitFor(35,TimeUnit.SECONDS))child.destroy();}catch(InterruptedException e){Thread.currentThread().interrupt();}}},"bcmc-stop");Runtime.getRuntime().addShutdownHook(hook);
-        Path controlFile=dir.resolve("control.properties");
-        try(ServerSocket control=new ServerSocket(0,16,InetAddress.getLoopbackAddress());BufferedWriter log=Files.newBufferedWriter(dir.resolve("console.log"),StandardCharsets.UTF_8)){
+        Thread hook=new Thread(()->{try{stopChild(child,send,timing);}catch(InterruptedException e){Thread.currentThread().interrupt();}},"bcmc-stop");Runtime.getRuntime().addShutdownHook(hook);
+        ConsoleCapture capture=new ConsoleCapture(child.getInputStream(),System.out,log,null);
+        Thread output=Thread.ofPlatform().daemon().name("bcmc-output").start(capture);
+        try(ServerSocket control=new ServerSocket(0,16,InetAddress.getLoopbackAddress())){
             String token=UUID.randomUUID().toString();Properties info=new Properties();info.setProperty("pid",Long.toString(child.pid()));info.setProperty("port",Integer.toString(control.getLocalPort()));info.setProperty("address",control.getInetAddress().getHostAddress());info.setProperty("token",token);info.setProperty("started",Long.toString(started));ByteArrayOutputStream bytes=new ByteArrayOutputStream();info.store(bytes,"Local authenticated console; do not share this file");atomic(controlFile,bytes.toByteArray());privateFile(controlFile);
-            Thread output=Thread.ofPlatform().daemon().name("bcmc-output").start(()->{try(var reader=new BufferedReader(new InputStreamReader(child.getInputStream(),StandardCharsets.UTF_8))){String line;while((line=reader.readLine())!=null){System.out.println(line);synchronized(log){log.write(line);log.newLine();log.flush();}}}catch(IOException ignored){}});
             Thread.ofPlatform().daemon().name("bcmc-console").start(()->{try(var reader=new BufferedReader(new InputStreamReader(System.in,StandardCharsets.UTF_8))){String line;while((line=reader.readLine())!=null)send.accept(line);}catch(IOException ignored){}});
             Thread.ofPlatform().daemon().name("bcmc-control").start(()->{while(!control.isClosed()){try(Socket socket=control.accept()){socket.setSoTimeout(2000);DataInputStream in=new DataInputStream(socket.getInputStream());DataOutputStream out=new DataOutputStream(socket.getOutputStream());String provided=in.readUTF(),cmd=in.readUTF();if(!MessageDigest.isEqual(provided.getBytes(StandardCharsets.UTF_8),token.getBytes(StandardCharsets.UTF_8))||cmd.length()>4096||cmd.contains("\n")||cmd.contains("\r")){out.writeUTF("rejected");continue;}send.accept(cmd);out.writeUTF("sent");}catch(IOException ignored){}}});
-            boolean requestedStop=false;
-            while(!child.waitFor(1,TimeUnit.SECONDS)){
-                Path status=server.resolve("plugins/BotsClustersMC/status.json");
-                if(Files.isRegularFile(status)){String s=Files.readString(status);if(!requestedStop&&metric(s,"epoch_millis",0)>=started&&s.contains("\"state\": \"failed\"")){System.err.println("Training reported a failure; requesting a clean stop.");send.accept("stop");requestedStop=true;}}
-                if(!requestedStop&&System.currentTimeMillis()-started>180000&&(!Files.exists(status)||Files.getLastModifiedTime(status).toMillis()<started)){System.err.println("No fresh training status after startup; requesting a clean stop.");send.accept("stop");requestedStop=true;}
+            SupervisionHealth health=new SupervisionHealth(started,timing);String reason=null;long stopAt=0;
+            while(!child.waitFor(timing.pollMillis(),TimeUnit.MILLISECONDS)){
+                long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-begin);
+                if(reason==null){
+                    if(capture.failure!=null)reason=capture.failure.getMessage();
+                    else try{reason=health.observe(supervisedStatus(server.resolve("plugins/BotsClustersMC/status.json")),elapsed,System.currentTimeMillis());}
+                    catch(IOException error){reason="Cannot read training status: "+error.getMessage();}
+                    if(reason!=null){System.err.println(reason+"; requesting a clean stop.");send.accept("stop");stopAt=elapsed;}
+                }else if(elapsed-stopAt>=timing.stopMillis()){
+                    System.err.println("Training did not stop within its grace period; terminating the child. Final checkpoint is not guaranteed.");
+                    child.destroy();if(!child.waitFor(timing.terminateMillis(),TimeUnit.MILLISECONDS)){child.destroyForcibly();child.waitFor(timing.terminateMillis(),TimeUnit.MILLISECONDS);}
+                    break;
+                }
             }
-            output.join(3000);if(child.exitValue()!=0||requestedStop)throw new IOException("Training server stopped unsuccessfully; inspect "+dir.resolve("console.log"));
-        }finally{Files.deleteIfExists(controlFile);if(child.isAlive()){send.accept("stop");if(!child.waitFor(35,TimeUnit.SECONDS))child.destroy();}Runtime.getRuntime().removeShutdownHook(hook);}
+            output.join(3000);
+            if(output.isAlive())throw new IOException("Console drain did not finish after child exit; captured output may be incomplete");
+            if(child.isAlive()||child.exitValue()!=0||reason!=null||capture.failure!=null)
+                throw new IOException("Training server stopped unsuccessfully"+(reason==null?"":": "+reason)+"; inspect console.log, console.previous.log and the parent console/journal",capture.failure);
+        }finally{
+            try{stopChild(child,send,timing);output.join(3000);}
+            finally{try{Files.deleteIfExists(controlFile);}finally{Runtime.getRuntime().removeShutdownHook(hook);}}
+        }
     }
     static void privateFile(Path p){try{Files.setPosixFilePermissions(p,PosixFilePermissions.fromString("rw-------"));}catch(IOException|UnsupportedOperationException ignored){}}
     void console(String command)throws Exception{
@@ -214,6 +341,7 @@ public final class Host {
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
         System.out.println("PASS real-API compilation of live diagnostic fixtures; not executed by source tests.");
         for(String test:List.of("CoreTest","GoalTransferTest","MechanicsTest","SharedInventoryTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","HarvestTraceTest","StationTest","ResetInterventionTest","CraftingCurriculumTest","CraftingTraceTest","BalanceTest","UpdateTest","CourseTest","ProbePoliciesTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"SupervisorTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"AcademyBoundaryTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
