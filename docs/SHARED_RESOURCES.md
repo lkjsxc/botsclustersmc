@@ -56,13 +56,41 @@ serialization consistently in training, inference and durable storage.
 
 The runtime snapshots a supported item before firing `EntityPickupItemEvent`.
 After callbacks it checks current ownership, actor/item validity, pickup delay,
-item contents, provenance, permission and proximity again. Cancellation, removal,
-replacement or other relevant changes abort that pickup without inserting the
+native mob-pickup permission, native item owner, item contents, provenance,
+plugin permission and proximity again. A native item owner must be absent or
+match this NPC; changing that owner during the callback rejects the pickup.
+Cancellation, removal, replacement or other relevant changes abort that pickup without inserting the
 old snapshot into the pocket or overwriting the callback's result.
 
 This protects the supported synchronous owner-thread operation. It is not a
 database transaction, a guarantee against plugins violating server-thread rules,
 or crash-safe persistence across world and NPC saves.
+
+## Dropping is a two-event operation
+
+An NPC drop creates one provisional item, then checks both `ItemSpawnEvent` and
+`EntityDropItemEvent` boundaries. Before the spawn callback, the new entity has
+its provenance token and temporarily blocked pickup settings. Neither another
+NPC nor the ordinary native pickup path should collect it before the pocket is
+debited. Recursive actuator calls on the dropping NPC are ignored until the
+outer operation finishes.
+
+After each event, the runtime rechecks the original selected slot and held stack,
+goal/episode, actor location, validity, pause/reset/removal state, and the item's
+location, contents, provenance, owner, thrower and pickup settings. A cancelled
+or changed operation removes its own provisional entity without consuming the
+new contents of a changed pocket. Unlike pickup of a pre-existing world item,
+this is cleanup of an uncommitted newly created drop, not restoration of a
+listener's earlier inventory. On success exactly one item is consumed, normal
+mob pickup is enabled and the existing 20-tick pickup delay is applied.
+
+A listener cannot transform this operation into a different item, quantity or
+ownership assignment: such changes reject the drop. Unrelated pocket slots may
+change without invalidating it. Cleanup of an item moved to another Folia region
+is scheduled on that item's owner rather than accessing its mutable state from
+the caller's region. This is bounded synchronous-event handling, not a security
+sandbox for arbitrary plugins, a native-player drop implementation, or an atomic
+world/pocket save protocol.
 
 ## World edits must still describe the current world
 
@@ -111,13 +139,15 @@ All scripted code stays under `tests/live` and out of both public runtime JARs.
 
 `./test.sh` includes two-pocket conservation tests, stale actions and inaccessible
 slots. Opt-in `tests/acceptance.py fixtures` executes the real chest adapter,
-item conversions, pickup/block callbacks, occupied placement and nonempty storage
+item conversions, drop/spawn/pickup/block callbacks, native pickup restrictions,
+occupied placement and nonempty storage
 inside a disposable server, then completes the two-body resource chain and all
 18 scripted mechanics fixtures. Test scripts are never included in the public
 inference or training JARs.
 
-The [inventory record](verification/20260928-shared-resources.md) and
-[world-edit/continuous-chain record](verification/20260928-cooperative-world-actions.md)
+The [inventory record](verification/20260928-shared-resources.md),
+[world-edit/continuous-chain record](verification/20260928-cooperative-world-actions.md), and
+[drop conservation record](verification/20260928-drop-conservation.md)
 distinguish fake-inventory checks, actual server mechanics and learned behavior. These tests
 do not establish that neural policies choose useful transfers. The next genuine
 cooperation experiment still needs a common resource objective, continuous
