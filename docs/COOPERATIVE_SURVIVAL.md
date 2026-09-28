@@ -13,8 +13,11 @@ primitive movements, looks, world interactions and inventory clicks. Its bodies
 are server-side Villager NPCs, not logged-in vanilla players.
 
 Independent frozen-policy evaluations demonstrate movement, log harvesting and
-some crafting in these rooms. The [latest declared comparison](verification/20260928-conditional-menu-study.md)
-still records zero cobblestone successes and incomplete wooden-pickaxe reliability.
+some crafting in these rooms. The [latest continuation screen](verification/20260929-placement-practice-study.md)
+completed 2,304 frozen trials and rejected a placement-practice candidate after
+early workbench-retention failures. Ordinary wooden-pickaxe success remained zero.
+The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
+reported zero cobblestone successes; stone was not retested in the latest screen.
 Historical course certificates do not certify a changing live policy.
 
 The inference plugin has no autonomous goal selector, durable NPC/pocket database,
@@ -48,6 +51,19 @@ shown retention failures. A future modular study should preserve the
 already learned function at initialization and measure both transfer and
 interference. Neither reusing an old failed candidate nor zeroing an entire
 learner is evidence that either problem has been solved.
+
+The latest resumed placement study copied one exact checkpoint into two separate
+512-actor Academies. After roughly 253,000 additional samples per arm, workbench
+crafting fell from 31/32 on each seed to 27/32 and 23/32 in the unchanged control,
+and 22/32 and 29/32 in the candidate. Tasks 0–9 stayed at least 30/32. The declared
+early gate stopped the study before its larger continuation and final placement
+comparisons; this is not an accepted reset mixture or demonstrated pickaxe gain.
+Prioritize retaining learned crafting during next-skill continuation over adding
+more exposure to the diagnosed placement bottleneck. Both arms initially issued
+all 512 actors frontier task 11; whether startup allocation, subsequent review,
+shared-parameter interference or another mechanism caused the retention loss is
+unresolved. A new causal study must preserve the input and adverse early states,
+separate those mechanisms, and not relax retention thresholds after seeing scores.
 
 The [goal-column transfer screen](verification/20260928-goal-transfer-study.md)
 preserves non-recipient goal functions and changes only 96 parameters. Copying
