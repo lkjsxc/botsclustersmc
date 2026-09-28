@@ -35,7 +35,8 @@ async function renderEvaluation(live){
   const rows=document.createElement('div');rows.id='evaluation-results';
   const note=document.createElement('p');note.className='note';
   note.textContent='Each listed task uses one unchanged policy, without learning. The result does not certify a later policy or open-world survival.';
-  panel.append(title,progress,identity,rows,note);$('population').closest('section').after(panel);
+  const harvest=document.createElement('div');harvest.id='evaluation-harvest';
+  panel.append(title,progress,identity,rows,note,harvest);$('population').closest('section').after(panel);
  }
  try{
   const response=await fetch('/api/evaluation',{cache:'no-store',signal:AbortSignal.timeout(4000)});
@@ -45,9 +46,11 @@ async function renderEvaluation(live){
   const active=monitor&&['running','preparing'].includes(monitor.state);
   $('evaluation-progress').textContent=monitor?`Evaluator: ${monitor.state}${active&&age>60?' (heartbeat is stale)':''} · ${monitor.detail||''}`:'No evaluation process has reported yet.';
   if(Number.isInteger(monitor?.trials_completed)&&Number.isInteger(monitor?.trials_total))$('evaluation-progress').textContent+=' · '+monitor.trials_completed+'/'+monitor.trials_total+' trials completed';
-  $('evaluation-results').replaceChildren();
+  $('evaluation-results').replaceChildren();$('evaluation-harvest').replaceChildren();
   if(!report){$('evaluation-identity').textContent='No independent result is available. Curriculum certificates are historical actor records.';return;}
-  if(report.complete!==true||report.stochastic!==true||report.new_training_samples!==0||!Array.isArray(report.tasks))throw new Error('Invalid independent evaluation report.');
+  if(report.complete!==true||report.stochastic!==true||report.new_training_samples!==0||!Array.isArray(report.tasks)||
+     (report.diagnostic_only!==undefined&&report.diagnostic_only!==false)||
+     (report.reset_intervention!==undefined&&report.reset_intervention!=='none'))throw new Error('Invalid independent evaluation report.');
   $('evaluation-identity').textContent=`Tested policy #${fmt(report.policy_updates)} · ${new Date(report.epoch_millis).toLocaleString()} · Live policy #${fmt(live.policy_updates)}. Results belong only to the tested snapshot.`+(report.schema!==live.schema?' The observation schema differs from the live run.':'');
   for(const task of report.tasks){
    if(!Number.isInteger(task.task)||task.task<0||task.task>=labels.length||!Number.isInteger(task.cases)||task.cases<1||!Number.isInteger(task.passed)||task.passed<0||task.passed>task.cases)throw new Error('Invalid evaluation counts.');
@@ -58,7 +61,54 @@ async function renderEvaluation(live){
    const count=document.createElement('span');count.textContent=task.passed+'/'+task.cases;
    row.append(label,track,count);$('evaluation-results').append(row);
   }
- }catch(error){$('evaluation-progress').textContent='Independent evaluation unavailable: '+String(error.message||error);$('evaluation-results').replaceChildren();$('evaluation-identity').textContent='Live training metrics remain separate from evaluation results.';}
+  renderHarvest(report.tasks);
+ }catch(error){$('evaluation-progress').textContent='Independent evaluation unavailable: '+String(error.message||error);$('evaluation-results').replaceChildren();$('evaluation-harvest').replaceChildren();$('evaluation-identity').textContent='Live training metrics remain separate from evaluation results.';}
+}
+function renderHarvest(tasks){
+ const panel=$('evaluation-harvest'),fragment=document.createDocumentFragment();
+ const selected=tasks.filter(t=>[5,6,12].includes(t.task));if(!selected.length)return;
+ const title=document.createElement('h3');title.textContent='Harvesting attempts · tested snapshot';fragment.append(title);
+ const count=n=>Number.isSafeInteger(n)&&n>=0;
+ const sums=['observations','menu_focused_selections','world_dig_selections','held_pick_observations','target_pick_contact_observations','target_other_contact_observations'];
+ const trials=['trials_with_pick_contact','trials_with_target_contact','trials_with_any_block_broken','trials_with_any_item_collected'];
+ for(const task of selected){
+  const block=document.createElement('div'),heading=document.createElement('p');heading.className='note';
+  heading.textContent=`${task.task} · ${labels[task.task]}`;block.append(heading);
+  const h=task.harvest;
+  if(h===undefined){heading.textContent+=' · Diagnostics not recorded. This is not a measured zero.';fragment.append(block);continue;}
+  if(!h||h.scope!=='decision-boundary-not-every-tick'||!count(h.recorded_trials)||h.expected_trials!==task.cases||h.recorded_trials>task.cases||
+     h.state!==(h.recorded_trials===task.cases?'recorded':h.recorded_trials===0?'not-recorded':'partial'))throw new Error('Invalid harvesting coverage.');
+  if(h.state!=='recorded'){
+   if([...sums,...trials,'max_target_pick_ticks','max_target_other_ticks','interaction_selections'].some(k=>h[k]!==undefined))throw new Error('Invalid partial harvesting aggregate.');
+   heading.textContent+=` · Diagnostics ${h.state==='partial'?'partially recorded':'not recorded'} (${h.recorded_trials}/${task.cases} trials). No aggregate is shown.`;
+   fragment.append(block);continue;
+  }
+  const n=h.observations,pick=h.target_pick_contact_observations,other=h.target_other_contact_observations;
+  if(!count(n)||n===0||sums.some(k=>!count(h[k])||h[k]>n)||trials.some(k=>!count(h[k])||h[k]>task.cases)||
+     !count(h.max_target_pick_ticks)||!count(h.max_target_other_ticks)||
+     h.world_dig_selections>n-h.menu_focused_selections||pick>h.held_pick_observations||other>n-h.held_pick_observations||
+     (pick===0)!==(h.max_target_pick_ticks===0)||(other===0)!==(h.max_target_other_ticks===0)||
+     h.trials_with_pick_contact>h.trials_with_target_contact||h.trials_with_pick_contact>pick||h.trials_with_target_contact>pick+other||
+     (pick===0)!==(h.trials_with_pick_contact===0)||((pick+other)===0)!==(h.trials_with_target_contact===0)||
+     !Array.isArray(h.interaction_selections)||h.interaction_selections.length!==4||h.interaction_selections.some(v=>!count(v)||v>n)||
+     h.interaction_selections.reduce((a,b)=>a+b,0)!==n||h.world_dig_selections>h.interaction_selections[1])throw new Error('Invalid harvesting counts.');
+  heading.textContent+=` · ${h.recorded_trials}/${task.cases} trials recorded · ${fmt(n)} decision-boundary observations`;
+  const wrap=document.createElement('div');wrap.className='crafting-grid';const table=document.createElement('table');
+  const head=document.createElement('tr');
+  for(const label of ['Observation / selection','Count / observations','Share']){const th=document.createElement('th');th.scope='col';th.textContent=label;head.append(th);}
+  const thead=document.createElement('thead');thead.append(head);table.append(thead);const body=document.createElement('tbody');
+  for(const [label,key] of [['Menu-focused selections','menu_focused_selections'],['World-dig selections','world_dig_selections'],['Held pickaxe observations','held_pick_observations'],['Target contact with pickaxe','target_pick_contact_observations'],['Target contact with other held item','target_other_contact_observations']]){
+   const row=document.createElement('tr'),name=document.createElement('th');name.scope='row';name.textContent=label;row.append(name);
+   for(const text of [`${fmt(h[key])} / ${fmt(n)}`,pct(h[key]/n)]){const cell=document.createElement('td');cell.textContent=text;row.append(cell);}body.append(row);
+  }
+  table.append(body);wrap.append(table);block.append(wrap);
+  const outcomes=document.createElement('p');outcomes.className='note';
+  outcomes.textContent=`Trials with target contact: ${h.trials_with_target_contact}/${task.cases} (pickaxe: ${h.trials_with_pick_contact}/${task.cases}). Any block broken: ${h.trials_with_any_block_broken}/${task.cases}. Any item collected: ${h.trials_with_any_item_collected}/${task.cases}. Observed maximum target-contact ticks: pickaxe ${h.max_target_pick_ticks}; other held item ${h.max_target_other_ticks}.`;
+  block.append(outcomes);fragment.append(block);
+ }
+ const note=document.createElement('p');note.className='note';
+ note.textContent='Selections are not proof of execution. Samples overlap and are not percentages of elapsed ticks. Menu focus describes the chosen input; held item and contact describe the ending observation. The final break tick can be missed. Any break or pickup is not necessarily the task target. Only the separate success count establishes task completion; these diagnostics do not identify a cause by themselves.';
+ fragment.append(note);panel.replaceChildren(fragment);
 }
 function chart(id,rows,fields,ceiling){
  const svg=$(id);svg.replaceChildren();const ns='http://www.w3.org/2000/svg';

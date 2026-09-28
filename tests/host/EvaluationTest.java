@@ -30,6 +30,7 @@ public final class EvaluationTest {
         try{EvaluationChecks.validate(report.toString(),POLICY,TASKS,2,23,1);throw new AssertionError("Invalid report accepted");}catch(IOException expected){checks++;}
     }
     public static void main(String[] args)throws Exception {
+        EvaluationHarvestTest.main(args);
         EvaluatedBundleTest.main(args);
         ReplaySourceTest.main(args);
         for(long seed:new long[]{0,23,Long.MAX_VALUE,Long.MIN_VALUE}) {
