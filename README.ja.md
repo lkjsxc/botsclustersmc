@@ -1,10 +1,16 @@
 # botsclustersmc — Java製RL学習環境と推論プラグイン
 
-[English](README.md) · [設計と制約](docs/ARCHITECTURE.md) · [学習](docs/LEARNING.md) · [検証記録](docs/VALIDATION.md) · [常駐運用](docs/SERVICE.md)
+[English](README.md) · [設計と制約](docs/ARCHITECTURE.md) · [協調生活への開発順序](docs/COOPERATIVE_SURVIVAL.md) · [学習](docs/LEARNING.md) · [検証記録](docs/VALIDATION.md) · [常駐運用](docs/SERVICE.md)
 
 **Minecraft内のNPCを、報酬だけで学習する共有ニューラル方策で動かす実験です。** 学習側と推論側を分離しました。学習には専用サーバーを使い、実際のワールドへの導入は `botsclustersmc.jar` と `policy.bcmc` の2ファイルです。Rust、Python、Maven、Gradle、外部の推論プロセスは通常運用に不要です。
 
 **今回のBotは、ログインするプレイヤーではなく、村人を身体に使うサーバー内NPCです。** プレイヤーのスキン・TAB欄・認証接続・完全なバニラのサバイバル操作は再現しません。この変更でクライアントの通信・プロトコル互換・NPCごとのプロセスをなくし、Paperの公開APIだけで動く構成にしています。旧プレイヤーBotとは別の実験条件です。学習済みの万能Botは同梱しません。
+
+## 協調して暮らすBotに向けて
+
+目標は、資源を集めて共有し、道具を補充し、生活を維持する集団です。現在の個別課題の合格やNPC数は、協調生活の達成を意味しません。[開発順序](docs/COOPERATIVE_SURVIVAL.md)では、既存技能を維持した道具操作、持ち物を引き継ぐ連続作業、2体での資源共有、食料・耐久・保存、未知のワールドでの自律生活を分けています。固定の役割分担スクリプトや自動製作で、学習できていない部分を隠す方針ではありません。
+
+[2026年9月28日の操作表現の比較](docs/verification/20260928-conditional-menu-study.md)では、数値テストを通過した候補でも木ツルハシ製作の事前基準に届かず、不採用にしました。本稼働の学習器は置き換えていません。実際の能力は、過去の昇級ではなく、固定した方策を使う課題別試験で確認してください。
 
 ## 新しいcloneから学習を始める
 

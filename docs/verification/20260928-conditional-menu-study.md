@@ -116,3 +116,24 @@ Both disposable exam processes exited normally. No candidate learner or extra
 monitor was started. Production services and the periodic evaluation timer were
 not stopped or restarted. Main receives this evidence and the cooperative-survival
 direction, not the rejected executable implementation.
+
+## Production observation after publication
+
+At 2026-09-28 11:15:08.356 JST, a fresh read-only status snapshot reported
+512 active, ticking and progressing actors, policy 866968 and 249667099 accepted
+samples, at 2006.81 samples/s for that status interval. Inference failure/rejection,
+learner rejection/staleness, burning and retired counts were all zero. Supervisor
+PID 141387 and server PID 141440 were unchanged and had run for over 15 hours.
+This is an operational snapshot, not a skill-evaluation result or uptime promise.
+
+The first evidence/direction publication is main `3810377ac338d3109aaa075e8f20f056611558c6`.
+A whole-source comparison with `5196232` confirmed no changes under core, plugin,
+training, host or tests. The production build's training JAR still matched the
+baseline runtime identity above. Only documentation is integrated from this study.
+
+A fresh complete main `./test.sh` run after the first publication also passed,
+including source/API compilation, native report/replay validation and inference
+artifact separation, with `source_test_exit=0`. Its receipt is
+`/home/coder/workspace/botsclustersmc/.build/20260928-main-after-focus.log`.
+This is separate from the candidate's passing suite; the two implementations
+must not be conflated.
