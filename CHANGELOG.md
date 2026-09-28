@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased — completion-preserving workstation practice
+## Unreleased — cooperative-world mechanics and workstation practice
+
+- Revalidate block data, actor state, inventory and edit permission after block-change
+  callbacks; do not apply stale mining or placement decisions to changed objects.
+- Reject placement overlapping another living body and reject mining nonempty local
+  chests/furnaces, including stock inserted by a block-change listener. Empty storage
+  remains mineable; native inventory spilling is not implemented by this guard.
+- Add real-server callback/occupancy/storage regressions and a two-body continuous
+  ingredient-sharing, crafting, tool-handoff, mining and shared-deposit fixture.
+  Scripted actions stay outside public JARs and never count as learned cooperation.
 
 - Remove the unobserved opening-only terminal goal: every station lesson now
   requires the actual task outcome, not merely opening the workstation.

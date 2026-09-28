@@ -55,19 +55,49 @@ public final class WorldActions {
         if(npc.tick%4==0)pickup(npc);
     }
     private static boolean mayChange(Npc npc,Block b,Material next){
-        if(!npc.plugin.canChange(npc,b))return false;
+        if(!owned(b.getLocation())||!npc.plugin.canChange(npc,b))return false;
+        var before=b.getBlockData().clone();Location origin=npc.entity.getLocation();
+        Stack held=npc.pocket.held();int selected=npc.pocket.selected();Goal goal=npc.goal;
         EntityChangeBlockEvent event=new EntityChangeBlockEvent(npc.entity,b,next.createBlockData());
-        Bukkit.getPluginManager().callEvent(event);return !event.isCancelled();
+        Bukkit.getPluginManager().callEvent(event);
+        // Listeners can replace blocks, revoke permission or change the actor. A selected
+        // action is not a reservation; never spend new inventory on an old world edit.
+        return !event.isCancelled()&&Bukkit.isOwnedByCurrentRegion(npc.entity)&&npc.entity.isValid()
+            &&!npc.remove.get()&&!npc.resetting&&!npc.paused&&!npc.plugin.paused.get()
+            &&npc.goal==goal&&npc.pocket.menu()==Pocket.Menu.CLOSED
+            &&npc.pocket.selected()==selected&&npc.pocket.held().equals(held)
+            &&origin.equals(npc.entity.getLocation())&&owned(b.getLocation())
+            &&before.equals(b.getBlockData())&&npc.plugin.canChange(npc,b);
+    }
+    /** A building action may not entomb another citizen, player or living mob. */
+    private static boolean vacant(Block target){
+        Location at=target.getLocation();
+        if(!owned(at)||!Bukkit.isOwnedByCurrentRegion(at,1))return false;
+        var box=new org.bukkit.util.BoundingBox(target.getX(),target.getY(),target.getZ(),target.getX()+1,target.getY()+1,target.getZ()+1);
+        for(Entity entity:target.getWorld().getNearbyEntities(box)){
+            if(!(entity instanceof LivingEntity))continue;
+            if(!Bukkit.isOwnedByCurrentRegion(entity))return false;
+            if(entity instanceof Player player&&player.getGameMode()==GameMode.SPECTATOR)continue;
+            if(entity.getBoundingBox().overlaps(box))return false;
+        }
+        return true;
+    }
+    /** This simplified getDrops/setType path does not spill chest/furnace stock.
+     * Require an empty local container until native block-entity spills are supported. */
+    private static boolean emptyContainer(Block block){
+        BlockState state=block.getState();
+        return !(state instanceof Container container)||container.getSnapshotInventory().isEmpty();
     }
     private static void mine(Npc npc){
         Hit hit=trace(npc);if(hit==null||!npc.plugin.canChange(npc,hit.block())){npc.mining=null;npc.miningTicks=0;return;}Block b=hit.block();Material type=b.getType();
         int kind=Stack.kind(type.name());if(kind!=2&&kind!=3&&kind!=5&&kind!=8&&kind!=9&&kind!=11&&kind!=14&&kind!=15){npc.miningTicks=0;return;}
+        if((kind==14||kind==15)&&!emptyContainer(b)){npc.mining=null;npc.miningTicks=0;return;}
         String key=b.getX()+":"+b.getY()+":"+b.getZ()+":"+type.name()+":"+npc.pocket.held().item();
         if(!key.equals(npc.mining)){npc.mining=key;npc.miningTicks=0;}
         int tool=Stack.kind(npc.pocket.held().item());boolean pick=tool==6||tool==7;
         int ticks=(kind==9||kind==8||kind==11)?(pick?40:300):60;
         if(++npc.miningTicks<ticks)return;npc.miningTicks=0;
-        if(!mayChange(npc,b,Material.AIR))return;
+        if(!mayChange(npc,b,Material.AIR)||((kind==14||kind==15)&&!emptyContainer(b)))return;
         ItemStack held=ExternalInventory.to(npc.pocket.held());if(held==null)held=new ItemStack(Material.AIR);
         Collection<ItemStack> drops=b.getDrops(held,npc.entity);b.setType(Material.AIR,true);
         if(!b.getType().isAir())return;npc.broken.merge(type.name(),1L,Long::sum);
@@ -84,8 +114,8 @@ public final class WorldActions {
         }
         if(hit.previous()==null||npc.pocket.held().empty())return;Material material=Material.valueOf(npc.pocket.held().item());
         if(!material.isBlock()||!Set.of(2,3,5,8,9,14,15).contains(Stack.kind(material.name())))return;
-        Block target=hit.previous();if(!target.getType().isAir()||new org.bukkit.util.BoundingBox(target.getX(),target.getY(),target.getZ(),target.getX()+1,target.getY()+1,target.getZ()+1).overlaps(npc.entity.getBoundingBox()))return;
-        if(!mayChange(npc,target,material))return;target.setType(material,true);
+        Block target=hit.previous();if(!target.getType().isAir()||!vacant(target))return;
+        if(!mayChange(npc,target,material)||!vacant(target))return;target.setType(material,true);
         if(target.getType()==material){npc.pocket.consumeHeld(1);npc.placed.merge(material.name(),1L,Long::sum);npc.entity.swingMainHand();}
     }
     private static void pickup(Npc npc){

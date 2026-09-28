@@ -20,16 +20,16 @@ public final class Fixtures extends RuntimePlugin {
     @Override protected Policy initialPolicy(){return new Policy(new float[Policy.PARAMETERS],0,0);}
     @Override public boolean pickupEnabled(Npc n){return true;}
     @Override public boolean canPickup(Npc n,String token){return !PickupChecks.denied(n)&&n.token().equals(token);}
-    @Override public boolean canChange(Npc n,org.bukkit.block.Block b){return !SharedInventoryChecks.denied(n)&&WorldActions.owned(b.getLocation())&&b.getY()>=65&&b.getY()<70;}
+    @Override public boolean canChange(Npc n,org.bukkit.block.Block b){return !WorldMutationChecks.denied(n)&&!SharedInventoryChecks.denied(n)&&WorldActions.owned(b.getLocation())&&b.getY()>=65&&b.getY()<70;}
     @Override protected void initialize(){
         if(!Boolean.getBoolean("bcmc.fixtures"))throw new IllegalStateException("diagnostics require explicit isolated-test flag");
-        PickupChecks.install(this);
+        PickupChecks.install(this);WorldMutationChecks.install(this);
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->{
             int actor=prepared.getAndIncrement();if(actor>=18)return;World w=Bukkit.getWorld("world");ArenaLayout a=ArenaLayout.forActor(actor,18,64);
             Location at=new Location(w,a.x()+8.5,65,a.z()+5.5);
             LoadedChunks.use(this,at,chunk->{chunk.addPluginChunkTicket(this);TrainingEnvironment.build(w,a);sessions.put((long)actor,new TrainingEnvironment.Session(a));requestSpawn(actor,at,new Goal(Task.at(actor),at.getX(),65,at.getZ()+3,1,1,3000));},this::fail);
         },1,1);
-        io.scheduleAtFixedRate(()->{try{if(failed.get()!=null)Files.writeString(getDataFolder().toPath().resolve("fixtures-failed.txt"),failed.get().toString());else if(passed.size()==18){Files.writeString(getDataFolder().toPath().resolve("fixtures-passed.txt"),"PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.\n");Bukkit.getGlobalRegionScheduler().run(this,t->Bukkit.shutdown());}}catch(Exception e){fail(e);}},1,1,TimeUnit.SECONDS);
+        io.scheduleAtFixedRate(()->{try{if(failed.get()!=null)Files.writeString(getDataFolder().toPath().resolve("fixtures-failed.txt"),failed.get().toString());else if(passed.size()==18&&CooperativeChainChecks.complete()){Files.writeString(getDataFolder().toPath().resolve("fixtures-passed.txt"),"PASS all 18 full-difficulty real-server scripted fixtures. No learning performed.\n");Bukkit.getGlobalRegionScheduler().run(this,t->Bukkit.shutdown());}}catch(Exception e){fail(e);}},1,1,TimeUnit.SECONDS);
     }
     @Override protected void spawned(Npc n){
         EntityCombustEvent ambient=new EntityCombustEvent(n.entity,8.0f);ambient.callEvent();
@@ -45,7 +45,8 @@ public final class Fixtures extends RuntimePlugin {
         if(!c.checked) {
             c.checked=true;
             InputChecks.verify(n);StationChecks.verify(n,session);
-            SharedInventoryChecks.verify(n);PickupChecks.verify(n);
+            SharedInventoryChecks.verify(n);PickupChecks.verify(n);WorldMutationChecks.verify(n);
+            CooperativeChainChecks.start(n,session.arena);
             Location original=n.entity.getLocation();n.entity.setRotation(0,89);
             int[] rejected=Schema.IDLE.clone();rejected[4]=1;WorldActions.tick(n,rejected,true);
             if(n.miningTicks!=0||n.mining!=null||!n.broken.isEmpty())
