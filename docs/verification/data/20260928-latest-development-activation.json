@@ -1,0 +1,79 @@
+{
+  "source": "61bc6c03272b7c016d8cabdc98ca5246b2ae3a46",
+  "success": true,
+  "learning_reset": false,
+  "source_test_exit": 0,
+  "initial_activation_passed": false,
+  "initial_failure": "AssertionError('unexpected service restart during activation')",
+  "startup_error": "Address already in use; one systemd retry; cause not narrowed to a specific socket or process",
+  "previous_installed_jar": {
+    "bytes": 208401,
+    "sha256": "bf75154c58e56c91918aa1e05baaa6cf1465a9afac119da01f59e0d21b45b006"
+  },
+  "installed_training_jar": {
+    "bytes": 212836,
+    "sha256": "be7bdd8f79456ee3b1d5cbc2a1d2a2ed3e2812322c5889e3eda562542fe3a1bc"
+  },
+  "restored_updates_samples_optimizer_step": [
+    171818,
+    46072578,
+    171818
+  ],
+  "samples": [
+    {
+      "state": "running",
+      "epoch_millis": 1790596688094,
+      "policy_updates": 172321,
+      "trained_samples": 46220928,
+      "active_agents": 512,
+      "pending_agents": 0,
+      "progressed_agents_since_status": 512,
+      "min_decisions_since_status": 20,
+      "decision_transitions": 157782,
+      "learner_samples_per_second": 1670.3931493836158,
+      "inference_failed": 0,
+      "inference_rejected": 0,
+      "retired_agents": 0,
+      "startup_restored_checkpoint": true,
+      "course_task": 10
+    },
+    {
+      "state": "running",
+      "epoch_millis": 1790596723094,
+      "policy_updates": 172548,
+      "trained_samples": 46294496,
+      "active_agents": 512,
+      "pending_agents": 0,
+      "progressed_agents_since_status": 512,
+      "min_decisions_since_status": 20,
+      "decision_transitions": 229462,
+      "learner_samples_per_second": 1932.7993648821287,
+      "inference_failed": 0,
+      "inference_rejected": 0,
+      "retired_agents": 0,
+      "startup_restored_checkpoint": true,
+      "course_task": 10
+    }
+  ],
+  "observation_seconds": 35.0,
+  "accepted_sample_increase": 73568,
+  "policy_update_increase": 227,
+  "training_service": {
+    "MainPID": "88139",
+    "Result": "success",
+    "NRestarts": "1",
+    "ExecMainStartTimestamp": "Mon 2026-09-28 11:56:40 UTC",
+    "ActiveState": "active",
+    "InvocationID": "4882b712efc04571ba8eca906819b92e"
+  },
+  "monitor_service": {
+    "MainPID": "84532",
+    "Result": "success",
+    "NRestarts": "0",
+    "ExecMainStartTimestamp": "Mon 2026-09-28 11:56:08 UTC",
+    "ActiveState": "active",
+    "InvocationID": "ce155db91aca49938b1e02c9e43d0c51"
+  },
+  "evaluation_timer_restored": true,
+  "finished_utc": "2026-09-28T11:58:44.962144+00:00"
+}
