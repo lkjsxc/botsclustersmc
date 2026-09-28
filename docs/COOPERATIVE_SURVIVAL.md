@@ -49,6 +49,16 @@ already learned function at initialization and measure both transfer and
 interference. Neither reusing an old failed candidate nor zeroing an entire
 learner is evidence that either problem has been solved.
 
+The [goal-column transfer screen](verification/20260928-goal-transfer-study.md)
+preserves non-recipient goal functions and changes only 96 parameters. Copying
+collect-log's goal representation increased observed pick/stone contact from
+1/32 to 29/32 trials, but both arms still completed zero stone tasks. It is a
+rejected zero-training initialization, not an accepted mining controller. Future
+transfer-preserving learning must test sustained tool/contact control with the
+recipient's real action affordances; importing an easier lesson's restrictive
+mask would not establish that capability. The new offline tool is diagnostic-only
+and is absent from both runtime JARs.
+
 ### 2. Multi-step work without inventory or world resets
 
 Teach and test the complete resource chain with one continuous inventory:
