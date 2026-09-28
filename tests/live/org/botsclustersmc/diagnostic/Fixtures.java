@@ -23,7 +23,7 @@ public final class Fixtures extends RuntimePlugin {
     @Override public boolean canChange(Npc n,org.bukkit.block.Block b){return !WorldMutationChecks.denied(n)&&!SharedInventoryChecks.denied(n)&&WorldActions.owned(b.getLocation())&&b.getY()>=65&&b.getY()<70;}
     @Override protected void initialize(){
         if(!Boolean.getBoolean("bcmc.fixtures"))throw new IllegalStateException("diagnostics require explicit isolated-test flag");
-        PickupChecks.install(this);DropChecks.install(this);WorldMutationChecks.install(this);
+        PickupChecks.install(this);DropChecks.install(this);WorldMutationChecks.install(this);HarvestDropChecks.install(this);
         Bukkit.getGlobalRegionScheduler().runAtFixedRate(this,t->{
             int actor=prepared.getAndIncrement();if(actor>=18)return;World w=Bukkit.getWorld("world");ArenaLayout a=ArenaLayout.forActor(actor,18,64);
             Location at=new Location(w,a.x()+8.5,65,a.z()+5.5);
@@ -45,7 +45,7 @@ public final class Fixtures extends RuntimePlugin {
         if(!c.checked) {
             c.checked=true;
             InputChecks.verify(n);StationChecks.verify(n,session);
-            SharedInventoryChecks.verify(n);PickupChecks.verify(n);DropChecks.verify(n);WorldMutationChecks.verify(n);
+            SharedInventoryChecks.verify(n);PickupChecks.verify(n);DropChecks.verify(n);WorldMutationChecks.verify(n);HarvestDropChecks.verify(n);
             CooperativeChainChecks.start(n,session.arena);
             Location original=n.entity.getLocation();n.entity.setRotation(0,89);
             int[] rejected=Schema.IDLE.clone();rejected[4]=1;WorldActions.tick(n,rejected,true);
