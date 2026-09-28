@@ -64,16 +64,61 @@ This protects the supported synchronous owner-thread operation. It is not a
 database transaction, a guarantee against plugins violating server-thread rules,
 or crash-safe persistence across world and NPC saves.
 
+## World edits must still describe the current world
+
+`EntityChangeBlockEvent` is a callback boundary, not a reservation. Mining and
+placement retain the original block data, actor location/rotation, goal, selected
+slot and held stack. After listeners return, the runtime checks these values,
+entity/region ownership, removal/reset/pause state, closed-menu state and current
+edit permission before applying the change. A listener's replacement block or
+inventory is not overwritten with the old decision, and rejected edits do not
+consume a placement item, spawn mining drops or earn completion credit.
+
+Placement also checks the target block's unit cube for living bodies, both before
+and after the callback. Other NPCs, players and living mobs cannot be enclosed by
+that placement; spectator players are excluded. An unavailable neighboring region
+causes refusal, not cross-thread access or a forced chunk load. This is a mechanical
+collision check, not a learned decision about where a settlement should build.
+
+The simplified mining path does not spill a chest/furnace's stored items. Therefore
+an NPC must empty that local container before mining it. The runtime checks the
+local inventory snapshot before accumulating mining progress and again after the
+callback, including items the core pocket cannot represent. Empty containers are
+still mineable. This deliberately conservative rule prevents silent stock loss;
+it does not implement vanilla container spilling or general block-entity component
+preservation. Loot tables, richer block components and post-edit physics remain
+separate mechanics to validate. These checks are not a crash-atomic transaction.
+
+## A continuous two-body mechanical chain
+
+The opt-in real-server fixtures now include two actual NPC bodies, initialized
+with complementary supplies: three planks in one pocket and two sticks in the
+other. The first actor's incomplete recipe cannot produce a tool. The second
+actor deposits its sticks in a real chest; the first withdraws them, finishes a
+wooden pickaxe through literal grid clicks, and deposits the tool. The second
+withdraws that tool, mines a real stone block, picks up its drop and deposits the
+cobblestone in the shared chest.
+
+There are no mid-chain inventory resets, teleports or injected resources. The
+driver issues one actuator call per actor per actual scheduled server tick.
+Action selection, timing and aiming are scripted, and the reset supplies, nearby
+stations and stone are provided by the fixture. This is an actuator integration
+check, not a neural observation/inference test or a learned cooperation trial.
+Transfers must not duplicate stock or invent crafting, pickup or smelting credit.
+All scripted code stays under `tests/live` and out of both public runtime JARs.
+
 ## Validation and remaining gates
 
 `./test.sh` includes two-pocket conservation tests, stale actions and inaccessible
 slots. Opt-in `tests/acceptance.py fixtures` executes the real chest adapter,
-item conversions and pickup callbacks inside a disposable server, then completes
-all 18 scripted mechanics fixtures. Test scripts are never included in the public
+item conversions, pickup/block callbacks, occupied placement and nonempty storage
+inside a disposable server, then completes the two-body resource chain and all
+18 scripted mechanics fixtures. Test scripts are never included in the public
 inference or training JARs.
 
-The [verification record](verification/20260928-shared-resources.md) distinguishes
-fake-inventory checks, actual server mechanics and learned behavior. These tests
+The [inventory record](verification/20260928-shared-resources.md) and
+[world-edit/continuous-chain record](verification/20260928-cooperative-world-actions.md)
+distinguish fake-inventory checks, actual server mechanics and learned behavior. These tests
 do not establish that neural policies choose useful transfers. The next genuine
 cooperation experiment still needs a common resource objective, continuous
 inventories, completion-based measurements and matched non-cooperative controls,

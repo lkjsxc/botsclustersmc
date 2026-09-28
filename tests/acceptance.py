@@ -174,8 +174,10 @@ def fixtures(output, cache):
         assert log.count('FIXTURE PASS ')==18, log[-4000:]
         assert log.count('SHARED INVENTORY LIVE PASS ')==1, 'shared inventory diagnostics did not complete'
         assert log.count('PICKUP EVENT LIVE PASS ')==1, 'pickup event diagnostics did not complete'
+        assert log.count('WORLD MUTATION LIVE PASS ')==1, 'world mutation diagnostics did not complete'
+        assert log.count('COOPERATIVE CHAIN LIVE PASS ')==1, 'two-body continuous resource chain did not complete'
         for line in log.splitlines():
-            if any(marker in line for marker in ('SHARED ITEM DEFAULTS PASS ', 'SHARED INVENTORY LIVE PASS ', 'PICKUP EVENT LIVE PASS ')):
+            if any(marker in line for marker in ('SHARED ITEM DEFAULTS PASS ', 'SHARED INVENTORY LIVE PASS ', 'PICKUP EVENT LIVE PASS ', 'WORLD MUTATION LIVE PASS ', 'COOPERATIVE CHAIN LIVE PASS ')):
                 print(line, flush=True)
         status=read_status(directory/'plugins/BotsClustersMC/status.json')
         assert status['trained_samples']==0 and status['inference_completed']==0
