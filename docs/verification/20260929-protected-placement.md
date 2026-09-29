@@ -172,11 +172,14 @@ reports plus twenty-eight new reports, not fifty-six independent reports.
 This explicitly disclosed recovery repairs execution only; it does not erase the
 failure, revise a scientific threshold, or authorize a deployment.
 
-## Measured ordinary outcome: retention passed, acquisition failed
+## Complete outcome: other-task retention passed, both gain gates failed
 
-Interim closeout: all twelve ordinary reports are complete. The final five-cell
-assisted matrix is still running under the unchanged declared protocol. This
-interim record does not claim that all 42 reports have completed.
+All **42 reports / 10,176 unique frozen-policy trials** completed: **12 ordinary
+reports / 9,216 trials** and **30 explicitly assisted reports / 960 trials**.
+The fourteen original baseline reports were all revalidated and reused once;
+the recovery added twenty-eight reports. The original four operational training
+samples remain separately preserved and excluded from both comparison arms.
+No baseline was rerun or selected after observing the continuation.
 
 The recovery used published implementation `e86f64a33e51b6d6b72d90cbaed3b65edb3d72ee`,
 tree `10d3ad50f1f039417cc2e439d78e62f349a3b53f`. The prospective protocol and
@@ -185,7 +188,9 @@ predeclared training budget and all twelve ordinary frozen evaluations. Every
 protected model passed the task-by-task relative-retention screen at baseline,
 early and final boundaries. Ordinary wooden-pickaxe completion remained **0/64
 on both seeds in both final arms**. This fails the 8/64 floor and the required
-4/64 improvement over control. No reset-mixture adoption or deployment follows.
+4/64 improvement over control. Both five-cell assisted improvement gates also
+failed. **PR #39 is closed without merging.** The reset mixture, fixed-frontier
+runtime and experimental checkpoints are not adopted or deployed.
 
 ### Complete ordinary scores
 
@@ -217,7 +222,80 @@ unchanged. Exact anchor-function preservation does not guarantee identical
 asynchronous server trajectories. The two evaluation seeds remain conditions
 of one training continuation, not independent training replications.
 
+### Complete assisted scores and within-task retention
+
+Each entry is a completion count **out of 32**. The four other required cells
+start filled, the remaining raw unit starts in storage, and the cursor is empty.
+The policy must retrieve the ingredient, fill the missing position and collect
+the output. These are assisted diagnostic completions, not ordinary crafting.
+
+```text
+Model      Seed  Top-left Top-center Top-right Handle-upper Handle-lower
+Source     A     17       20         18        0            1
+Source     B     15       17         15        0            1
+Control    A      0        0          2        0            0
+Control    B      0        0          2        0            0
+Candidate  A      0        0          0        0            0
+Candidate  B      0        0          0        0            1
+```
+
+Source totals were **56/160 and 48/160**. Final control totals were **2/160 on
+each seed**; final candidate totals were **0/160 and 1/160**. Candidate failed
+both the every-position 4/32 floor and the 32/160 improvement requirement on
+each seed. The single lower-handle completion on B is retained in the record;
+it neither passes a gate nor rescues the other positions.
+
+This exposes a boundary of task-ID protection: the immutable anchor preserves
+other goals, but the active task's own partially successful behaviors remain
+trainable and can deteriorate. Both arms lost the previously observed top-row
+assisted competence while retaining task-10 workbench scores. This study
+therefore does not establish retention of all useful behavior merely because
+all other-task screens passed. Later experiments should measure and preserve
+within-task partial skills alongside ordinary complete-task acquisition.
+
+### Training budget and state integrity
+
+Additional samples are relative to the original **92,574,669**. Final rows are
+total additional samples, not an additional 1.5 million after the early phase.
+Durations are runner segment wall times, not compute-normalized benchmarks.
+
+| Arm | Boundary | Additional accepted samples | Saved total samples | Saved updates | Segment seconds |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Control | Early | 261,843 | 92,836,512 | 333,211 | 150.512 |
+| Candidate | Early | 260,751 | 92,835,420 | 333,185 | 150.607 |
+| Control | Final | 1,511,187 | 94,085,856 | 337,925 | 790.372 |
+| Candidate | Final | 1,510,528 | 94,085,197 | 337,837 | 790.524 |
+
+All four saved states satisfy the declared sample and overshoot limits. Each
+final phase resumed the exact corresponding early checkpoint, not a substituted
+model. Active parameters changed and accepted samples increased, while protected
+anchor parameters and counters stayed equal to the original. Exact checkpoint
+resumption is not a claim of identical asynchronous physical trajectories.
+
+All **370** captured training-status records (28 per early segment and 157 per
+final segment) had zero accepted counts outside task 11, including the unlabelled
+nineteenth bucket. Recorded inference failure/rejection, learner rejection/stale
+samples and retired-actor counters were zero. Each segment reached all 512 actors.
+Scope-skipped non-target fragments are not accepted samples or queue failures.
+The table uses native stopped-checkpoint counters, not the last status poll before
+the final flush.
+
+The unchanged comparison runtime was
+`49280f05ef9384b2aaeaae5815c147060a147828ffdf4cf82e71a0f2bc1246f9`;
+the candidate runtime was
+`1c13e6afe0e2f71829956c27b610751cda67f462f63f13dd4540b7280dfbfa43`.
+Independent archive comparison again found exactly one changed entry,
+`InitialCrafting.class`, and identical inference JAR bytes. Ordinary and assisted
+evaluations all used the same unchanged comparison runtime.
+
 ### What the ordinary traces locate, and what they do not
+
+The protocol did not include an early five-cell diagnostic. Initial/final partial
+skill differences therefore do not locate when deterioration began or distinguish
+gradient interference from resumed-training effects. In particular, losses in
+both arms must not be attributed entirely to the candidate's reset mixture.
+Neither a better architecture nor a universal impossibility result follows from
+this one bounded continuation.
 
 This is a post-hoc description of already recorded trajectories, not a new
 acceptance rule or a causal attribution. The final candidate observed an open
@@ -246,3 +324,70 @@ still run (622 control, 606 candidate, all unsuccessful). Probes are learning
 rollouts in this implementation; only EXAM rollouts are excluded from training.
 Thus these observations do not support a claim that the learner received no
 full-condition samples, or that practice success equalled retained competence.
+
+### Engineering validation and publication boundary
+
+The independent read-only closeout audit checked all 42 reports and their native
+raw counterparts, every actor/task/case/seed and diagnostic field, frozen policy
+and runtime identities, the complete fourteen-report reuse manifest, all four
+native stopped checkpoints and exact resumes, and all 370 training-status records.
+It recalculated every retention and acquisition decision without running another
+game or adding samples. Local output is
+`botsclustersmc-placement-closeout/.build/protected-placement-independent-audit.json`.
+The study completion record identity is
+`3159bb9ba8726cf81f93ea08d47f787080e5be314299c085794b877b73323aa5`;
+the independent auditor identity is
+`4c4b761174de30daa4c71a2cc9d0bd5ba0195c3cf1602215fba93bb5d394ffb9`.
+The same independent audit also passed under `python3 -O` without writing another
+result or running new game trials. A separate publication checker compared every
+one of the twelve ordinary rows, six assisted rows and four training rows against
+the independently checked records, and confirmed the unchanged 10,380-byte
+protocol/recovery prefix and documentation-only diff.
+
+A fresh mainline `./test.sh` completed once with exit code zero in **97.409
+seconds** in `botsclustersmc-placement-closeout`. Its transcript and completion
+receipt are `.build/mainline-source-suite.log` and
+`.build/mainline-source-suite-result.json`. The tool connection closed while
+that same bounded process was running; the original process subsequently wrote
+its successful receipt. It was not rerun or counted as two successful suites.
+All **47 mainline Python unittest methods** also passed. The **eight study-rule
+methods** passed normally and under `python3 -O`, including real optimized
+subprocess rejection, complete matrix checks and the nineteen-bucket repair.
+
+A fresh native initial-state audit checked **288** original/new-runtime forward
+functions plus exact active weights, Adam moments/clock and course bytes. The
+protected source retains its original parameters/counters; all four continued
+checkpoints are separately checked rather than trusting a training-status label.
+
+PR #39 CI **36551595196**, for exact study source `e86f64a`, passed Ubuntu source,
+Windows source and observatory jobs. Optional live, retention, Windows-live and
+Paper jobs were skipped; those are not CI gameplay passes. The real-server
+comparison is the separately executed study above.
+
+Mainline receives reporting and development-order clarification only, not the
+experimental protected model, optimizer, reset mixture or routing code. The live
+training JAR was compared with a fresh mainline build and both were
+`7e3df712d2b9d9bb5afcf8e5a1010004d60c00a36f71448f7bc0457443764dfc`.
+The live Academy remains on the accepted mainline runtime, not either study arm.
+A documentation-only checkout update with identical runtime inputs requires no
+server or monitor restart. Development learning has not been reset by this study.
+
+Two fresh live captures during closeout advanced from **209,923,602** to
+**213,215,758** accepted samples, with the same server and monitor process-start
+identities. The later capture observed all **512** actors progressing, at least
+18 decisions per actor in the status interval, approximately **2,118 accepted
+samples/s** and **2,027 decisions/s**, and zero inference failure/rejection,
+learner rejection/stale samples, retired actors or burning actors. Status age
+was 2.353 seconds. This is continued runtime/learning health, not a new frozen
+competence result; the live course remains at task 11.
+
+An additional one-off process/status aggregation call was blocked before execution
+and was not retried. It is not counted as validation evidence or a product failure.
+The already running experiment and its predeclared validators were not altered.
+
+The original `.build/protected-placement-study/` and recovery
+`.build/protected-placement-recovery/` remain in the experimental worktree;
+reference inputs/runtime remain in `botsclustersmc-protected-continuation`.
+Do not remove either as cleanup. Source and this measured report are published,
+but the complete checkpoints, raw per-trial reports and local audit outputs are
+**not a durable public or off-machine archive**. No new archive upload is claimed.

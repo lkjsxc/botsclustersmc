@@ -35,7 +35,10 @@ held that protection constant in both arms while increasing storage-to-placement
 practice. After about 1.51 million additional task-11 samples per arm, all ordinary
 retention screens passed, with workbench scores 62/64 and 58/64 in both final arms.
 Ordinary pickaxe completion was still zero on both seeds in both arms. Increasing
-this reset exposure did not establish acquisition; the candidate is not adopted.
+this reset exposure did not establish acquisition; PR #39 is closed without merging.
+All 42 reports / 10,176 unique frozen trials completed. Five-cell assisted totals
+fell from source 56/160 and 48/160 to candidate 0/160 and 1/160 (control 2/160 on
+each seed). Other-task protection did not preserve partial behavior within task 11.
 The preceding [continuation screen](verification/20260929-placement-practice-study.md)
 rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
