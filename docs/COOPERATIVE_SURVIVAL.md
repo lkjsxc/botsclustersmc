@@ -13,9 +13,12 @@ primitive movements, looks, world interactions and inventory clicks. Its bodies
 are server-side Villager NPCs, not logged-in vanilla players.
 
 Independent frozen-policy evaluations demonstrate movement, log harvesting and
-some crafting in these rooms. The [latest continuation screen](verification/20260929-placement-practice-study.md)
-completed 2,304 frozen trials and rejected a placement-practice candidate after
-early workbench-retention failures. Ordinary wooden-pickaxe success remained zero.
+some crafting in these rooms. The [latest parameter diagnosis](verification/20260929-retention-attribution.md)
+completed 6,912 frozen trials and localised workbench-retention sensitivity to the
+shared hidden representation in one preserved parent/control pair. It did not
+train or adopt a new policy; ordinary wooden-pickaxe success remained zero.
+The preceding [continuation screen](verification/20260929-placement-practice-study.md)
+rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
 reported zero cobblestone successes; stone was not retested in the latest screen.
 Historical course certificates do not certify a changing live policy.
@@ -60,10 +63,31 @@ early gate stopped the study before its larger continuation and final placement
 comparisons; this is not an accepted reset mixture or demonstrated pickaxe gain.
 Prioritize retaining learned crafting during next-skill continuation over adding
 more exposure to the diagnosed placement bottleneck. Both arms initially issued
-all 512 actors frontier task 11; whether startup allocation, subsequent review,
-shared-parameter interference or another mechanism caused the retention loss is
-unresolved. A new causal study must preserve the input and adverse early states,
-separate those mechanisms, and not relax retention thresholds after seeing scores.
+all 512 actors frontier task 11; that observation alone does not establish the
+cause of the retention loss.
+
+The subsequent parameter diagnosis used the exact saved parent and unchanged
+control, without new training. On two new seeds the parent scored 28/32 and 31/32
+on workbench, versus the exact control's 23/32 and 22/32. Replacing only the shared
+trunk reduced success in all four goal/output backgrounds: by 5-7 successes on
+one seed and 9-13 on the other. Goal-column and actor-head changes did not show
+that repeated material loss. The evidence localises sensitivity to the shared
+representation in this model pair; it does not identify the responsible training
+examples, loss terms, Adam momentum or startup schedule. In particular, an
+unchanged actor output head does not protect it from changes in its input features.
+
+The next learning gate is therefore **function preservation during training**,
+not only at initialization: keep the previously learned behavior protected while
+adding learnable capacity for the new skill and reusing prior features. Include
+critic-to-trunk updates in this boundary; a separate final value output does not
+isolate its training gradients. A warm, function-preserving modular candidate is
+motivated, but is not implemented or validated by this diagnostic. Freezing the
+whole learner cannot demonstrate new learning; reinitializing it discards the
+transfer we need. Any modular representation must also bound snapshot memory
+and concurrent inference costs, rather than multiply every immutable snapshot
+by a full bank of experts. Evaluate ordinary new-skill completion and every
+retained skill under a declared sample budget. Neither a selected hybrid nor
+relaxed retention thresholds substitutes for that experiment.
 
 The [goal-column transfer screen](verification/20260928-goal-transfer-study.md)
 preserves non-recipient goal functions and changes only 96 parameters. Copying
