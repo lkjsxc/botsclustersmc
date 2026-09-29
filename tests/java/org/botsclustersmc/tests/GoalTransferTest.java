@@ -111,5 +111,6 @@ public final class GoalTransferTest {
     }
     public static void main(String[] args) throws Exception {
         functions(); files(); System.out.println("PASS goal transfer: " + checks + " checks");
+        PolicyBlocksTest.main(new String[0]);
     }
 }
