@@ -92,6 +92,27 @@ one-shot `--export` option below. The ordinary `export.sh` still exports the sto
 canonical training checkpoint, which can differ from an earlier evaluated policy.
 
 
+## Developer holdout integrity
+
+The optional Python driver `tests/holdout.py` validates its evidence with explicit
+runtime checks, including under `python -O`, `python -OO` and `PYTHONOPTIMIZE`.
+It rejects incomplete or assisted-as-ordinary reports, duplicate JSON keys,
+non-finite numbers, non-integer counts, missing/duplicate trials, changed frozen
+weights and any generated training checkpoint. Report reads are bounded to 64 MiB.
+
+Each actor is bound to the declared task order and case index; its seed must
+match the Java evaluator's signed-64-bit arithmetic. Matching only aggregate
+success totals is insufficient. Ordinary trials and each diagnostic reset retain
+separate labels and exact denominators. A valid complete report may still show
+zero successes: integrity is not competence, relative retention or acquisition.
+The checks do not authenticate reports supplied by an untrusted third party.
+
+`python -m unittest discover -s tests -p test_holdout.py` includes child-process
+regressions using all three optimization modes. These are developer checks, not
+a new dependency for the Java operator commands above. The
+[2026-09-29 verification record](verification/20260929-holdout-integrity.md)
+distinguishes offline tests and revalidation of saved trials from new live runs.
+
 ## Retain the exact evaluated policy
 
 `./evaluate.sh --export dist/evaluated.zip` tests one canonical snapshot, then
