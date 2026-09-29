@@ -39,6 +39,13 @@ this reset exposure did not establish acquisition; PR #39 is closed without merg
 All 42 reports / 10,176 unique frozen trials completed. Five-cell assisted totals
 fell from source 56/160 and 48/160 to candidate 0/160 and 1/160 (control 2/160 on
 each seed). Other-task protection did not preserve partial behavior within task 11.
+The [click-conditioned slot checkpoint](verification/20260929-click-conditioned-slots.md)
+then implemented separate slot outputs for each click type, initialized by copying
+the existing actor weights and optimizer moments. Historical-runtime comparisons
+preserved the initial actor, critic and same-seed primitive choices. This is only
+an offline implementation checkpoint: no new Minecraft training or frozen gameplay
+comparison ran. PR #41 is not eligible for runtime adoption; its study runner is
+explicitly disabled pending boundary regression tests and qualification.
 The preceding [continuation screen](verification/20260929-placement-practice-study.md)
 rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
@@ -151,6 +158,15 @@ an ordinary completion or a routing label to give the learner the missing answer
 A representation/exploration study should preserve the initial actor and critic
 functions, vary one declared mechanism with matched controls, and compare both
 within-skill retention and full-condition acquisition under a fixed sample budget.
+The current shared slot projection cannot give two commonly legal slots opposite
+rankings under different click types in one observation. The preserved PR #41
+prototype removes this restriction while copying the old initial function and
+both Adam moments; it does not yet establish a cause or a learning benefit.
+Qualify its disabled experiment runner before testing the proposed matched
+comparison. Require all five missing-cell conditions at baseline, early and final,
+not only ordinary task totals or other-task protection. Keep the original actor,
+critic, physical controls, observation encoding and source checkpoint fixed at the
+comparison boundary; do not substitute a newer or more favorable input.
 Observing ordinary full-condition probes does not make them frozen evaluations:
 in the current implementation probes also generate learning samples; exams do not.
 
