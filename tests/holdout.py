@@ -205,6 +205,54 @@ def verify_table_trace(trace, observations):
     count('observed_table_units_gained', 64 * inventory)
 
 
+def verify_crafting_trace(trace, observations):
+    """Check pickaxe trace accounting; pre-action diagnostics are not completion."""
+    require(type(trace) is dict and trace.get('scope') == 'pickaxe-pre-action-observation', 'Pickaxe trace scope')
+    def count(key, maximum):
+        return integer(trace.get(key), maximum, key)
+    def vector(key, length, maximum, integral=True):
+        values = trace.get(key)
+        require(type(values) is list and len(values) == length, key)
+        for value in values:
+            (integer if integral else number)(value, maximum, key)
+        return values
+    def mass(key, denominator):
+        number(trace.get(key), denominator + 1e-7, key)
+    integer(observations, 2**63-1, 'observations', 1)
+    require(count('transitions', observations) == observations, 'Pickaxe transitions')
+    workbench = count('workbench_states', observations)
+    patterns = vector('correct_mask_states', 32, workbench)
+    require(sum(patterns) == workbench, 'Pickaxe mask denominator')
+    maximum = count('max_correct_cells', 5)
+    # Maxima include post-action states; the histogram only counts pre-action states.
+    require(all(not n or mask.bit_count() <= maximum for mask, n in enumerate(patterns)), 'Pickaxe maximum')
+    count('max_wrong_cells', 9)
+    count('max_surplus_units_in_correct_cells', 5 * 63)
+    count('partial_workbench_exits', sum(patterns[1:31]))
+    cursor = count('compatible_cursor_states', workbench)
+    empty = count('empty_cursor_states', workbench - cursor)
+    opportunities = vector('compatible_cursor_states_by_cell', 5, cursor)
+    # A cursor holds either a head ingredient or a stick, never both at once.
+    require(max(opportunities[:3]) + max(opportunities[3:]) <= cursor <= sum(opportunities), 'Pickaxe cursor union')
+    fill = vector('compatible_fill_probability_sum_by_cell', 5, workbench + 1e-7, False)
+    single = vector('single_unit_fill_probability_sum_by_cell', 5, workbench + 1e-7, False)
+    fills = vector('filled_cell_transitions', 5, workbench)
+    removals = vector('removed_cell_transitions', 5, workbench)
+    for cell in range(5):
+        present = sum(n for mask, n in enumerate(patterns) if mask & (1 << cell))
+        absent = workbench - present
+        require(opportunities[cell] <= absent, 'Pickaxe fill opportunity denominator')
+        require(fills[cell] <= absent and removals[cell] <= present, 'Pickaxe cell transition denominator')
+        require(single[cell] <= fill[cell] + 1e-7 and fill[cell] <= opportunities[cell] + 1e-7, 'Pickaxe fill probability mass')
+    # Distinct destination clicks are mutually exclusive, even when several cells fit.
+    require(sum(fill) <= cursor + 1e-7, 'Pickaxe joint fill probability mass')
+    mass('needed_stock_pickup_probability_sum', empty)
+    preview = count('target_preview_states', patterns[31])
+    mass('target_collection_probability_sum', preview)
+    mass('close_probability_sum', workbench)
+    count('chosen_close_actions', workbench)
+
+
 def verify_report(args, result):
     """Bind each trial to its declared task/case/Java-long seed, not just totals."""
     require(type(result) is dict, 'Evaluation object')
@@ -256,6 +304,10 @@ def verify_report(args, result):
             verify_table_trace(detail.get('table_crafting'), observations)
         else:
             require('table_crafting' not in detail, 'Table diagnostics belong only to task 10.')
+        if task in (11, 13):
+            verify_crafting_trace(detail.get('crafting'), observations)
+        else:
+            require('crafting' not in detail, 'Pickaxe diagnostics belong only to tasks 11 and 13.')
     for task, summary in zip(args.tasks, summaries):
         require(type(summary) is dict, 'Task summary object')
         require(integer(summary.get('task'), 17, 'Summary task') == task, 'Task order differs')

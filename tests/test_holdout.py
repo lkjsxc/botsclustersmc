@@ -19,6 +19,23 @@ MISSING_CONDITIONS = tuple('pickaxe-missing-' + cell for cell in
 CONDITIONS = ('none', 'workbench-open', 'pickaxe-grid') + MISSING_CONDITIONS
 
 
+def crafting_trace(observations=600):
+    """A valid trace can have no pre-action workbench state, even on success."""
+    return {
+        'scope': 'pickaxe-pre-action-observation', 'transitions': observations,
+        'workbench_states': 0, 'correct_mask_states': [0] * 32,
+        'max_correct_cells': 0, 'max_wrong_cells': 0, 'max_surplus_units_in_correct_cells': 0,
+        'partial_workbench_exits': 0, 'compatible_cursor_states': 0,
+        'compatible_cursor_states_by_cell': [0] * 5,
+        'compatible_fill_probability_sum_by_cell': [0.0] * 5,
+        'single_unit_fill_probability_sum_by_cell': [0.0] * 5,
+        'filled_cell_transitions': [0] * 5, 'removed_cell_transitions': [0] * 5,
+        'empty_cursor_states': 0, 'needed_stock_pickup_probability_sum': 0.0,
+        'target_preview_states': 0, 'target_collection_probability_sum': 0.0,
+        'close_probability_sum': 0.0, 'chosen_close_actions': 0,
+    }
+
+
 class ResetDiagnosticTests(unittest.TestCase):
     def arguments(self, *extra):
         with patch.dict('os.environ', {'EULA': 'true'}), contextlib.redirect_stderr(io.StringIO()):
@@ -60,7 +77,8 @@ class ResetDiagnosticTests(unittest.TestCase):
                 'tasks': [{'task': 11, 'passed': 0, 'cases': 1}],
                 'trials': [{'actor': 0, 'task': 11, 'seed': 11000050, 'elapsed_ticks': 3001, 'success': False, 'distance': 1.0,
                             'diagnostics': {'observations': 600, 'dig_decisions': 0, 'observed_max_target_mining_ticks': 0,
-                                            'mean_abs_yaw_error': 1, 'mean_abs_pitch_error': 1, 'blocks_broken': 0, 'items_collected': 0}}]}
+                                            'mean_abs_yaw_error': 1, 'mean_abs_pitch_error': 1, 'blocks_broken': 0, 'items_collected': 0,
+                                            'crafting': crafting_trace()}}]}
         if condition!='none':
             result.update(diagnostic_only=True, reset_intervention=condition, reset_intervention_trials=1)
         return args,result
@@ -93,6 +111,123 @@ class ResetDiagnosticTests(unittest.TestCase):
         for condition in CONDITIONS[1:]:
             with self.subTest(condition=condition), self.assertRaises(AssertionError):
                 _,result=self.fixture(condition);self.verify(args,result)
+
+
+class CraftingTraceTests(unittest.TestCase):
+    def trace(self):
+        trace = crafting_trace(10)
+        trace.update(workbench_states=8, max_correct_cells=5, max_wrong_cells=1,
+            max_surplus_units_in_correct_cells=4, partial_workbench_exits=1,
+            compatible_cursor_states=4, compatible_cursor_states_by_cell=[2, 2, 2, 1, 1],
+            compatible_fill_probability_sum_by_cell=[.2, .4, .6, .1, .2],
+            single_unit_fill_probability_sum_by_cell=[.1, .2, .3, .05, .1],
+            filled_cell_transitions=[1] * 5, removed_cell_transitions=[1] * 5,
+            empty_cursor_states=2, needed_stock_pickup_probability_sum=1.2,
+            target_preview_states=1, target_collection_probability_sum=.8,
+            close_probability_sum=.5, chosen_close_actions=2)
+        for mask, count in ((0, 5), (1, 1), (8, 1), (31, 1)):
+            trace['correct_mask_states'][mask] = count
+        return trace
+
+    def test_valid_and_every_required_field(self):
+        holdout.verify_crafting_trace(self.trace(), 10)
+        trace = self.trace(); trace['compatible_cursor_states'] = 6
+        holdout.verify_crafting_trace(trace, 10)
+        holdout.verify_crafting_trace(crafting_trace(), 600)
+        for key in self.trace():
+            with self.subTest(missing=key), self.assertRaises(AssertionError):
+                trace = self.trace(); del trace[key]; holdout.verify_crafting_trace(trace, 10)
+        for trace in (None, [], True):
+            with self.subTest(trace=trace), self.assertRaises(AssertionError):
+                holdout.verify_crafting_trace(trace, 10)
+
+    def test_types_bounds_and_probability_denominators(self):
+        for key, values in (
+            ('scope', ['table-inventory-pre-action', None]),
+            ('transitions', [9, 11, True, '10']), ('workbench_states', [11, -1, 8.0, True]),
+            ('max_correct_cells', [4, 6, -1]), ('max_wrong_cells', [10, -1]),
+            ('max_surplus_units_in_correct_cells', [316, -1]),
+            ('partial_workbench_exits', [3]), ('compatible_cursor_states', [2, 7]),
+            ('empty_cursor_states', [5]), ('target_preview_states', [2]),
+            ('chosen_close_actions', [9]), ('close_probability_sum', [8.1]),
+            ('needed_stock_pickup_probability_sum', [2.1]), ('target_collection_probability_sum', [1.1]),
+            ('correct_mask_states', [[8] * 31, [8] * 32, [True] + [0] * 31]),
+            ('compatible_cursor_states_by_cell', [[2] * 4, [7, 2, 2, 1, 1], [0] * 5]),
+            ('filled_cell_transitions', [[7, 1, 1, 1, 1]]),
+            ('removed_cell_transitions', [[1, 2, 1, 1, 1]]),
+            ('compatible_fill_probability_sum_by_cell', [[2.1, .4, .6, .1, .2], [2, 2, 2, 1, 1]]),
+            ('single_unit_fill_probability_sum_by_cell', [[.3, .2, .3, .05, .1]]),
+        ):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    trace = self.trace(); trace[key] = value; holdout.verify_crafting_trace(trace, 10)
+        for key, value in self.trace().items():
+            if key == 'scope': continue
+            for bad in (True, -1, float('nan'), float('inf'), 10**400, '1'):
+                with self.subTest(key=key, bad=bad), self.assertRaises(AssertionError):
+                    trace = self.trace()
+                    trace[key] = [bad] + value[1:] if isinstance(value, list) else bad
+                    holdout.verify_crafting_trace(trace, 10)
+
+    def test_every_mask_bounds_cell_transitions_and_opportunities(self):
+        for mask in range(32):
+            trace = crafting_trace(1)
+            trace.update(workbench_states=1, max_correct_cells=mask.bit_count())
+            trace['correct_mask_states'][mask] = 1
+            holdout.verify_crafting_trace(trace, 1)
+            for cell in range(5):
+                present = bool(mask & (1 << cell))
+                for key in ('filled_cell_transitions', 'removed_cell_transitions'):
+                    changed = copy.deepcopy(trace); changed[key][cell] = 1
+                    allowed = present if key == 'removed_cell_transitions' else not present
+                    if allowed: holdout.verify_crafting_trace(changed, 1)
+                    else:
+                        with self.subTest(mask=mask, cell=cell, key=key), self.assertRaises(AssertionError):
+                            holdout.verify_crafting_trace(changed, 1)
+                changed = copy.deepcopy(trace)
+                changed['compatible_cursor_states'] = 1
+                changed['compatible_cursor_states_by_cell'][cell] = 1
+                if not present: holdout.verify_crafting_trace(changed, 1)
+                else:
+                    with self.subTest(mask=mask, cell=cell), self.assertRaises(AssertionError):
+                        holdout.verify_crafting_trace(changed, 1)
+
+    def test_cursor_ingredient_groups_cannot_overlap(self):
+        trace = crafting_trace(4)
+        trace.update(workbench_states=4, compatible_cursor_states=2)
+        trace['correct_mask_states'][0] = 4
+        trace['compatible_cursor_states_by_cell'] = [2, 2, 2, 0, 0]
+        holdout.verify_crafting_trace(trace, 4)
+        trace['compatible_cursor_states_by_cell'] = [1, 1, 1, 1, 1]
+        holdout.verify_crafting_trace(trace, 4)
+        trace['compatible_cursor_states_by_cell'] = [2, 0, 0, 1, 0]
+        with self.assertRaises(AssertionError): holdout.verify_crafting_trace(trace, 4)
+
+    def test_pre_action_counts_do_not_certify_completion(self):
+        trace = crafting_trace(1)
+        trace.update(max_correct_cells=5, max_wrong_cells=9, max_surplus_units_in_correct_cells=315)
+        # Maxima include the post-action state; histograms and previews do not.
+        holdout.verify_crafting_trace(trace, 1)
+        args, result = ResetDiagnosticTests().fixture('none')
+        result['trials'][0]['success'] = True; result['tasks'][0]['passed'] = 1
+        holdout.verify_report(args, result)
+
+    def test_report_requires_trace_only_for_both_pickaxe_tasks(self):
+        for task in (11, 13):
+            args, result = ResetDiagnosticTests().fixture('none')
+            args.tasks = [task]; result['tasks'][0]['task'] = task
+            result['trials'][0].update(task=task, seed=17 + task*1000003)
+            holdout.verify_report(args, result)
+            for invalid in (None, {}, {'scope': 'pickaxe-pre-action-observation', 'max_correct_cells': 9000}):
+                changed = copy.deepcopy(result)
+                if invalid is None: del changed['trials'][0]['diagnostics']['crafting']
+                else: changed['trials'][0]['diagnostics']['crafting'] = invalid
+                with self.subTest(task=task, invalid=invalid), self.assertRaises(AssertionError):
+                    holdout.verify_report(args, changed)
+        args, result = ResetDiagnosticTests().fixture('none')
+        args.tasks = [0]; result['tasks'][0]['task'] = 0
+        result['trials'][0].update(task=0, seed=17)
+        with self.assertRaises(AssertionError): holdout.verify_report(args, result)
 
 
 class TableTraceTests(unittest.TestCase):
@@ -144,6 +279,7 @@ class TableTraceTests(unittest.TestCase):
         args.tasks = [10]; result['tasks'][0]['task'] = 10; result['trials'][0]['task'] = 10
         result['trials'][0]['seed'] = 17 + 10*1000003
         result['trials'][0]['diagnostics']['observations'] = 10
+        del result['trials'][0]['diagnostics']['crafting']
         self.assertIsNotNone(helper.verify(args, result))
         del result['trials'][0]['diagnostics']['table_crafting']
         with self.assertRaises(AssertionError):
@@ -162,6 +298,8 @@ class ReportIntegrityTests(unittest.TestCase):
                 value = seed + task*1000003 + case*104729
                 trial.update(actor=index*2+case, task=task, success=case == 0,
                              seed=(value + 2**63) % 2**64 - 2**63)
+                if task not in (11, 13):
+                    del trial['diagnostics']['crafting']
                 result['trials'].append(trial)
         return args, result
 
@@ -324,7 +462,8 @@ class OptimizationTests(unittest.TestCase):
         for flags, optimize in ((['-O'], '0'), (['-OO'], '0'), ([], '2')):
             with self.subTest(flags=flags, environment=optimize):
                 result = subprocess.run([sys.executable, *flags, '-m', 'unittest', '-q',
-                    'test_holdout.ResetDiagnosticTests', 'test_holdout.TableTraceTests', 'test_holdout.ReportIntegrityTests'],
+                    'test_holdout.ResetDiagnosticTests', 'test_holdout.TableTraceTests', 'test_holdout.CraftingTraceTests',
+                    'test_holdout.ReportIntegrityTests'],
                     cwd=Path(__file__).parent, env=dict(os.environ, PYTHONOPTIMIZE=optimize),
                     text=True, capture_output=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
