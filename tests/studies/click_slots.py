@@ -48,6 +48,8 @@ class Study:
         result = dict(updates=int(match[1]), samples=int(match[2]), checkpoint_sha256=sha(checkpoint),
             policy_sha256=sha(policy), audit=audit.strip())
         require(result['samples'] == BASE if initial else result['samples'] > BASE, 'Incorrect source/continuation counter')
+        if initial:
+            require(read(policy) == read(self.policy[arm]), 'Initial checkpoint export differs from evaluated policy')
         save(out/(label+'-identity.json'), result)
         return result
 
@@ -88,6 +90,7 @@ class Study:
         return receipts
 
     def train(self, arm, target):
+        require(arm in ARMS and type(target) is int and target in TARGETS, 'Undeclared training arm/boundary')
         self.guard(); memory(); root = self.roots[arm]
         out = OUT/arm; out.mkdir(exist_ok=True); evidence = out/str(target); evidence.mkdir()
         academy = out/'academy'; data = academy/'server/plugins/BotsClustersMC'; checkpoint = data/'training.bcmc'
@@ -114,15 +117,10 @@ class Study:
                     memory(); require(process.poll() is None, 'Learner exited before sample boundary')
                     if (data/'status.json').is_file():
                         status = load(data/'status.json')
-                        stamp = H.integer(status.get('epoch_millis'), 2**63-1, 'Status epoch')
-                        if stamp >= epoch:
-                            require(status.get('state') == 'running' and -5000 <= time.time()*1000-stamp <= 45000, 'Stale/unhealthy learner')
-                            require(status.get('learning_task_scope') == 11 and status.get('protected_prior_policy') is True, 'Wrong learning scope')
-                            for key in ('inference_failed', 'inference_rejected', 'learner_rejected_samples', 'learner_stale_samples', 'retired_agents'):
-                                H.integer(status.get(key), 0, key)
-                            task_counts(status.get('learned_task_samples_this_process'))
-                            samples = H.integer(status.get('trained_samples'), 2**63-1, 'Accepted training samples', initial['samples'])
-                            agents = H.integer(status.get('active_agents'), 512, 'Active actors')
+                        samples = training_samples(status, initial['samples'], epoch, time.time()*1000, last)
+                        if samples is not None:
+                            stamp, agents = status['epoch_millis'], status['active_agents']
+                            require(samples <= threshold+OVERSHOOT, 'Live accepted sample budget exceeded')
                             if last is None or stamp != last['epoch_millis']:
                                 if last is not None:
                                     require(samples >= last['trained_samples'], 'Training counter went backwards')
@@ -148,7 +146,9 @@ class Study:
                     write(evidence/'stopped-training.bcmc', read(checkpoint))
         stopped = self.identity(arm, evidence/'stopped-training.bcmc', evidence, 'stopped', False)
         self.guard()
-        require(threshold <= stopped['samples'] <= threshold+OVERSHOOT and first is not None and last is not None, 'Missing coverage or sample budget/overshoot')
+        budget(stopped['samples'], target)
+        require(first is not None and last is not None and task_counts(last['learned_task_samples_this_process'])[11] > 0,
+            'Missing actor coverage or accepted task-11 samples')
         save(evidence/'last-observed.json', last)
         receipt = dict(arm=arm, target=target, additional_samples=stopped['samples']-BASE, start=initial,
             stopped=stopped, elapsed_seconds=time.monotonic()-started, source=self.source)
@@ -186,5 +186,24 @@ class Study:
             raise
 
 
+def qualify():
+    """Run offline boundaries before constructing any study or launching Minecraft."""
+    import unittest
+    suite = unittest.defaultTestLoader.discover(str(ROOT/'tests/studies'), pattern='test_click_slots.py')
+    require(suite.countTestCases() >= 24, 'Incomplete offline qualification suite')
+    require(unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful(), 'Offline qualification failed')
+
+
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run', action='store_true', help='Run the fixed, isolated, finite research protocol after offline qualification.')
+    args = parser.parse_args(argv)
+    if not args.run:
+        parser.error('Explicit --run is required. No Minecraft study was started.')
+    qualify()
+    Study().run()
+
+
 if __name__ == '__main__':
-    raise SystemExit('Research runner not qualified: study-boundary regression tests are incomplete. No Minecraft study was started.')
+    main()

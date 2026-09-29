@@ -93,6 +93,32 @@ def task_counts(value):
     return counts
 
 
+def training_samples(status, initial, started_epoch, now_epoch, previous=None):
+    """Validate one process-local snapshot without confusing old disk state with this run."""
+    require(type(status) is dict, 'Training status object')
+    stamp = H.integer(status.get('epoch_millis'), 2**63-1, 'Status epoch')
+    if stamp < started_epoch:
+        require(previous is None, 'Status returned to pre-start history')
+        return None
+    require(status.get('state') == 'running' and -5000 <= now_epoch-stamp <= 45000, 'Stale/unhealthy learner')
+    require(type(status.get('learning_task_scope')) is int and status['learning_task_scope'] == 11
+        and status.get('protected_prior_policy') is True, 'Wrong learning scope')
+    for key in ('inference_failed', 'inference_rejected', 'learner_rejected_samples', 'learner_stale_samples', 'retired_agents'):
+        H.integer(status.get(key), 0, key)
+    counts = task_counts(status.get('learned_task_samples_this_process'))
+    samples = H.integer(status.get('trained_samples'), 2**63-1, 'Accepted training samples', initial)
+    H.integer(status.get('active_agents'), 512, 'Active actors')
+    if previous is not None:
+        require(stamp >= previous['epoch_millis'] and samples >= previous['trained_samples'], 'Training clock/counter went backwards')
+        require(counts[11] >= task_counts(previous['learned_task_samples_this_process'])[11], 'Task counter went backwards')
+    return samples
+
+
+def budget(samples, target):
+    require(type(target) is int and target in TARGETS, 'Undeclared sample boundary')
+    H.integer(samples, BASE+target+OVERSHOOT, 'Accepted sample budget', BASE+target)
+
+
 def spec(seed, condition):
     require(seed in SEEDS and type(seed) is int and condition in CONDITIONS, 'Declared evaluation condition')
     return SimpleNamespace(seed=seed, reset_intervention=condition,
@@ -105,11 +131,14 @@ def verify_evaluation(directory, policy, runtime, seed, condition, port):
     metadata = load(directory/'metadata.json')
     require(metadata.get('policy_sha256') == sha(policy), 'Evaluation policy identity')
     require(metadata.get('runtime_jar_sha256') == sha(runtime) == sha(directory/'runtime.jar'), 'Evaluation runtime identity')
-    require(metadata.get('tasks') == args.tasks and metadata.get('seed') == seed
-        and metadata.get('cases_per_task') == args.cases, 'Metadata task/seed/case binding')
+    require(metadata.get('exam_jar_sha256') == sha(directory/'server/plugins/exam.jar'), 'Evaluation exam identity')
+    tasks = metadata.get('tasks')
+    require(type(tasks) is list and all(type(task) is int for task in tasks) and tasks == args.tasks, 'Metadata task binding')
+    require(H.integer(metadata.get('seed'), 2**63-1, 'Metadata seed', -2**63) == seed
+        and H.integer(metadata.get('cases_per_task'), 256, 'Metadata cases', 1) == args.cases, 'Metadata seed/case binding')
     require(metadata.get('reset_intervention') == condition
         and metadata.get('diagnostic_only') is (condition != 'none'), 'Separate assisted classification')
-    require(metadata.get('bind') == '127.0.0.1' and metadata.get('port') == port
+    require(metadata.get('bind') == '127.0.0.1' and H.integer(metadata.get('port'), 65535, 'Metadata port', 1024) == port
         and metadata.get('input_kind') == 'inference-policy', 'Isolated frozen evaluation')
     data = directory/'server/plugins/BotsClustersMC'
     require(read(data/'policy.bcmc') == read(policy), 'Evaluation changed weights')
