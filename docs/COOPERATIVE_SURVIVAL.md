@@ -17,6 +17,12 @@ some crafting in these rooms. The [latest parameter diagnosis](verification/2026
 completed 6,912 frozen trials and localised workbench-retention sensitivity to the
 shared hidden representation in one preserved parent/control pair. It did not
 train or adopt a new policy; ordinary wooden-pickaxe success remained zero.
+The later [protected-frontier pilot](verification/20260929-protected-frontier-study.md)
+implemented an isolated warm-copy candidate but stopped after 1,536 baseline
+trials: the source and protected initial model both missed the declared aim-hold
+floor on one seed. No experimental continuation ran, and the candidate runtime
+was not integrated. This is an initial-qualification failure, not evidence of
+forgetting caused by its learning.
 The preceding [continuation screen](verification/20260929-placement-practice-study.md)
 rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
@@ -80,14 +86,29 @@ The next learning gate is therefore **function preservation during training**,
 not only at initialization: keep the previously learned behavior protected while
 adding learnable capacity for the new skill and reusing prior features. Include
 critic-to-trunk updates in this boundary; a separate final value output does not
-isolate its training gradients. A warm, function-preserving modular candidate is
-motivated, but is not implemented or validated by this diagnostic. Freezing the
-whole learner cannot demonstrate new learning; reinitializing it discards the
-transfer we need. Any modular representation must also bound snapshot memory
+isolate its training gradients. The subsequent one-frontier prototype implemented
+this boundary with a shared immutable source policy and a warm trainable copy.
+Its source checks established function preservation through synthetic actor and
+critic updates, but real-server continuation remains untested: the declared
+initial gate failed before training. PR #35 is closed without merging. Freezing
+the whole learner cannot demonstrate new learning; reinitializing it discards
+the transfer we need. Any modular representation must also bound snapshot memory
 and concurrent inference costs, rather than multiply every immutable snapshot
 by a full bank of experts. Evaluate ordinary new-skill completion and every
 retained skill under a declared sample budget. Neither a selected hybrid nor
 relaxed retention thresholds substitutes for that experiment.
+
+Separate three prospective questions: does the input meet an absolute competence
+requirement, does continued learning preserve its measured behavior, and does the
+new skill improve? The protected pilot's original and protected initial models
+both scored 29/32 on aim-hold under one fresh seed, below its declared 30/32 floor.
+Do not treat that as forgetting, change the stopped pilot's rule, or substitute
+a favorable seed. A new study needs either a prospectively qualified input or
+an explicitly relative retention question for an imperfect input, with evaluation
+case counts and acceptance criteria fixed in advance. Exact function preservation
+also does not guarantee success under changed world/partner-state distributions;
+ordinary rollouts remain necessary. Keep the implemented protection hypothesis
+separate from a claim of validated new-skill acquisition.
 
 The [goal-column transfer screen](verification/20260928-goal-transfer-study.md)
 preserves non-recipient goal functions and changes only 96 parameters. Copying
