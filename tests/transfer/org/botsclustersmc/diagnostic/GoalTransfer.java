@@ -20,6 +20,7 @@ public final class GoalTransfer {
     /** Copy one first-layer goal column; retain every other weight and source counter. */
     public static Policy transfer(Policy source, int donor, int recipient) {
         validate(donor, recipient);
+        if(source.learningTask()!=-1)throw new IllegalArgumentException("Goal transfer requires an unfocused policy");
         float[] weights = source.copyWeights();
         for (int row = 0; row < Schema.HIDDEN; row++) {
             int start = Policy.W1 + row * Schema.INPUTS + GOAL_OFFSET;

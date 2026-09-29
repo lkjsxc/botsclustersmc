@@ -123,6 +123,9 @@ public final class TrainingPlugin extends RuntimePlugin {
     @Override public double observerRank(long id){Course.Progress p=course.progress(id);return p.stage()+p.probeSuccess()*.5;}
     @Override protected Map<String,Object> extraStatus(){
         if(learner==null)return Map.of();Map<String,Object> s=new LinkedHashMap<>();
+        s.put("learning_task_scope",policy.learningTask());
+        s.put("protected_prior_policy",policy.anchor()!=null);
+        s.put("learner_scope_skipped_samples",learner.scopeSkipped.sum());
         Course.Metrics m=course.metrics();s.put("practice_success_ema",m.practiceMean());s.put("probe_success_ema",m.probeMean());s.put("best_probe_success_ema",m.bestProbe());s.put("exam_ready_agents",m.ready());s.put("prepared_arenas",prepared.get());s.put("island_size",islandSize);s.put("islands",(count+islandSize-1)/islandSize);s.put("course_task",course.task());s.put("course_max_task",course.maximumTask());s.put("course_task_population",Arrays.toString(course.population()));s.put("course_exam_agents",course.examAgents());s.put("course_completed_agents",course.completedAgents());s.put("course_regressions",course.regressions());s.put("course_running",course.running());s.put("course_episodes",course.episodes());s.put("course_successes",course.successes());
         Course.StageMetrics[] stages=course.stageMetrics();
         s.put("cohort_training_ema",Arrays.toString(Arrays.stream(stages).mapToDouble(Course.StageMetrics::trainingEma).toArray()));

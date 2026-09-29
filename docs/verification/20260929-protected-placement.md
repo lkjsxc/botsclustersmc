@@ -1,0 +1,122 @@
+# Protected storage-to-placement comparison - 2026-09-29
+
+## Prospective protocol
+
+This is a new experiment, not a revision of PR #33's failed early-retention
+screen or PR #36's failed acquisition result. The earlier placement mixture was
+never tested through its final acquisition phase because both unprotected
+continuations lost workbench skill. The later protected continuation preserved
+old behavior but did not acquire ordinary pickaxe crafting. We now hold the
+tested protection boundary constant in BOTH arms and change reset exposure only.
+
+### Fixed input and intervention
+
+Use the preserved source policy 332305 / 92,574,669 accepted samples, original
+checkpoint `495baa13beb07860d8448f80438ad79f876c3a2a2aaca5de48a575b16edf0855`.
+Both arms start from the exact same previously constructed
+`protected-training.bcmc` in the retained protected-continuation worktree.
+Re-audit active parameters, Adam moments/clock, course/RNG state and initial
+forward functions against the original trusted runtime before evaluating.
+Do not select a more favorable checkpoint or resume either earlier study's final
+model. The input is knowingly imperfect; this is not an absolute mastery exam.
+
+Both arms reuse the unchanged experimental protected implementation from
+`e1f8e6567116c02e0af18e64a466f7e0289e5a14`: task 11 learns on a warm copy;
+all other observable goals use the same immutable source network. Actor and
+critic gradients cannot change the source. Only task-11 samples are accepted.
+This is fixed-frontier research code, not a general deployable learning system.
+
+Control uses the unchanged protected-continuation runtime. Candidate changes
+only InitialCrafting.prepare, using the reset intervention first studied in
+`57cbcfa3dfdbc48c408110419b1f0513859d07cf`: at nonzero, sub-full pickaxe
+practice difficulty, half of starts leave exactly one uniformly selected recipe
+cell empty, its remaining raw ingredient in the original storage slot, and an
+empty cursor. The other half retains the original mixture. Difficulty zero,
+ordinary full resets and all other tasks remain unchanged. No completed item
+or subsequent action is supplied. This is declared reset assistance, not
+unassisted training or teacher-action imitation.
+
+Before execution, compare runtime archive entries: only
+`org/botsclustersmc/training/InitialCrafting.class` may differ between arms,
+and inference JAR bytes must match. Rewards, observations, action meanings,
+legal masks, model arithmetic, optimizer, task allocation and horizons stay fixed.
+Ordinary and assisted evaluations use the SAME unchanged control runtime plus
+current mainline holdout validation. No experimental runtime goes into the live
+Academy.
+
+### Fixed evaluation and sample plan
+
+Publish implementation, runner, tests and this protocol before any new game
+evaluation or training. Fresh evaluation seeds are **2026092981** and
+**2026092982**. These are two evaluation conditions of one training continuation,
+not two independent training replications.
+
+At baseline, evaluate the original source and protected initial model on ordered
+tasks **0 through 11**, **64 cases per task**, under ordinary full-difficulty
+resets. Also evaluate the original source on each of the five single-missing-cell
+task-11 diagnostics, **32 cases per cell per seed**. Positions, in fixed order:
+top-left, top-center, top-right, upper handle, lower handle. Assisted reports
+stay separately labelled and cannot count as ordinary skill or certification.
+
+Train control followed by candidate to **250,000 additional accepted task-11
+samples**, allowing at most **50,000** overshoot. Stop cleanly and preserve each
+complete checkpoint. Repeat both complete ordinary suites. If EITHER arm fails
+the relative-retention screen, stop before further training and retain all
+adverse results.
+
+Only if the early screen passes, resume the exact two stopped checkpoints to
+**1,500,000 total additional accepted task-11 samples** per arm, with the same
+overshoot limit. Repeat both complete ordinary suites and all five single-cell
+diagnostics for both final models. Preserve all results, even if acquisition
+fails. No adaptive budget extension, selected checkpoint or substitute seed.
+
+A complete run has **12 ordinary reports / 9,216 trials**, plus **30 explicitly
+assisted reports / 960 trials**. No incomplete subset is described as complete.
+All evaluations freeze weights and accept zero training samples.
+
+### Separate decision rules
+
+Relative retention: at baseline, early and final, every tested protected model
+must score no more than **4/64** below the same-seed source on EACH task.
+Apply this to both continued arms, not only candidate. This 6.25 percentage-point
+descriptive engineering screen is not a statistical noninferiority guarantee.
+Check exact source-function preservation separately from asynchronous rollouts.
+
+Ordinary acquisition gain: final candidate task 11 must achieve at least
+**8/64 on each seed**, AND exceed final control by at least **4/64 on each
+seed**. A retained model with zero ordinary completions still fails acquisition.
+
+Intermediate placement gain: on each seed, candidate must complete at least
+**4/32 in EVERY missing position** and at least **32 more completions out of
+160** than control. Report all five counts and baseline counts. Passing this
+assisted screen without ordinary acquisition demonstrates an intermediate
+behavior only, not a learned complete recipe.
+
+These rules are fixed before outcomes. No result alone authorizes adopting the
+fixed-task architecture. Mainline may receive evidence; productionization still
+requires a reusable multi-task learning path, ordinary new-skill acquisition,
+retention and bounded resource costs. Prior failed studies remain unchanged.
+
+### Execution and evidence boundaries
+
+Candidate worktree: `/home/coder/workspace/botsclustersmc-protected-placement`.
+Runner: `tests/studies/protected_placement.py`; unit tests:
+`tests/studies/test_protected_placement.py`. Evidence is exclusively in a new
+`.build/protected-placement-study/`. Existing evidence is never overwritten.
+The reference source/runtime and input files are read from the preserved
+`botsclustersmc-protected-continuation` worktree. Verify its source remains
+`e1f8e6567116c02e0af18e64a466f7e0289e5a14` and its runtime identity remains
+`49280f05ef9384b2aaeaae5815c147060a147828ffdf4cf82e71a0f2bc1246f9`.
+
+Use one experimental learner at a time, 512 actors, 2 GiB heap, two region
+threads, one inference worker, one learner worker, training seed 7, loopback
+ports 30951/30952. At most two evaluators run concurrently on 30960-30963.
+Keep the pinned Minecraft server and a 2 GiB available-memory floor.
+Training segments have a 30-minute operational cap. Operational failure is
+reported separately, not silently rerun as a new scientific attempt.
+
+Capture complete checkpoints, first-issued coverage, training-status histories,
+sample counts, scope-skipped samples, artifact identities, all reports and
+per-trial diagnostics. Python optimization must not disable acceptance checks.
+The live mainline server remains independent and is not reset or replaced.
+Raw evidence is local retention, not an off-machine public archive.

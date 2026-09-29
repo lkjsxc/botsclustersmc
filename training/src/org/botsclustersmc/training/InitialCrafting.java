@@ -34,11 +34,13 @@ public final class InitialCrafting {
         if(!Double.isFinite(difficulty)||difficulty<0||difficulty>1)throw new IllegalArgumentException("difficulty");
         int[][] cells=layout(task);int width=width(pocket);
         if(difficulty>=1||!fits(cells,width))return -1;
-        boolean[] furnish=new boolean[cells.length];
+        boolean[] furnish=new boolean[cells.length];boolean placement=false;
         if(task==11||task==13) {
             int frontier=(int)Math.ceil(difficulty*cells.length);
-            // Half frontier, half earlier start states, INCLUDING output collection.
-            int missing=frontier==0?0:rng.unit()<.5?frontier:rng.nextInt(frontier);
+            // Reserve half for the storage-to-placement transition at every cell.
+            // The other half retains the former frontier/earlier-start mixture.
+            placement=frontier>0&&rng.unit()<.5;
+            int missing=placement?1:frontier==0?0:rng.unit()<.5?frontier:rng.nextInt(frontier);
             int[] order=new int[cells.length];for(int i=0;i<order.length;i++)order[i]=i;
             for(int i=order.length-1;i>0;i--){int j=rng.nextInt(i+1),tmp=order[i];order[i]=order[j];order[j]=tmp;}
             for(int i=missing;i<order.length;i++)furnish[order[i]]=true;
@@ -52,7 +54,7 @@ public final class InitialCrafting {
             }
         }
         // No output is supplied. A preview is not an item until the policy collects it.
-        if(rng.unit()>difficulty) {
+        if(!placement&&rng.unit()>difficulty) {
             int sources=0;for(int source=0;source<2;source++)if(!pocket.storage(source).empty())sources++;
             if(sources>0) {
                 int selected=rng.nextInt(sources);
