@@ -20,6 +20,7 @@ public final class Learner implements AutoCloseable {
     private volatile Adam optimizer;
     private volatile String state="collecting";
     private volatile boolean updating;
+    public final LongAdder scopeSkipped=new LongAdder();
     public final LongAdder offered=new LongAdder(),rejected=new LongAdder(),stale=new LongAdder(),computeNanos=new LongAdder(),updates=new LongAdder();
     public volatile double gradientNorm,valueLoss,entropy,importance,meanPolicyKl,maxPolicyKl,learningRate;
     private final long[] learnedByTask=new long[TaskBalance.TASKS+1];
@@ -45,7 +46,9 @@ public final class Learner implements AutoCloseable {
         offered.add(t.steps().size());
         synchronized(closing){
             if(t.actor()>100_000||t.sequence()<=sequences.getOrDefault(t.actor(),-1L))throw new IllegalArgumentException("duplicate/reversed trajectory");
+            boolean included=t.learnable(policy);
             sequences.put(t.actor(),t.sequence());
+            if(!included){scopeSkipped.add(t.steps().size());return false;}
             if(closing.get()||paused.get()||!queue.offer(t)){rejected.add(t.steps().size());return false;}
         }
         return true;

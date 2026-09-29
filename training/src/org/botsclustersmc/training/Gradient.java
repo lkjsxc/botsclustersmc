@@ -19,6 +19,7 @@ public final class Gradient {
         float[] grad=new float[Policy.PARAMETERS]; Policy.Workspace w=new Policy.Workspace();
         int total=0; double loss=0,entropy=0,importance=0;
         for(Trajectory fragment:trajectories) {
+            if(!fragment.learnable(target))throw new IllegalArgumentException("gradient outside focused task");
             int n=fragment.steps().size(); double[] reward=new double[n],discount=new double[n],value=new double[n],next=new double[n],ratio=new double[n];
             boolean[] carry=new boolean[n];
             for(int i=0;i<n;i++) {

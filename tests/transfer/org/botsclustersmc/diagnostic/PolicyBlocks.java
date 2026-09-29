@@ -45,6 +45,7 @@ public final class PolicyBlocks {
      */
     public static Policy compose(Policy base, Policy donor, int donorMask) {
         Objects.requireNonNull(base); Objects.requireNonNull(donor); layout();
+        if(base.learningTask()!=-1 || donor.learningTask()!=-1)throw new IllegalArgumentException("Block composition requires unfocused policies");
         if (donorMask < 0 || donorMask >= 16) throw new IllegalArgumentException("Use a four-bit donor mask");
         float[] weights = base.copyWeights(), other = donor.copyWeights();
         for (int i = 0; i < weights.length; i++)
