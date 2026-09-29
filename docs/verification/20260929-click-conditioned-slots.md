@@ -4,6 +4,9 @@ Date: 2026-09-29.
 
 Implementation source: `66fe3ce388a41caca6a0788adcbe535f39728121`.
 Implementation tree: `5ea5cea75eff6942922d5ce1ce76d379f0d8cf48`.
+Research PR: #41; recorded head `178b27d059fba139290bd307b941a5c10ffa0dc0`.
+The runtime is not adopted. Closing this checkpoint must preserve its source and
+inputs, not merge it merely because numerical tests pass.
 
 **Status: offline implementation and initial-function verification only. No new
 Minecraft learning or frozen gameplay comparison was run. Not a deployment
@@ -69,6 +72,12 @@ general untrusted-model import feature.
 The full local `./test.sh` completed successfully. Evidence is retained at
 `/home/coder/workspace/botsclustersmc-click-conditioned-slots/.build/source-tests-1.log`
 (SHA-256 `9b4881d9d62e2e0de4fb16a8e0c986a252da46bd81b9ad0b0a0b5f13506074db`).
+A complete repeat after committing the implementation also passed, retained as
+`.build/source-tests-final.log` with the same content hash. Both candidate runtime
+JAR hashes below remained unchanged. Syntax compilation passed for both runner
+drafts, and invoking the disabled CLI produced its intended not-qualified error
+without creating `.build/click-slots-study`. This is not a substitute for the
+missing runner regression suite.
 
 Relevant checks include:
 
