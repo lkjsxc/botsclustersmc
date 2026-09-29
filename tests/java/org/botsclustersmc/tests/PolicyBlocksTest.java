@@ -163,7 +163,116 @@ public final class PolicyBlocksTest {
         }
     }
 
+    private static void protectedPolicies() throws Exception {
+        int[] group = oracle();
+        Policy anchor = new Policy(Policy.initialize(51).copyWeights(), 23, 2400);
+        Policy base = Policy.focus(anchor, 11, true);
+        float[] donorWeights = Policy.initialize(52).copyWeights();
+        donorWeights[Policy.B1] = -0.0f;
+        Policy donor = base.withWeights(donorWeights, 31, 4000);
+        byte[] originalBase = PolicyFile.encode(base), originalDonor = PolicyFile.encode(donor);
+        byte[] frozen = PolicyFile.encode(anchor);
+        float[] first = base.copyWeights(), second = donor.copyWeights();
+        Policy[] mixtures = new Policy[16];
+        for (int mask = 0; mask < 16; mask++) {
+            Policy mixed = mixtures[mask] = PolicyBlocks.composeProtected(base, donor, mask);
+            check(mixed.learningTask() == 11 && mixed.anchor() == base.anchor(), "routing and shared immutable anchor");
+            check(mixed.updates() == 23 && mixed.samples() == 2400, "protected diagnostic counter scope");
+            float[] actual = mixed.copyWeights();
+            for (int i = 0; i < actual.length; i++)
+                check(same(actual[i], (mask & (1 << group[i])) == 0 ? first[i] : second[i]), "protected independent block oracle");
+            check(Arrays.equals(frozen, PolicyFile.encode(mixed.anchor())), "anchor bytes including counters");
+            Policy decoded = PolicyFile.decode(PolicyFile.encode(mixed));
+            check(decoded.learningTask() == 11 && Arrays.equals(frozen, PolicyFile.encode(decoded.anchor())), "protected serialization boundary");
+            equal(actual, decoded.copyWeights(), "protected serialized active weights");
+        }
+        check(Arrays.equals(originalBase, PolicyFile.encode(mixtures[0])), "exact protected base endpoint");
+        equal(donorWeights, mixtures[15].copyWeights(), "protected donor endpoint weights");
+        check(Arrays.equals(originalBase, PolicyFile.encode(base)) && Arrays.equals(originalDonor, PolicyFile.encode(donor)), "protected inputs unchanged");
+        // Interleave active/frozen lanes, then reuse the batch with a different count and ordering.
+        float[][] inputs = new float[36][512]; Random random = new Random(551);
+        for (int lane = 0; lane < inputs.length; lane++) {
+            for (int i = 0; i < 512; i++) inputs[lane][i] = random.nextFloat() * 2 - 1;
+            Arrays.fill(inputs[lane], 16, 34, 0); inputs[lane][16 + lane % 18] = 1;
+        }
+        for (int mask = 0; mask < 16; mask++) {
+            Policy mixed = mixtures[mask]; Policy.BatchWorkspace batch = new Policy.BatchWorkspace(36);
+            for (int count : new int[]{36, 13, 36}) {
+                mixed.forwardBatch(inputs, count, batch);
+                for (int lane = 0; lane < count; lane++) {
+                    boolean[] allowed = Task.at(lane % 18).mask(64, lane % 2 == 0);
+                    Policy.Workspace actual = new Policy.Workspace(), expected = new Policy.Workspace();
+                    mixed.forward(inputs[lane], allowed, actual);
+                    Policy independent = lane % 18 == 11 ? new Policy(mixed.copyWeights(), 0, 0) : anchor;
+                    independent.forward(inputs[lane], allowed, expected);
+                    equal(actual.logits, expected.logits, "protected route agrees with independent plain network");
+                    equal(actual.probabilities, expected.probabilities, "protected route probabilities");
+                    float[] logits = new float[234]; batch.lane(lane, logits);
+                    equal(actual.logits, logits, "protected mixed scalar/batch");
+                    if (mask < 8) {
+                        Policy.Workspace critic = new Policy.Workspace(); mixtures[mask + 8].forward(inputs[lane], allowed, critic);
+                        for (int output = 0; output < 233; output++) check(same(actual.logits[output], critic.logits[output]), "protected critic actor invariance");
+                        equal(actual.probabilities, critic.probabilities, "protected critic probability invariance");
+                    }
+                    if (mask == 0 || mask == 15) {
+                        (mask == 0 ? base : donor).forward(inputs[lane], allowed, expected);
+                        equal(actual.logits, expected.logits, "protected source endpoint function");
+                    }
+                }
+            }
+        }
+        reject(() -> PolicyBlocks.compose(base, donor, 0), "unfocused API must still reject protection");
+        reject(() -> PolicyBlocks.composeProtected(base, donor, -1), "protected negative mask");
+        reject(() -> PolicyBlocks.composeProtected(base, donor, 16), "protected excess mask");
+        reject(() -> PolicyBlocks.composeProtected(anchor, donor, 0), "ordinary base");
+        reject(() -> PolicyBlocks.composeProtected(base, anchor, 0), "ordinary donor");
+        reject(() -> PolicyBlocks.composeProtected(Policy.focus(anchor, 11, false), donor, 0), "unprotected base");
+        reject(() -> PolicyBlocks.composeProtected(base, Policy.focus(anchor, 11, false), 0), "unprotected donor");
+        reject(() -> PolicyBlocks.composeProtected(base, Policy.focus(anchor, 10, true), 0), "different active task");
+        reject(() -> PolicyBlocks.composeProtected(donor, base, 0), "reversed sample/update order");
+        Policy changedCounters = Policy.focus(new Policy(anchor.copyWeights(), 22, 2400), 11, true).withWeights(donorWeights, 31, 4000);
+        reject(() -> PolicyBlocks.composeProtected(base, changedCounters, 0), "anchor counter identity");
+        float[] changed = anchor.copyWeights(); changed[0] = Math.nextUp(changed[0]);
+        Policy changedAnchor = Policy.focus(new Policy(changed, 23, 2400), 11, true).withWeights(donorWeights, 31, 4000);
+        reject(() -> PolicyBlocks.composeProtected(base, changedAnchor, 0), "anchor single-weight identity");
+        float[] zeros = new float[Policy.PARAMETERS], signed = zeros.clone(); signed[0] = -0.0f;
+        reject(() -> PolicyBlocks.composeProtected(Policy.focus(new Policy(zeros, 0, 0), 11, true),
+                Policy.focus(new Policy(signed, 0, 0), 11, true), 0), "anchor signed-zero identity");
+        Path root = Files.createTempDirectory("bcmc-protected-blocks-");
+        try {
+            Path a = Files.createDirectory(root.resolve("base")).resolve("policy.bcmc");
+            Path b = Files.createDirectory(root.resolve("donor")).resolve("policy.bcmc");
+            Files.write(a, originalBase); Files.write(b, originalDonor);
+            Path out = root.resolve("valid"); PolicyBlocks.runProtected(a, b, out);
+            String manifest = Files.readString(out.resolve("counterfactuals.json"));
+            check(manifest.contains("\"protected_anchor\": true") && manifest.contains("\"learning_task\": 11"), "manifest active boundary");
+            check(manifest.contains(GoalTransfer.digest(frozen)), "manifest anchor identity");
+            for (int mask = 0; mask < 16; mask++) {
+                Policy read = PolicyFile.read(out.resolve("mask-" + mask + ".bcmc"));
+                equal(mixtures[mask].copyWeights(), read.copyWeights(), "protected output artifact");
+                check(Arrays.equals(frozen, PolicyFile.encode(read.anchor())) && read.learningTask() == 11, "protected output routing");
+            }
+            reject(() -> PolicyBlocks.runProtected(a, b, out), "protected create-only output");
+            reject(() -> PolicyBlocks.run(a, b, root.resolve("ordinary-reject")), "ordinary file API rejects protected pair");
+            check(!Files.exists(root.resolve("ordinary-reject")), "ordinary validation before writing");
+            for (Policy invalid : new Policy[]{anchor, Policy.focus(anchor, 11, false), Policy.focus(anchor, 10, true), changedCounters, changedAnchor}) {
+                Files.write(b, PolicyFile.encode(invalid));
+                Path invalidOutput = root.resolve("invalid");
+                reject(() -> PolicyBlocks.runProtected(a, b, invalidOutput), "invalid pair file rejection");
+                check(!Files.exists(invalidOutput), "validate all routing/anchor metadata before output");
+            }
+            Files.write(b, originalDonor);
+            reject(() -> PolicyBlocks.runProtected(a, b, a.getParent().resolve("nested")), "protected source descendant");
+            Files.write(b, Arrays.copyOf(originalDonor, originalDonor.length - 1));
+            reject(() -> PolicyBlocks.runProtected(a, b, root.resolve("truncated")), "protected truncated input");
+            check(!Files.exists(root.resolve("truncated")), "protected malformed validation before output");
+            check(Arrays.equals(originalBase, Files.readAllBytes(a)), "protected source preserved");
+        } finally {
+            try (var paths = Files.walk(root)) { for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(p); }
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        parameters(); files(); System.out.println("PASS policy block counterfactuals: " + checks + " checks");
+        parameters(); files(); protectedPolicies(); System.out.println("PASS policy block counterfactuals: " + checks + " checks");
     }
 }

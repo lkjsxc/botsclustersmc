@@ -80,6 +80,8 @@ jobs:
           python -m unittest discover -s tests -p test_retention_ci.py
           python -m unittest discover -s tests/studies -p test_click_slots.py
           python -O -m unittest discover -s tests/studies -p test_click_slots.py
+          python -m unittest discover -s tests/studies -p test_protected_attribution.py
+          python -O -m unittest discover -s tests/studies -p test_protected_attribution.py
           python tests/crafting_monitor.py
       - uses: actions/upload-artifact@v4
         if: always()

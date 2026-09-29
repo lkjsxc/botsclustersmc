@@ -45,12 +45,41 @@ public final class PolicyBlocks {
      */
     public static Policy compose(Policy base, Policy donor, int donorMask) {
         Objects.requireNonNull(base); Objects.requireNonNull(donor); layout();
-        if(base.learningTask()!=-1 || donor.learningTask()!=-1)throw new IllegalArgumentException("Block composition requires unfocused policies");
+        requireUnfocusedPair(base, donor);
+        return mix(base, donor, donorMask);
+    }
+
+    /** Active-policy counterfactuals only: the prior-task anchor is never mixed or removed. */
+    public static Policy composeProtected(Policy base, Policy donor, int donorMask) {
+        requireProtectedPair(base, donor);
+        return mix(base, donor, donorMask);
+    }
+
+    private static void requireUnfocusedPair(Policy base, Policy donor) {
+        Objects.requireNonNull(base); Objects.requireNonNull(donor); layout();
+        if (base.learningTask() != -1 || donor.learningTask() != -1)
+            throw new IllegalArgumentException("Block composition requires unfocused policies");
+    }
+
+    private static void requireProtectedPair(Policy base, Policy donor) {
+        Objects.requireNonNull(base); Objects.requireNonNull(donor); layout();
+        Policy a = base.anchor(), b = donor.anchor();
+        if (base.learningTask() < 0 || base.learningTask() != donor.learningTask() || a == null || b == null)
+            throw new IllegalArgumentException("Require the same explicitly protected active task");
+        if (a.learningTask() != -1 || b.learningTask() != -1 || a.anchor() != null || b.anchor() != null
+                || a.updates() != b.updates() || a.samples() != b.samples()
+                || !Arrays.equals(a.copyWeights(), b.copyWeights()))
+            throw new IllegalArgumentException("Protected anchor must be identical, including signed zeros and counters");
+        if (donor.updates() < base.updates() || donor.samples() < base.samples())
+            throw new IllegalArgumentException("Donor counters precede base; reverse masks instead of source order");
+    }
+
+    private static Policy mix(Policy base, Policy donor, int donorMask) {
         if (donorMask < 0 || donorMask >= 16) throw new IllegalArgumentException("Use a four-bit donor mask");
         float[] weights = base.copyWeights(), other = donor.copyWeights();
         for (int i = 0; i < weights.length; i++)
             if ((donorMask & (1 << classify(i).ordinal())) != 0) weights[i] = other[i];
-        return new Policy(weights, base.updates(), base.samples());
+        return base.withWeights(weights, base.updates(), base.samples());
     }
 
     public static Difference[] differences(Policy base, Policy donor) {
@@ -73,6 +102,14 @@ public final class PolicyBlocks {
 
     /** Reserves a fresh output once; manifests are written only after all 16 policies. */
     public static void run(Path basePath, Path donorPath, Path destination) throws IOException {
+        run(basePath, donorPath, destination, false);
+    }
+
+    public static void runProtected(Path basePath, Path donorPath, Path destination) throws IOException {
+        run(basePath, donorPath, destination, true);
+    }
+
+    private static void run(Path basePath, Path donorPath, Path destination, boolean protectedScope) throws IOException {
         Path first = PolicyFile.managedPath(basePath), second = PolicyFile.managedPath(donorPath);
         Path output = PolicyFile.managedPath(destination);
         for (Path input : List.of(first, second))
@@ -81,13 +118,16 @@ public final class PolicyBlocks {
         byte[] baseBytes = PolicyFile.readBounded(first, Schema.MAX_MODEL_BYTES);
         byte[] donorBytes = PolicyFile.readBounded(second, Schema.MAX_MODEL_BYTES);
         Policy base = PolicyFile.decode(baseBytes), donor = PolicyFile.decode(donorBytes);
+        // Reject the entire pair before reserving output or copying either source.
+        if (protectedScope) requireProtectedPair(base, donor); else requireUnfocusedPair(base, donor);
+        String anchorDigest = protectedScope ? GoalTransfer.digest(PolicyFile.encode(base.anchor())) : "";
         Difference[] stats = differences(base, donor);
         Files.createDirectory(output);
         writeNew(output.resolve("base-policy.bcmc"), baseBytes);
         writeNew(output.resolve("donor-policy.bcmc"), donorBytes);
         StringJoiner policies = new StringJoiner(",\n");
         for (int mask = 0; mask < 16; mask++) {
-            byte[] bytes = PolicyFile.encode(compose(base, donor, mask));
+            byte[] bytes = PolicyFile.encode(protectedScope ? composeProtected(base, donor, mask) : compose(base, donor, mask));
             String name = "mask-" + mask + ".bcmc";
             writeNew(output.resolve(name), bytes);
             policies.add("    {\"donor_mask\": " + mask + ", \"file\": \"" + name
@@ -107,6 +147,10 @@ public final class PolicyBlocks {
               "diagnostic_only": true,
               "new_training_samples": 0,
               "schema": "%s",
+              "protected_anchor": %s,
+              "learning_task": %d,
+              "anchor_policy_sha256": "%s",
+              "routing_scope": "Protected mode retains the exact base anchor outside the active task. Only active weights are mixed.",
               "base_policy_updates": %d,
               "base_trained_samples": %d,
               "donor_policy_updates": %d,
@@ -123,7 +167,8 @@ public final class PolicyBlocks {
             %s
               ]
             }
-            """, Schema.ID, base.updates(), base.samples(), donor.updates(), donor.samples(),
+            """, Schema.ID, protectedScope, base.learningTask(), anchorDigest,
+                base.updates(), base.samples(), donor.updates(), donor.samples(),
                 GoalTransfer.digest(baseBytes), GoalTransfer.digest(donorBytes), groups, policies);
         writeNew(output.resolve("counterfactuals.json"), manifest.getBytes(StandardCharsets.UTF_8));
     }
@@ -139,9 +184,11 @@ public final class PolicyBlocks {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 3)
-            throw new IllegalArgumentException("Usage: PolicyBlocks BASE_POLICY DONOR_POLICY NEW_DIRECTORY");
-        run(Path.of(args[0]), Path.of(args[1]), Path.of(args[2]));
+        if (args.length == 4 && args[0].equals("--protected"))
+            runProtected(Path.of(args[1]), Path.of(args[2]), Path.of(args[3]));
+        else if (args.length == 3)
+            run(Path.of(args[0]), Path.of(args[1]), Path.of(args[2]));
+        else throw new IllegalArgumentException("Usage: PolicyBlocks [--protected] BASE_POLICY DONOR_POLICY NEW_DIRECTORY");
         System.out.println("Created all 16 diagnostic counterfactuals. No training or skill certification.");
     }
 }
