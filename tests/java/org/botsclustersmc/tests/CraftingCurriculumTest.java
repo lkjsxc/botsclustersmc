@@ -26,9 +26,10 @@ public final class CraftingCurriculumTest {
             int[] buckets=new int[6],singleCell=new int[5];int operation=0;
             for(long seed=0;seed<2048;seed++) {
                 Course.Lesson l=lesson(task,Course.Kind.PRACTICE,d,seed);Pocket p=stock(task);
-                RandomSource rng=StationPractice.resetRandom(l);Pocket.Menu initial=StationPractice.initialMenu(l,rng);
-                p.open(initial);
-                operation++;check(StationPractice.operation(l)&&initial==Pocket.Menu.WORKBENCH,"operation starts at usable workbench");
+                RandomSource rng=StationPractice.resetRandom(l);
+                // Exercise the entire unchanged operation-reset distribution independently of entry selection.
+                // StationEntryTest composes real selected starts and proves each retained open reset is identical.
+                p.open(Pocket.Menu.WORKBENCH);operation++;
                 int missing=InitialCrafting.prepare(p,task.ordinal(),d,rng),actual=0;
                 for(int i=0;i<GRID.length;i++)if(p.get(GRID[i],Pocket.NONE).empty())actual++;
                 check(missing==actual&&missing<=(int)Math.ceil(d*5),"reported and actual initial cell counts");buckets[missing]++;
@@ -41,12 +42,12 @@ public final class CraftingCurriculumTest {
                     p.click(3,45,Pocket.NONE); // Explicit mechanical assertion, not a policy demonstration.
                     check(p.count(output)==1&&p.crafted.getOrDefault(output,0L)==1,"a real click is needed to own the result");
                 }
-                Pocket replay=stock(task);RandomSource again=StationPractice.resetRandom(l);replay.open(StationPractice.initialMenu(l,again));
+                Pocket replay=stock(task);RandomSource again=StationPractice.resetRandom(l);replay.open(Pocket.Menu.WORKBENCH);
                 int replayMissing=InitialCrafting.prepare(replay,task.ordinal(),d,again);
                 if(missing==0)replay.click(3,45,Pocket.NONE);
                 check(replayMissing==missing&&state(p).equals(state(replay)),"same lesson reproduces pocket independently of pose RNG");
             }
-            check(operation==2048,"every assisted station start retains the product-completion goal");
+            check(operation==2048,"every explicit open-state operation retains the product-completion goal");
             int frontier=(int)Math.ceil(d*5);
             for(int i=0;i<=frontier;i++)check(buckets[i]>40,"each earlier and frontier start is reachable");
             if(frontier>0) {
@@ -62,7 +63,7 @@ public final class CraftingCurriculumTest {
                 check(menu==Pocket.Menu.CLOSED&&!StationPractice.operation(l),"full tasks retain closed unassisted reset");
                 check(rng.state()==before,"full task consumes no assistance RNG");
             } else if(StationPractice.applies(task)) {
-                check(menu==StationPractice.station(task),"all station types start usable in assisted practice");
+                check(menu==(StationPractice.operation(l)?StationPractice.station(task):Pocket.Menu.CLOSED),"station label and selected initial state agree");
                 check(rng.state()==before,"station menu selection consumes no reset RNG");
             }
         }
@@ -80,7 +81,8 @@ public final class CraftingCurriculumTest {
         for(int i=0;i<500;i++) {
             Course.Lesson lesson=course.issue(0);double before=course.progress(0).practiceSuccess();
             boolean probe=lesson.kind()==Course.Kind.PROBE;
-            if(probe)probes++;else {operations++;check(StationPractice.operation(lesson),"all assisted practice targets completion");}
+            if(probe)probes++;else {operations++;check(StationPractice.initialMenu(lesson,StationPractice.resetRandom(lesson))==
+                (StationPractice.operation(lesson)?Pocket.Menu.WORKBENCH:Pocket.Menu.CLOSED),"practice targets completion from its actual selected start");}
             // Supplied test outcomes, not actions or learned success: probes deliberately fail.
             boolean completed=!probe&&i%3==0;if(completed)wins++;
             course.finish(0,lesson.serial(),completed);

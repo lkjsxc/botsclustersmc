@@ -93,7 +93,8 @@ public final class StationTest {
         near(total,-potentials[0]);
         for(Task task:Task.values())for(Course.Kind kind:Course.Kind.values())for(double d:new double[]{0,.2,.549,.55,.8,1}) {
             Course.Lesson lesson=new Course.Lesson(1,task,d,3,kind);
-            boolean assisted=StationPractice.applies(task)&&kind==Course.Kind.PRACTICE&&d<1;
+            boolean assisted=StationPractice.applies(task)&&kind==Course.Kind.PRACTICE&&d<1
+                &&(d==0||new RandomSource(lesson.seed()^0x656e747279L).unit()>d);
             check(StationPractice.operation(lesson)==assisted);
             check(StationPractice.initialMenu(lesson,new RandomSource(3))==
                 (assisted?StationPractice.station(task):Pocket.Menu.CLOSED)||!StationPractice.applies(task));

@@ -18,7 +18,11 @@ public final class StationPractice {
     public static boolean applies(Task task) {return station(task)!=Pocket.Menu.CLOSED;}
     /** Assistance changes the initial state, never the task's success predicate. */
     public static boolean operation(Course.Lesson lesson) {
-        return applies(lesson.task())&&lesson.kind()==Course.Kind.PRACTICE&&lesson.difficulty()<1;
+        if(!applies(lesson.task())||lesson.kind()!=Course.Kind.PRACTICE||lesson.difficulty()>=1)return false;
+        if(lesson.difficulty()<=0)return true;
+        // Independent reset choice preserves the original ingredient/cursor RNG on retained open starts.
+        // This selects an initial state only; every subsequent interaction remains a policy action.
+        return new RandomSource(lesson.seed()^0x656e747279L).unit()>lesson.difficulty();
     }
     /** Isolated from world/pose RNG so each lesson has reproducible pocket reset diagnostics. */
     public static RandomSource resetRandom(Course.Lesson lesson) {
@@ -27,7 +31,7 @@ public final class StationPractice {
     /** Reset-only menu selection. Full probes/exams consume no assistance RNG. */
     public static Pocket.Menu initialMenu(Course.Lesson lesson,RandomSource rng) {
         if(lesson.kind()!=Course.Kind.PRACTICE||lesson.difficulty()>=1)return Pocket.Menu.CLOSED;
-        if(applies(lesson.task()))return station(lesson.task());
+        if(applies(lesson.task()))return operation(lesson)?station(lesson.task()):Pocket.Menu.CLOSED;
         return switch(lesson.task()) {
             case CRAFT_PLANKS,CRAFT_STICKS,CRAFT_WORKBENCH ->
                 rng.unit()>lesson.difficulty()?Pocket.Menu.INVENTORY:Pocket.Menu.CLOSED;
