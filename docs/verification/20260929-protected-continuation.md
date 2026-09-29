@@ -135,8 +135,9 @@ Every model/seed/boundary scored **0/128 on ordinary wooden-pickaxe completion**
 Consequently both final acquisition gates failed the required 16/128 floor.
 This is **observed retention with failed acquisition**, not a successful learning
 system, a passed mastery test, an operational failure, or evidence that additional
-identical training will solve the next skill. Do not merge or deploy PR #36's
-fixed-frontier runtime. Keep its source and complete states as experimental evidence.
+identical training will solve the next skill. PR #36 was closed without merging
+its fixed-frontier runtime. Its source and complete states remain experimental
+evidence, not a deployment.
 
 ### Complete task scores
 
@@ -260,6 +261,31 @@ developer evidence-validation fix, **not** the focused model, training code,
 experimental weights, optimizer, curriculum, or assistance. The live Academy
 was not reset or replaced. Full raw evidence remains local, not a durable
 public/off-machine archive.
+
+### Closeout source and runtime verification
+
+Developer-validation fix: `027484eb98e399a48e22c0eba7ed55659267e2af`, tree
+`e4cce6eadafe46603b7e818c935fbb9c9819d640`. The subsequent reporting commit
+`a1d918e4a972e07ab3279761200725c3fab569dc` adds documentation only. PR #38 is the
+mainline integration path; it does not include PR #36's experimental source.
+
+A fresh full `./test.sh` completed successfully in **81.627 seconds**, with the
+transcript retained as `.build/crafting-closeout-suite.log` in the separate
+`botsclustersmc-continuation-closeout` worktree. The companion result JSON records
+exit code zero. All **47 Python unittest methods** also passed, including the
+29 holdout methods and their real optimized-interpreter subprocesses. Source
+adapter fixtures were compiled against the actual API; that is not a new live
+Minecraft acceptance run.
+
+The source diff against mainline base `6545f9c216e4dc734ba070e61fce88bcf63741e6`
+leaves `core/`, `plugin/`, `training/` and `host/` unchanged. The fresh training
+JAR matched both mainline's built JAR and the installed live training JAR:
+`7e3df712d2b9d9bb5afcf8e5a1010004d60c00a36f71448f7bc0457443764dfc`.
+The fresh inference JAR also matched mainline's built artifact:
+`e16b1ade2e0a1a3d17f5532c3476929ecb8e45137bc636c6344698190d555ed0`.
+No runtime/model installation or live-service restart was necessary for this
+identical-runtime closeout. CI results are recorded on PR #38 separately from
+local source checks and the saved experimental evidence.
 
 ### Reproduction and retained evidence
 

@@ -28,8 +28,8 @@ then completed 18,432 ordinary frozen trials and about 1.5 million additional
 accepted task-11 samples per arm. Protection retained source workbench scores
 of 119/128 and 117/128, while the unprotected final control scored 37/128 and
 39/128. Both arms still had zero ordinary pickaxe completions. This establishes
-bounded observed retention, not new-skill acquisition; PR #36's fixed-frontier
-runtime is not accepted for deployment.
+bounded observed retention, not new-skill acquisition. PR #36 is closed without
+merging its fixed-frontier runtime; it is not accepted for deployment.
 The preceding [continuation screen](verification/20260929-placement-practice-study.md)
 rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
@@ -115,8 +115,8 @@ requirement, does continued learning preserve its measured behavior, and does th
 new skill improve? The protected pilot's original and protected initial models
 both scored 29/32 on aim-hold under one fresh seed, below its declared 30/32 floor.
 Do not treat that as forgetting, change the stopped pilot's rule, or substitute
-a favorable seed. The subsequent relative study explicitly used that imperfect input, 128 cases per
-task and two new seeds, with all rules published before training. It did not
+a favorable seed. The subsequent relative study explicitly used that imperfect
+input, 128 cases per task and two new seeds, with all rules published before training. It did not
 retroactively change the stopped pilot. Exact function preservation also does
 not guarantee success under changed world/partner-state distributions; ordinary
 rollouts remain necessary. Keep validated bounded retention separate from a
