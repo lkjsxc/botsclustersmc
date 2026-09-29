@@ -126,7 +126,214 @@ The original copied canonical checkpoint, per-trial diagnostics, evaluator JARs,
 policy, runtime and metadata are retained. Historical certificates and the live
 changing-policy success counters are not the basis of the frozen result above.
 
+## Secondary trace inspection of the current-main snapshot
+
+This analysis was selected after the two complete snapshot reports, not declared
+as a primary endpoint. It reads existing traces and performs no new simulation.
+
+| Task 11 trace count, each out of 32 | Seed 2026093001 | Seed 2026093004 |
+| --- | ---: | ---: |
+| No observed workbench state | 24 | 26 |
+| At least one workbench state | 8 | 6 |
+| Target preview observed | 1 | 2 |
+| Left the workbench with a partial recipe | 5 | 3 |
+| Ordinary success | 1 | 2 |
+
+All three successful trials observed all five correct cells and a target preview;
+they finished after 326, 231 and 251 ticks. This is not evidence that unsuccessful
+trials would succeed merely by opening the workbench. In the non-visiting subsets,
+menu observation counts were [3146 closed, 11254 personal inventory] and [3447,
+12153]; none was a workbench state. Of those subsets, 22/24 and 21/26 came within
+three units of the supplied target at least once. Distance alone does not establish
+correct aim, line of sight or a valid interaction. Do not reinterpret this
+post-selected subset as a controlled opening intervention.
+
+The current `StationPractice.initialMenu` gives station tasks an open station in
+all sub-full-difficulty PRACTICE starts. Full probes/exams begin closed; probes
+still supply training data, so this is not a claim that closed states are absent
+from learning. It motivates the following independent, prospectively specified
+comparison on the same current-main snapshot, not a change to the old candidate
+attribution or its stopping rule.
+
+## Additional current-main starting-state ladder, declared before execution
+
+Use the same policy `2c9297f...` and main runtime `7e3df712...` above, not the old
+click-slot candidate. Freeze tasks to **[11]**, 32 cases per condition, with new
+seeds **2026093005** and **2026093006**. For each seed run every condition in the
+ordered ladder `none`, `workbench-open`, `pickaxe-grid`. Keeping the task list
+identical matters: the earlier tasks 0-11 reports use different actor IDs and must
+not be substituted for this ladder's `none` condition.
+
+The six reports total 192 trial executions. `none` starts closed with raw stock.
+`workbench-open` changes only the initial menu. `pickaxe-grid` opens the menu and
+arranges the five existing raw units, but supplies no completed item or cursor
+assistance. These are existing diagnostic reset implementations, not new gameplay
+code. No later move or click is supplied; closing remains possible. The last two
+conditions remain explicitly assisted and ineligible for native certification.
+
+Run only after all four attribution workers have ended. Use up to three loopback
+evaluators at once on ports 25596-25598, two visible CPU processors per JVM, the
+same prepared server cache, and a 1,200-second cap per evaluator. Preserve every
+result, exact policy/runtime and assistance metadata. All six must complete with
+unchanged policy bytes and zero training before interpreting the ladder.
+
+On **each seed separately**, an increase of at least 8 successes/32 from `none` to
+`workbench-open` is the entry-sensitivity screen. An increase of at least 8/32 from
+`workbench-open` to `pickaxe-grid`, with the latter at least 24/32, is the
+assembly-versus-collection screen. Neither is a confidence interval or a learning
+benefit. A missed screen does not erase the observed entry failures or prove
+absence of an effect. Report every raw count and both contrasts without selecting
+a favorable seed. This is one fixed model, not independent training replications.
+The planned result informs which start-state bridge to investigate; it does not
+justify automatic station opening, recipe completion, a deployment substitution
+or a claim of survival/cooperation.
+
 ## Execution results
 
-No attribution gameplay result is claimed at declaration. Append completed
-results and source identities here without changing the protocol above.
+No attribution gameplay result is claimed in its original declaration. The
+starting-state ladder above was added after the first attribution seed completed,
+but before any ladder trial. Append complete results and source identities below
+without changing either protocol.
+
+### Completed protected attribution
+
+Implementation and original declaration: `d649e32be8862cd161988c2b5b432db339187050`,
+tree `e0330b527a437c20b3dfa10cfdfe5394fa4aef6b`, research PR #45. All 48 reports
+completed, totaling 1,792 trials, with unchanged evaluated policies and zero new
+training samples. The complete predeclared matrix, including every zero-result
+handle condition, finished normally; no later training was performed.
+
+Each entry below is **seed 2026093002 / seed 2026093003**, each count out of 32.
+
+| Condition | Mask 0: initial both | Mask 3: stopped representation | Mask 4: stopped actor | Mask 7: stopped both |
+| --- | ---: | ---: | ---: | ---: |
+| Ordinary task 10 | 24 / 31 | 24 / 31 | 24 / 31 | 24 / 31 |
+| Ordinary task 11 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| Missing top left | 15 / 14 | 3 / 2 | 16 / 14 | 2 / 3 |
+| Missing top center | 20 / 19 | 1 / 2 | 20 / 17 | 0 / 2 |
+| Missing top right | 19 / 18 | 9 / 8 | 20 / 16 | 11 / 9 |
+| Missing upper handle | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| Missing lower handle | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+
+The top-left representation contrasts are [-12, -12, -14, -11] and the top-center
+contrasts are [-19, -17, -20, -15]. Both meet the fixed all-background/all-seed
+-8/32 screen. Top-right contrasts [-10, -10, -9, -7] are all adverse, but **do not
+meet** that screen; its threshold was not changed to manufacture a passing result.
+Actor contrasts for the three head positions range from -2 to +2; none meets the
+consistent-degradation screen. The zero-baseline handle cells provide no evidence
+of retained competence and are not pooled into the head-cell comparison.
+
+For this old stopped candidate, replacing the representation is sufficient to
+reproduce the large left/center loss under both actor projections. Retaining the
+initial representation while using the stopped actor retains the measured head
+placements. This localizes parameter sensitivity; it does not identify which
+loss term, gradient, training example or optimizer state caused the change. It
+also does not imply that every architecture with conditioned slot outputs fails.
+All four mixtures still fail ordinary pickaxe completion. Keep this branch and
+its hybrids as diagnostics; **do not merge or deploy the rejected runtime**.
+
+### Completed current-main starting-state ladder
+
+Its separate pre-execution declaration is
+`2d54da8ef8d3de3ff13ca04f7eded38ad48cf755`, tree
+`a6d6d0d2c28f3f1076fb1f2f43c9ff9132a28b4f`. The actual gameplay and verification
+source remains main `11dd8f51a9821ee025f335e41a0f7ef95e328597`; that declaration
+changes documentation only. The six reports completed after attribution ended,
+with identical ordered tasks [11], 32 cases per condition, fixed policy 1,019,070
+and 297,530,150 trained samples, unchanged policy bytes and zero new learning.
+
+| Starting state | Seed 2026093005 | Seed 2026093006 |
+| --- | ---: | ---: |
+| Ordinary closed menu, raw ingredients | 1/32 | 0/32 |
+| Workbench open, same raw ingredients | 30/32 | 31/32 |
+| Workbench open, five raw units arranged | 31/32 | 32/32 |
+
+The entry contrasts are **+29/32 and +31/32**, both exceeding the predeclared
++8/32 screen. The further assembly-bypass contrasts are only +1/32 and +1/32,
+so the assembly-versus-collection screen is not met. The current model can
+usually assemble and collect this recipe when it starts with the appropriate
+interface open. Its ordinary entry/starting-state transfer is the immediate
+bottleneck in this controlled setting. This is a result for the newer current-main
+model, not a contradiction of the older candidate's missing-handle failures.
+
+The open-menu condition is assistance, not ordinary mastery. This does not prove
+that closing an incorrect personal inventory alone fixes the failure; aiming,
+interaction choice and context switching remain possible contributors. It is not
+a controlled learning improvement, natural-terrain competence or cooperation.
+
+### Development decision
+
+Prioritize a **learned station-entry bridge** from the current, qualified warm
+checkpoint before adding more actor heads or repeating the old placement-only
+curriculum. A concrete candidate is to fade initial open-station assistance as
+practice progresses, while keeping the original complete-task predicate, raw
+resource conservation and unchanged full-condition probes/exams. It must not
+open a station automatically during ordinary gameplay or substitute an opening
+subgoal for actually crafting the tool.
+
+The next learning comparison must retain the current open-menu raw-assembly
+function as well as tasks 0-10. Compare against an unchanged continuation of the
+same canonical checkpoint. Bound accepted samples and report observed effort:
+long failed closed-menu episodes can dominate ticks even when their episode
+fraction is small. Neither the old attribution nor the new reset ladder proves
+that a particular training mixture, value-gradient change or architecture will
+improve ordinary completion. Those require their own predeclared learning test.
+
+### Engineering checks and retained evidence
+
+Both complete local Java/source suites passed: the research runtime and the
+unchanged mainline runtime. The research block-counterfactual suite passed
+8,792,924 checks. Its 12 offline controller tests passed under normal and optimized
+Python. GitHub run **36641789762** passed Ubuntu source, Windows source and
+observatory jobs on the implementation/declaration commit. The additional local
+starting-state controller passed six offline completeness/type/no-start tests in
+both Python modes and revalidated all six real reports through the original
+mainline verifier. These test counts are not learned-gameplay achievements.
+
+The combined work completed **56 reports / 2,752 frozen trial executions**:
+1,792 old-candidate attribution trials, 768 current-main snapshot trials, and 192
+current-main starting-state trials. Assisted conditions remain separate from
+ordinary exams. The live Academy continued with 512 agents; no experimental
+runtime or policy replaced it. Mainline runtime identity remains `7e3df712...`.
+
+A whitelisted evidence archive has been stored as an **unpublished GitHub draft**,
+`protected-attribution-20260930`, targeting the research source. Asset
+**599494083**, `protected-attribution-evidence-20260930.zip`, is 14,017,696 bytes
+with SHA-256 `0f092e8539e1b0eec8c189e3d56f22bfa17d081c4cbec0e5d87b160900152fb3`.
+GitHub reports the same asset digest, and a fresh authenticated download matched
+the local file byte-for-byte. The archive's 215 members passed CRC and per-member
+size/digest verification before upload.
+
+It retains both old candidate checkpoints and policies, all 16 mixtures, the
+new current-main checkpoint/policy, the two repository-owned runtimes, all 56
+complete raw reports and their metadata, receipts, original declarations,
+verification logs and the actual local controllers. There are no Minecraft
+server binaries, worlds, caches, credentials or unrelated project files. The
+archive and draft are **not a deployable release** and certify no new skill.
+
+Local originals remain in the main checkout's `.build/frontier-snapshot-20260930`,
+`frontier-confirm-20260930` and `frontier-entry-20260930`, plus the research
+worktree's `.build/protected-attribution`. Original canonical inputs, stopped
+states and failed trials were not overwritten. The local archive is in the
+research `.build/`; its separately downloaded comparison copy is in
+`.build/retained-roundtrip/`.
+
+For individual replay, use `tests/holdout.py` from the recorded matching source
+and the matching archived policy/runtime. For example, from the unchanged
+mainline source and an explicitly prepared local server cache:
+
+```sh
+EULA=true JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 \
+  python3 tests/holdout.py \
+  --policy /absolute/evidence/inputs/main-policy.bcmc \
+  --runtime /absolute/evidence/runtime/main-training.jar \
+  --cache /absolute/prepared/server-cache \
+  --output /absolute/new-disposable-exam \
+  --tasks 11 --cases 32 --seed 2026093005 --port 25596 \
+  --reset-intervention workbench-open
+```
+
+Preserve the original ordered tasks, seed, cases and reset label for every replay;
+do not silently substitute the continually changing live model. The archived
+local orchestration scripts document this execution and use explicit workspace
+paths; they are not portable, unattended launch defaults.
