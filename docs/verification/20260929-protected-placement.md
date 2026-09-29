@@ -120,3 +120,54 @@ sample counts, scope-skipped samples, artifact identities, all reports and
 per-trial diagnostics. Python optimization must not disable acceptance checks.
 The live mainline server remains independent and is not reset or replaced.
 Raw evidence is local retention, not an off-machine public archive.
+
+## Disclosed operational stop and recovery declaration
+
+The original execution at `ca75ffcc03348083e282406a73d0e14964c47444` completed
+all fourteen baseline reports: 3,072 ordinary trials and 320 explicitly assisted
+trials. It then stopped during the first control startup because the new Python
+runner incorrectly required eighteen learned-task counters. The unchanged Java
+`TaskBalance` publishes eighteen named tasks **plus an unlabelled bucket**, for
+nineteen counters. This is a runner validation defect, not a policy failure.
+The native saved checkpoint audit reports 332307 updates / 92,574,673 accepted
+samples: **four** additional task-11 samples, with the source anchor unchanged.
+Candidate training never started; no early or final comparison took place.
+The owned control server shut down, and no experiment process remained.
+
+The complete original attempt remains in `.build/protected-placement-study/`.
+Its declaration identity is
+`fd392dab3dac602f1d6de9a4f64c29f715f7fce022b00380970d0da662fd1ae5`,
+failure record is
+`50e9c982735c6a838ab6ddf09048e8d91ff100c333ea415d3eb0a4dfe93a2049`,
+and stopped checkpoint is
+`e3422c34e7a27e2844668d755bada28043394611ba736c5e89bd9f38453fff79`.
+None is overwritten, deleted, or reclassified as a scientific retention failure.
+
+The baseline source's five assisted counts, ordered as above and out of 32,
+were **17,20,18,0,1** on seed 2026092981 and **15,17,15,0,1** on seed
+2026092982. Both source ordinary pickaxe results were 0/64. Both protected-initial
+ordinary suites passed the originally declared relative-retention screen.
+These are measured initial conditions, not candidate improvements.
+
+Before any further game execution, publish this recovery declaration and the
+runner-only repair. The repair accepts exactly nineteen finite nonnegative
+integer counters and still rejects **any** accepted sample outside task 11,
+including the unlabelled bucket. Tests cover the actual shape, every prohibited
+bucket, missing/extra entries, malformed values, booleans, floats and overflow.
+Both runtime JARs remain byte-identical to the originally declared pair.
+
+Recovery uses a new owned `.build/protected-placement-recovery/` directory.
+It validates **all fourteen existing baseline reports** against the same input,
+metadata, runtime, per-trial coverage and receipts, then references them without
+rerunning them or counting them twice. A baseline-reuse manifest retains every
+original report identity. There is no selection of a favorable baseline subset.
+
+Both learning arms start again from the **original exact protected input**, not
+from the four-sample operational checkpoint. Those four samples are separately
+accounted operational work, excluded from both comparison arms. The training
+seed, evaluation seeds, task order, sample targets, overshoot, stop rules,
+ordinary acquisition gate and assisted placement gate above are unchanged.
+If the run completes, its evidence consists of the fourteen reused baseline
+reports plus twenty-eight new reports, not fifty-six independent reports.
+This explicitly disclosed recovery repairs execution only; it does not erase the
+failure, revise a scientific threshold, or authorize a deployment.

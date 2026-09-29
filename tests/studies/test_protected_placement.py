@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Decision-rule tests for the prospectively bounded protected-placement study."""
-import ast, copy, os, subprocess, sys, tempfile, unittest
+import ast, copy, json, os, subprocess, sys, tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
 import protected_placement as p
@@ -70,6 +70,28 @@ class ProtectedPlacementTest(unittest.TestCase):
             self.assertFalse(p.diagnostic_screen(altered)[0]['placement_gain'])
         altered=copy.deepcopy(rows);altered[0]['intervention']='none'
         with self.assertRaises(AssertionError):p.diagnostic_screen(altered)
+
+    def test_native_task_balance_includes_unlabelled_bucket(self):
+        valid=[0]*19;valid[11]=4
+        self.assertEqual(p.task_counts(json.dumps(valid)),valid)
+        self.assertEqual(p.task_counts(json.dumps([0]*19)),[0]*19)
+        for size in (0,18,20):
+            with self.assertRaises(AssertionError):p.task_counts(json.dumps([0]*size))
+        for index in range(19):
+            if index==11:continue
+            invalid=valid.copy();invalid[index]=1
+            with self.assertRaises(AssertionError):p.task_counts(json.dumps(invalid))
+
+    def test_task_counts_reject_malformed_and_noninteger_counters(self):
+        for value in (None,[],{},False):
+            with self.assertRaises(AssertionError):p.task_counts(value)
+        for value in ('null','{}','false','[0,'):
+            with self.assertRaises((AssertionError,ValueError)):p.task_counts(value)
+        for value in (True,False,-1,1.0,float('nan'),float('inf'),2**63):
+            invalid=[0]*19;invalid[11]=value
+            with self.assertRaises(AssertionError):p.task_counts(json.dumps(invalid))
+        valid=[0]*19;valid[11]=2**63-1
+        self.assertEqual(p.task_counts(json.dumps(valid)),valid)
 
     def test_optimized_python_keeps_rejection_active(self):
         tree=ast.parse(Path(p.__file__).read_text())

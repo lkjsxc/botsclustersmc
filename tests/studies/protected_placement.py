@@ -10,7 +10,8 @@ import holdout
 ROOT=Path(__file__).resolve().parents[2]
 CONTROL_ROOT=ROOT.parent/'botsclustersmc-protected-continuation'
 INPUT=CONTROL_ROOT/'.build/focus-input'
-OUT=ROOT/'.build/protected-placement-study'
+PREVIOUS=ROOT/'.build/protected-placement-study'
+OUT=ROOT/'.build/protected-placement-recovery'
 CACHE=ROOT.parent/'botsclustersmc/.cache/server'
 RUNTIME=CONTROL_ROOT/'dist/training.jar'
 CANDIDATE=ROOT/'dist/training.jar'
@@ -152,6 +153,14 @@ def gate(phase):
         save(OUT/'rejected.json',{'phase':phase,'reason':'prespecified relative retention gate; not an absolute qualification claim','results':results});return False
     return True
 
+def task_counts(encoded):
+    # TaskBalance exposes 18 named tasks PLUS its UNLABELLED bucket.
+    require(type(encoded) is str,'task counts must be encoded as a string')
+    counts=json.loads(encoded)
+    require(type(counts) is list and len(counts)==19 and all(type(n) is int and 0<=n<=2**63-1 for n in counts),'invalid per-task counts')
+    require(all(n==0 for i,n in enumerate(counts) if i!=11),'non-target or unlabelled accepted samples')
+    return counts
+
 def train(arm,target):
     guard();memory();out=OUT/arm;out.mkdir(exist_ok=True);evidence=out/str(target);evidence.mkdir()
     academy=out/'academy';data=academy/'server/plugins/BotsClustersMC';checkpoint=data/'training.bcmc'
@@ -181,9 +190,7 @@ def train(arm,target):
                         require(status['learning_task_scope']==11 and status['protected_prior_policy'] is True,'unprotected or out-of-scope learner')
                         if any(status.get(k,0) for k in ('inference_failed','inference_rejected','learner_rejected_samples','learner_stale_samples','retired_agents')):
                             raise RuntimeError('runtime error counters')
-                        counts=json.loads(status['learned_task_samples_this_process'])
-                        require(type(counts) is list and len(counts)==18 and all(type(n) is int and n>=0 for n in counts),'invalid per-task counts')
-                        require(all(n==0 for i,n in enumerate(counts) if i!=11),'non-target accepted samples')
+                        task_counts(status['learned_task_samples_this_process'])
                         if last is None or status['epoch_millis']!=last['epoch_millis']:
                             last=status;history.write(json.dumps(status)+'\n');history.flush()
                             if first is None and status['active_agents']==512:
@@ -247,11 +254,13 @@ def main():
     save(OUT/'declaration.json',{'source':SOURCE,'reference_runtime':RUNTIME_SHA,'candidate_runtime':CANDIDATE_SHA,'changed_entries':changed,
         'input_files':INPUT_SHAS,'seeds':SEEDS,'tasks':TASKS,'cases':CASES,'relative_margin':RELATIVE_MARGIN,
         'growth_floor':GROWTH_FLOOR,'growth_delta':GROWTH_DELTA,'diagnostic_cells':list(CELLS),'diagnostic_cases':32,
-        'budgets':[250000,1500000],'overshoot':50000,'both_arms_protected':True,'epoch':time.time(),'runner_sha256':sha(Path(__file__))})
+        'budgets':[250000,1500000],'overshoot':50000,'both_arms_protected':True,'epoch':time.time(),'runner_sha256':sha(Path(__file__)),
+        'operational_recovery':True,'previous_attempt':str(PREVIOUS),'reused_baseline_reports':14,
+        'excluded_operational_samples':4,'new_game_reports':28})
     try:
-        evaluate('baseline')
+        from placement_recovery import reuse_baselines
+        reuse_baselines(PREVIOUS,OUT,INPUT,RUNTIME_SHA,INPUT_SHAS,SEEDS,TASKS,CASES,CELLS)
         if not gate('baseline'):return
-        for cell in CELLS: evaluate('baseline',cell)
         for arm in ARMS:train(arm,250000)
         evaluate('early')
         if not gate('early'):return
