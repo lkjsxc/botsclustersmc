@@ -136,6 +136,16 @@ public final class PolicyBlocksTest {
             check(!Files.exists(root.resolve("bad-base")) && !Files.exists(root.resolve("bad-donor")), "validate both inputs before output");
             Files.write(malformed, Arrays.copyOf(bb, bb.length + 1));
             reject(() -> PolicyBlocks.run(a, malformed, root.resolve("trailing")), "trailing input");
+            Locale originalLocale = Locale.getDefault(Locale.Category.FORMAT);
+            try {
+                Locale.setDefault(Locale.Category.FORMAT, Locale.forLanguageTag("ar-EG"));
+                Path localized = root.resolve("localized"); PolicyBlocks.run(a, b, localized);
+                String text = Files.readString(localized.resolve("counterfactuals.json"));
+                check(text.contains("\"base_policy_updates\": 17"), "locale-independent base updates");
+                check(text.contains("\"base_trained_samples\": 999"), "locale-independent base samples");
+                check(text.contains("\"donor_policy_updates\": 27"), "locale-independent donor updates");
+                check(text.contains("\"donor_trained_samples\": 1999"), "locale-independent donor samples");
+            } finally { Locale.setDefault(Locale.Category.FORMAT, originalLocale); }
             Path link = root.resolve("link");
             try {
                 Files.createSymbolicLink(link, second);

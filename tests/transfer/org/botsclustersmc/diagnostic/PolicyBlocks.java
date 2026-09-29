@@ -100,7 +100,7 @@ public final class PolicyBlocks {
                     + ", \"changed_parameters\": " + d.changed() + ", \"l2\": " + d.l2()
                     + ", \"maximum_absolute_difference\": " + d.maximum() + "}");
         }
-        String manifest = """
+        String manifest = String.format(Locale.ROOT, """
             {
               "kind": "parameter-block-counterfactuals",
               "diagnostic_only": true,
@@ -122,7 +122,7 @@ public final class PolicyBlocks {
             %s
               ]
             }
-            """.formatted(Schema.ID, base.updates(), base.samples(), donor.updates(), donor.samples(),
+            """, Schema.ID, base.updates(), base.samples(), donor.updates(), donor.samples(),
                 GoalTransfer.digest(baseBytes), GoalTransfer.digest(donorBytes), groups, policies);
         writeNew(output.resolve("counterfactuals.json"), manifest.getBytes(StandardCharsets.UTF_8));
     }
