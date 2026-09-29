@@ -5,15 +5,16 @@ import java.util.Arrays;
 /** One current semantic contract, independent of server protocol and actor count. */
 public final class Schema {
     private Schema() {}
-    public static final String ID = "bcmc-citizen-egocentric-context";
+    public static final String ID = "bcmc-click-conditioned-slots";
     public static final int INPUTS = 512;
     public static final int HIDDEN = 96;
     public static final int[] HEADS = {9, 5, 5, 3, 4, 9, 6, 64};
-    public static final int LOGITS = Arrays.stream(HEADS).sum();
+    public static final int SLOT_BASE = Arrays.stream(HEADS).sum() - HEADS[7];
+    // Primitive actions, observations and legal supports are unchanged. Only the
+    // neural slot projection is untied across the three observable click types.
+    public static final int LOGITS = SLOT_BASE + 3 * HEADS[7];
     public static final int OUTPUTS = LOGITS + 1;
-    // The network retains one shared slot-logit head. Transient masks/probabilities
-    // carry a separate conditional slot block for each of the three click types.
-    public static final int DISTRIBUTION = LOGITS + 2 * HEADS[7];
+    public static final int DISTRIBUTION = LOGITS;
     public static final int[] IDLE = {0, 2, 2, 0, 0, 0, 0, 0};
     public static final int DECISION_TICKS = 4;
     public static final int MAX_MODEL_BYTES = 8 * 1024 * 1024;
@@ -21,7 +22,7 @@ public final class Schema {
     public static boolean[] unrestrictedMask() { boolean[] m=new boolean[DISTRIBUTION]; Arrays.fill(m,true); return m; }
     public static int slotOffset(int operation) {
         if(!slotActive(operation))throw new IllegalArgumentException("inactive slot operation");
-        return LOGITS-HEADS[7]+(operation-1)*HEADS[7];
+        return SLOT_BASE+(operation-1)*HEADS[7];
     }
     public static void checkObservation(float[] x) {
         if(x.length != INPUTS) throw new IllegalArgumentException("observation dimension");

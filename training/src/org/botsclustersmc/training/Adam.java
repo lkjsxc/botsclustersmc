@@ -29,6 +29,6 @@ public final class Adam {
             m[i]=(float)(.9*m[i]+.1*g);v[i]=(float)(.999*v[i]+.001*g*g);
             w[i]-=(float)(learningRate*(m[i]/b1)/(Math.sqrt(v[i]/b2)+1e-8));
         }
-        return new Update(new Policy(w,Math.addExact(old.updates(),1),Math.addExact(old.samples(),samples)),new Adam(m,v,next),norm);
+        return new Update(old.withWeights(w,Math.addExact(old.updates(),1),Math.addExact(old.samples(),samples)),new Adam(m,v,next),norm);
     }
 }

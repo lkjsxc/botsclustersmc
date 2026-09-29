@@ -40,9 +40,9 @@ public final class ConditionalDistributionTest {
             double parent=(uniformPrior?1:Math.exp(logits[PARENT+op]))/parentTotal;
             if(!Schema.slotActive(op)) {weights.put(op*64,parent);continue;}
             int offset=Schema.slotOffset(op);double total=0;
-            for(int slot=0;slot<64;slot++)if(mask[offset+slot])total+=uniformPrior?1:Math.exp(logits[CHILD+slot]);
+            for(int slot=0;slot<64;slot++)if(mask[offset+slot])total+=uniformPrior?1:Math.exp(logits[CHILD+(op-1)*64+slot]);
             for(int slot=0;slot<64;slot++)if(mask[offset+slot])
-                weights.put(op*64+slot,parent*(uniformPrior?1:Math.exp(logits[CHILD+slot]))/total);
+                weights.put(op*64+slot,parent*(uniformPrior?1:Math.exp(logits[CHILD+(op-1)*64+slot]))/total);
         }
         return weights;
     }
@@ -129,8 +129,8 @@ public final class ConditionalDistributionTest {
         near(Distribution.divergence(reuse,modified),0,0,"inactive child KL ignored without zero times infinity");
         boolean[] empty=fixture();Arrays.fill(empty,Schema.slotOffset(2),Schema.slotOffset(2)+64,false);
         fails(()->probabilities(x,empty),"enabled parent with empty child rejected");
-        fails(()->Distribution.probabilities(x,new boolean[Schema.LOGITS],reuse),"old transient mask shape rejected");
-        fails(()->Distribution.probabilities(x,mask,new double[Schema.LOGITS]),"old probability shape rejected");
+        fails(()->Distribution.probabilities(x,new boolean[CHILD+64],reuse),"old flat transient mask shape rejected");
+        fails(()->Distribution.probabilities(x,mask,new double[CHILD+64]),"old flat probability shape rejected");
         fails(()->Schema.slotOffset(0),"inactive offset rejected");
         x[CHILD+63]=Float.NaN;fails(()->probabilities(x,mask),"even masked nonfinite slot logits rejected");
         x[CHILD+63]=1000;

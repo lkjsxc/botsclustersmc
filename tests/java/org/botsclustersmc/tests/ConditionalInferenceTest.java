@@ -24,7 +24,7 @@ public final class ConditionalInferenceTest {
         CountDownLatch done=new CountDownLatch(n);AtomicReference<Throwable> failure=new AtomicReference<>();
         InferencePool pool=new InferencePool(2,n);
         try {
-            fails(()->pool.offer(new InferencePool.Request(0,policy,observations[0],new boolean[Schema.LOGITS],
+            fails(()->pool.offer(new InferencePool.Request(0,policy,observations[0],new boolean[Task.offset(7)+64],
                 0,false,r->{},e->{},System.nanoTime())),"inference rejects obsolete transient masks");
             for(int i=0;i<n;i++) {
                 Pocket pocket=new Pocket();pockets[i]=pocket;
@@ -66,8 +66,8 @@ public final class ConditionalInferenceTest {
             check(step.mask().length==Schema.DISTRIBUTION&&step.nextMask().length==Schema.DISTRIBUTION,"trajectory retains all conditional branches");
         }
         int[] idle=Schema.IDLE.clone();float[] x=observations[0];boolean[] m=masks[0];
-        fails(()->new Transition(x,new boolean[Schema.LOGITS],idle,0,0,0,4,x,m,true),"old current mask rejected");
-        fails(()->new Transition(x,m,idle,0,0,0,4,x,new boolean[Schema.LOGITS],true),"old next mask rejected");
+        fails(()->new Transition(x,new boolean[Task.offset(7)+64],idle,0,0,0,4,x,m,true),"old current mask rejected");
+        fails(()->new Transition(x,m,idle,0,0,0,4,x,new boolean[Task.offset(7)+64],true),"old next mask rejected");
         check(Arrays.equals(weights,policy.copyWeights()),"inference never changes learned weights");
         System.out.println("PASS conditional batched inference/transition checks="+checks);
     }

@@ -9,7 +9,7 @@ import java.util.zip.CRC32;
 /** Strict data format, not Java object deserialization. CRC detects accidental damage. */
 public final class PolicyFile {
     private PolicyFile() {}
-    private static final String MAGIC="BCMC-POLICY";
+    private static final String MAGIC="BCMC-FOCUSED-POLICY";
     public static byte[] encode(Policy policy) throws IOException {
         ByteArrayOutputStream buffer=new ByteArrayOutputStream();
         try(DataOutputStream d=new DataOutputStream(buffer)) {
@@ -17,6 +17,11 @@ public final class PolicyFile {
             d.writeInt(Schema.HEADS.length); for(int n:Schema.HEADS) d.writeInt(n);
             d.writeLong(policy.updates()); d.writeLong(policy.samples());
             float[] weights=policy.copyWeights(); d.writeInt(weights.length); for(float w:weights) d.writeFloat(w);
+            d.writeInt(policy.learningTask());d.writeBoolean(policy.anchor()!=null);
+            if(policy.anchor()!=null){
+                Policy anchor=policy.anchor();d.writeLong(anchor.updates());d.writeLong(anchor.samples());
+                for(float w:anchor.copyWeights())d.writeFloat(w);
+            }
         }
         return checked(buffer.toByteArray());
     }
@@ -29,8 +34,18 @@ public final class PolicyFile {
             long updates=d.readLong(),samples=d.readLong();
             if(d.readInt()!=Policy.PARAMETERS) throw new IOException("parameter length");
             float[] weights=new float[Policy.PARAMETERS]; for(int i=0;i<weights.length;i++) weights[i]=d.readFloat();
-            if(d.available()!=0) throw new IOException("trailing policy data");
-            try{return new Policy(weights,updates,samples);}catch(IllegalArgumentException e){throw new IOException(e.getMessage(),e);}
+            int task=d.readInt(),protectedFlag=d.readUnsignedByte();
+            if(protectedFlag>1)throw new IOException("invalid protection flag");
+            try {
+                Policy anchor=null;
+                if(protectedFlag==1){
+                    long u=d.readLong(),s=d.readLong();float[] frozen=new float[Policy.PARAMETERS];
+                    for(int i=0;i<frozen.length;i++)frozen[i]=d.readFloat();
+                    anchor=new Policy(frozen,u,s);
+                }
+                if(d.available()!=0)throw new IOException("trailing policy data");
+                return new Policy(weights,updates,samples,task,anchor);
+            }catch(IllegalArgumentException e){throw new IOException(e.getMessage(),e);}
         }
     }
     public static Policy read(Path path) throws IOException { return decode(readBounded(path,Schema.MAX_MODEL_BYTES)); }

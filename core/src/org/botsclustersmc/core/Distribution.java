@@ -2,7 +2,7 @@ package org.botsclustersmc.core;
 
 import java.util.Arrays;
 
-/** Seven categorical heads and P(slot | click type), sharing one neural slot-logit head. */
+/** Seven categorical heads and a separate neural P(slot | click type) projection. */
 public final class Distribution {
     private Distribution() {}
     public record Choice(int[] actions,double logProbability,double entropy) {}
@@ -21,9 +21,9 @@ public final class Distribution {
             softmax(logits,off,mask,off,Schema.HEADS[head],p);
             off+=Schema.HEADS[head];
         }
-        int parent=Task.offset(6),child=Task.offset(7);
+        int parent=Task.offset(6);
         for(int op=1;op<=3;op++)if(mask[parent+op])
-            softmax(logits,child,mask,Schema.slotOffset(op),Schema.HEADS[7],p);
+            softmax(logits,Schema.slotOffset(op),mask,Schema.slotOffset(op),Schema.HEADS[7],p);
     }
     private static void softmax(float[] logits,int logitOffset,boolean[] mask,int offset,int size,double[] p) {
         double max=Double.NEGATIVE_INFINITY;
@@ -82,13 +82,13 @@ public final class Distribution {
         for(int op=1;op<=3;op++)e+=p[parent+op]*headEntropy(p,Schema.slotOffset(op),Schema.HEADS[7]);
         return e;
     }
-    /** d(-advantage*log pi - entropyCoefficient*H)/d the SHARED neural logits. */
+    /** d(-advantage*log pi - entropyCoefficient*H)/d the click-conditioned logits. */
     public static void gradient(double[] p,int[] a,double advantage,double entropyCoefficient,float[] out) {
         shape(p);Schema.checkAction(a);
         if(out.length!=Schema.OUTPUTS||!Double.isFinite(advantage)||!Double.isFinite(entropyCoefficient))
             throw new IllegalArgumentException("gradient dimensions/value");
         Arrays.fill(out,0);
-        int parent=Task.offset(6),child=Task.offset(7),off=0;
+        int parent=Task.offset(6),off=0;
         double[] childEntropy=new double[4];double expectedChildEntropy=0;
         for(int op=1;op<=3;op++) {
             childEntropy[op]=headEntropy(p,Schema.slotOffset(op),Schema.HEADS[7]);
@@ -104,14 +104,14 @@ public final class Distribution {
             }
             off+=size;
         }
-        for(int j=0;j<Schema.HEADS[7];j++) {
-            double g=0;
-            for(int op=1;op<=3;op++) {
-                double q=p[Schema.slotOffset(op)+j];if(q==0)continue;
-                if(a[6]==op)g+=advantage*(q-(j==a[7]?1:0));
+        for(int op=1;op<=3;op++) {
+            int child=Schema.slotOffset(op);
+            for(int j=0;j<Schema.HEADS[7];j++) {
+                double q=p[child+j];if(q==0)continue;
+                double g=a[6]==op?advantage*(q-(j==a[7]?1:0)):0;
                 g+=entropyCoefficient*p[parent+op]*q*(Math.log(q)+childEntropy[op]);
+                out[child+j]=(float)g;
             }
-            out[child+j]=(float)g;
         }
     }
     /** Exact joint KL(before || after), including each conditional child only when reached. */

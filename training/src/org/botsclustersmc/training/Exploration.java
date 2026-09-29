@@ -19,7 +19,7 @@ public final class Exploration {
         }
         int parent=Task.offset(6),parents=legal(mask,parent,Schema.HEADS[6]);
         for(int op=1;op<=3;op++)if(mask[parent+op])
-            add(p,mask,Schema.slotOffset(op),Task.offset(7),Schema.HEADS[7],coefficient/parents,gradient);
+            add(p,mask,Schema.slotOffset(op),Schema.slotOffset(op),Schema.HEADS[7],coefficient/parents,gradient);
     }
     private static void add(double[] p,boolean[] mask,int off,int logitOffset,int size,double weight,float[] gradient) {
         int n=legal(mask,off,size);
@@ -36,7 +36,7 @@ public final class Exploration {
         }
         int parent=Task.offset(6),parents=legal(mask,parent,Schema.HEADS[6]);
         for(int op=1;op<=3;op++)if(mask[parent+op])
-            loss+=crossEntropy(logits,mask,Schema.slotOffset(op),Task.offset(7),Schema.HEADS[7])/parents;
+            loss+=crossEntropy(logits,mask,Schema.slotOffset(op),Schema.slotOffset(op),Schema.HEADS[7])/parents;
         return coefficient*loss;
     }
     private static double crossEntropy(float[] logits,boolean[] mask,int off,int logitOffset,int size) {

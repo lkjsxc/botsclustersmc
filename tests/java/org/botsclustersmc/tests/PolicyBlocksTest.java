@@ -28,20 +28,20 @@ public final class PolicyBlocksTest {
     }
 
     private static int[] oracle() {
-        int[] group = new int[68842]; Arrays.fill(group, -1);
+        int[] group = new int[81258]; Arrays.fill(group, -1);
         int at = 0;
         for (int row = 0; row < 96; row++) for (int col = 0; col < 512; col++)
             group[at++] = col >= 16 && col <= 33 ? 0 : 1;
         for (int i = 0; i < 96 + 96 * 96 + 96; i++) group[at++] = 1;
-        for (int row = 0; row < 106; row++) for (int col = 0; col < 96; col++)
-            group[at++] = row == 105 ? 3 : 2;
-        for (int row = 0; row < 106; row++) group[at++] = row == 105 ? 3 : 2;
+        for (int row = 0; row < 234; row++) for (int col = 0; col < 96; col++)
+            group[at++] = row == 233 ? 3 : 2;
+        for (int row = 0; row < 234; row++) group[at++] = row == 233 ? 3 : 2;
         check(at == group.length && at == Policy.PARAMETERS, "independent layout consumes all parameters");
         return group;
     }
 
     private static void parameters() throws Exception {
-        int[] group = oracle(), expected = {1728, 56832, 10185, 97}, counts = new int[4];
+        int[] group = oracle(), expected = {1728, 56832, 22601, 97}, counts = new int[4];
         for (int i = 0; i < group.length; i++) {
             check(PolicyBlocks.block(i).ordinal() == group[i], "block index oracle"); counts[group[i]]++;
         }
@@ -76,13 +76,13 @@ public final class PolicyBlocksTest {
                 for (int lane = 0; lane < 4; lane++) {
                     boolean[] allowed = Task.at(task).mask(64, lane % 2 == 0);
                     Policy.Workspace w = new Policy.Workspace(); mixed.forward(inputs[lane], allowed, w);
-                    float[] logits = new float[106]; batch.lane(lane, logits); equal(logits, w.logits, "scalar/batch");
+                    float[] logits = new float[234]; batch.lane(lane, logits); equal(logits, w.logits, "scalar/batch");
                     if (mask < 8) {
                         Policy.Workspace critic = new Policy.Workspace(); mixtures[mask + 8].forward(inputs[lane], allowed, critic);
                         equal(w.h1, critic.h1, "critic cannot affect first layer"); equal(w.h2, critic.h2, "critic cannot affect second layer");
-                        for (int output = 0; output < 105; output++) check(same(w.logits[output], critic.logits[output]), "critic cannot affect actor logits");
+                        for (int output = 0; output < 233; output++) check(same(w.logits[output], critic.logits[output]), "critic cannot affect actor logits");
                         equal(w.probabilities, critic.probabilities, "critic cannot affect action probabilities");
-                        check(!same(w.logits[105], critic.logits[105]), "critic control genuinely changes value");
+                        check(!same(w.logits[233], critic.logits[233]), "critic control genuinely changes value");
                     }
                 }
             }

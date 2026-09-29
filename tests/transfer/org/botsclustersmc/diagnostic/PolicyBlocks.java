@@ -16,8 +16,8 @@ public final class PolicyBlocks {
     private static final int GOAL_START = 16, GOAL_END = 34;
 
     private static void layout() {
-        if (!Schema.ID.equals("bcmc-citizen-egocentric-context") || Schema.INPUTS != 512
-                || Schema.HIDDEN != 96 || Schema.LOGITS != 105 || Task.values().length != 18)
+        if (!Schema.ID.equals("bcmc-click-conditioned-slots") || Schema.INPUTS != 512
+                || Schema.HIDDEN != 96 || Schema.LOGITS != 233 || Task.values().length != 18)
             throw new IllegalArgumentException("Unsupported parameter/observation layout");
     }
 
@@ -45,6 +45,7 @@ public final class PolicyBlocks {
      */
     public static Policy compose(Policy base, Policy donor, int donorMask) {
         Objects.requireNonNull(base); Objects.requireNonNull(donor); layout();
+        if(base.learningTask()!=-1 || donor.learningTask()!=-1)throw new IllegalArgumentException("Block composition requires unfocused policies");
         if (donorMask < 0 || donorMask >= 16) throw new IllegalArgumentException("Use a four-bit donor mask");
         float[] weights = base.copyWeights(), other = donor.copyWeights();
         for (int i = 0; i < weights.length; i++)
