@@ -107,6 +107,16 @@ separate labels and exact denominators. A valid complete report may still show
 zero successes: integrity is not competence, relative retention or acquisition.
 The checks do not authenticate reports supplied by an untrusted third party.
 
+Pickaxe tasks 11 and 13 require complete `crafting` diagnostics: all 32 correct-cell
+mask bins, five cell opportunity/transition counts, cursor-state unions and finite
+probability sums must agree with their measured denominators. Other tasks cannot
+claim those diagnostics. Maxima include pre- and post-action states, while mask
+histograms and preview counts cover pre-action states only; a maximum or preview
+is not a skill success. These checks remain active in optimized Python. The
+[protected-continuation closeout](verification/20260929-protected-continuation.md)
+records the missing-trace regression and revalidation of ordinary and explicitly
+assisted saved reports without generating new trials.
+
 `python -m unittest discover -s tests -p test_holdout.py` includes child-process
 regressions using all three optimization modes. These are developer checks, not
 a new dependency for the Java operator commands above. The

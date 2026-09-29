@@ -23,6 +23,13 @@ trials: the source and protected initial model both missed the declared aim-hold
 floor on one seed. No experimental continuation ran, and the candidate runtime
 was not integrated. This is an initial-qualification failure, not evidence of
 forgetting caused by its learning.
+The separate [relative-continuation study](verification/20260929-protected-continuation.md)
+then completed 18,432 ordinary frozen trials and about 1.5 million additional
+accepted task-11 samples per arm. Protection retained source workbench scores
+of 119/128 and 117/128, while the unprotected final control scored 37/128 and
+39/128. Both arms still had zero ordinary pickaxe completions. This establishes
+bounded observed retention, not new-skill acquisition; PR #36's fixed-frontier
+runtime is not accepted for deployment.
 The preceding [continuation screen](verification/20260929-placement-practice-study.md)
 rejected a placement-practice candidate after early workbench-retention failures.
 The [earlier stone comparison](verification/20260928-conditional-menu-study.md)
@@ -89,8 +96,13 @@ critic-to-trunk updates in this boundary; a separate final value output does not
 isolate its training gradients. The subsequent one-frontier prototype implemented
 this boundary with a shared immutable source policy and a warm trainable copy.
 Its source checks established function preservation through synthetic actor and
-critic updates, but real-server continuation remains untested: the declared
-initial gate failed before training. PR #35 is closed without merging. Freezing
+critic updates, but that original pilot stopped before real-server training at
+its declared initial qualification gate. PR #35 is closed without merging.
+The subsequent, separately declared PR #36 relative study did perform continuation:
+its protected behavior passed all initial, early and final retention screens,
+while the active copy changed. Ordinary pickaxe completion remained zero on both
+seeds in both arms, failing acquisition. Preserve this distinction rather than
+calling protection untested or calling the learning system successful. Freezing
 the whole learner cannot demonstrate new learning; reinitializing it discards
 the transfer we need. Any modular representation must also bound snapshot memory
 and concurrent inference costs, rather than multiply every immutable snapshot
@@ -103,12 +115,22 @@ requirement, does continued learning preserve its measured behavior, and does th
 new skill improve? The protected pilot's original and protected initial models
 both scored 29/32 on aim-hold under one fresh seed, below its declared 30/32 floor.
 Do not treat that as forgetting, change the stopped pilot's rule, or substitute
-a favorable seed. A new study needs either a prospectively qualified input or
-an explicitly relative retention question for an imperfect input, with evaluation
-case counts and acceptance criteria fixed in advance. Exact function preservation
-also does not guarantee success under changed world/partner-state distributions;
-ordinary rollouts remain necessary. Keep the implemented protection hypothesis
-separate from a claim of validated new-skill acquisition.
+a favorable seed. The subsequent relative study explicitly used that imperfect input, 128 cases per
+task and two new seeds, with all rules published before training. It did not
+retroactively change the stopped pilot. Exact function preservation also does
+not guarantee success under changed world/partner-state distributions; ordinary
+rollouts remain necessary. Keep validated bounded retention separate from a
+claim of new-skill acquisition.
+
+The next bottleneck is now acquiring and composing primitive material-selection
+and slot-placement behavior while maintaining that protection. In the final
+protected ordinary reports, only two cases per seed reached two correct recipe
+cells; none reached three or a target preview. These are post-hoc observations,
+not randomized attribution of the failure. Test representation/exploration
+hypotheses with matched controls and prospectively bounded ordinary completion
+criteria, not longer identical continuation, more actors, or an answer-supplying
+recipe mask. A reusable multi-task learning path is still required before a
+fixed-frontier protection mechanism becomes a deployable architecture.
 
 The [goal-column transfer screen](verification/20260928-goal-transfer-study.md)
 preserves non-recipient goal functions and changes only 96 parameters. Copying
