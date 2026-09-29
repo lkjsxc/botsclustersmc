@@ -130,3 +130,141 @@ by construction and the candidate's anchor equals the original policy.
 Worktree: `/home/coder/workspace/botsclustersmc-protected-frontier` in
 `lkjsxc/tomato-ocelot-73`. Full evidence will be retained in its ignored `.build/`
 directory. This is local retention, not a public or durable off-machine archive.
+
+## Outcome: stopped at initial qualification; no continuation performed
+
+Implementation and prospective protocol were committed and published in PR #35
+as `61d0aed5cd1e091f72c389c77e16faf6ce071337`, tree
+`ea62b234abbc699a8882fdfaa1c04b712031b4ae`, before the real-server evaluations.
+The preceding prospective section was not edited after seeing scores.
+
+All four planned baseline reports completed: **1,536 frozen trials**, no missing
+trials and **zero new training samples**. The baseline gate failed on seed A
+because task 2 (aim-hold) scored **29/32 in both the original and protected
+models**, below the declared 30/32 floor. Seed B passed. Consequently neither
+experimental training Academy was started. The 250,000- and 1,500,000-sample
+segments, their stopped checkpoints and their continuation evaluations do not
+exist. No final new-skill result is claimed and no alternative seed was tried.
+
+This is a **failure to qualify the initial state under the declared rule**, not
+observed forgetting caused by candidate learning: no candidate learning occurred.
+The same source model also failed the absolute floor on the same seed. The JSON
+field `retained: false` records the predeclared decision rule, not a causal claim
+that the model lost ability. The result does not reject the general protection
+mechanism, and it does not validate new-skill learning with this prototype.
+
+### Complete measured scores
+
+Each entry is a success count out of **32**, ordered tasks **0 through 11**.
+Seed A is **2026092941**, seed B is **2026092942**. No assistance was used.
+
+```text
+Model                Seed A                                  Seed B
+Original base        32 31 29 32 32 32 32 32 32 32 26 0      32 32 32 32 32 32 32 32 32 32 28 0
+Protected initial    32 32 29 32 31 32 32 32 32 32 27 0      32 31 32 32 32 32 32 32 32 32 28 0
+```
+
+Workbench completion was 26/32 and 28/32 in the base, versus 27/32 and 28/32 in
+the protected initial model. The workbench-relative rule passed on both seeds.
+Ordinary wooden-pickaxe completion was 0/32 for every model/seed. The stop was
+specifically the absolute aim-hold floor on seed A, not a workbench retention
+failure or a tested failure of the final pickaxe-learning gate.
+
+Initial actor/value functions are exactly equal for identical observations, but
+separate real-server runs can produce different trajectories. The full task
+score differences (protected minus base) were
+`[0,+1,0,0,-1,0,0,0,0,0,+1,0]` on A and
+`[0,-1,0,0,0,0,0,0,0,0,0,0]` on B. Do not describe these runs as identical gameplay,
+or interpret one-success differences as learned improvement.
+
+### What the implementation checks establish
+
+The full local source suite passed. Dedicated checks executed **10,771,320
+assertions** covering exact warm initialization, retained actor/value functions
+during 48 synthetic active-copy Adam updates, nonzero active changes, inherited
+moment/variance arithmetic, active-network finite differences, all 18 goal routes,
+mixed-task scalar/batch equivalence, variable batch sizes and lane order, immutable
+anchor sharing, strict envelope rejection, complete checkpoint round trips and
+whole-fragment sample filtering. This count includes repeated per-parameter
+assertions; it is not ten million independent experiments or gameplay successes.
+
+Both actor and critic output gradients were exercised while the anchor stayed
+unchanged. All 48 published snapshots shared the **same anchor object**. Their
+49 distinct parameter arrays (48 active snapshots plus the anchor) held
+13,493,032 raw float-payload bytes, excluding object/array headers, Adam arrays,
+workspaces and game-server memory. This is a structural accounting check, not
+measured peak process memory or a scalability benchmark.
+
+A separate cross-classloader check used the actual retained checkpoint and its
+original trusted runtime. For each arm it checked **288 original/new forward
+functions** spanning all 18 goals and open/closed action masks. Active weights,
+Adam first and second moments, optimizer clock and course bytes matched the
+original state exactly. The protected arm additionally kept the source policy
+as its anchor. Model payloads were **275,499 bytes** for the unprotected control
+and **550,883 bytes** for the protected initial policy. No historical certificate
+or training progress was invented by the offline construction.
+
+The new policy envelope is deliberately incompatible with the old envelope;
+observation/action semantics are unchanged. Neither runtime JAR contains the
+offline construction tool. Existing goal/block counterfactual utilities reject
+focused inputs rather than silently dropping their protection metadata.
+
+PR CI **36514098201 / attempt 1**, on the exact implementation head, passed
+Ubuntu source job **109232442110**, Windows source job **109232442136** and
+observatory job **109232441967**. Optional live, retention, Paper and Windows-live
+jobs were skipped, not passed. The four real Folia evaluations above were the
+separate local study. A local boundary checker also passed **26** prospective
+retention-gate tests, including one-seed failure and control deterioration that
+must not incorrectly stop an otherwise-qualified protected arm.
+
+### Decision and next evidence requirement
+
+**Do not merge or deploy the one-frontier runtime.** Preserve the prototype,
+prospective rule, exact inputs and all baseline trials, and publish this result
+on main. The prototype has implemented and numerically tested the protection
+boundary; its real-server learning and post-update skill retention remain
+**untested** because the initial qualification failed.
+
+The important limitation in this pilot design was an absolute per-task floor
+that the selected parent itself did not satisfy on the new test. Previously
+favorable 32-case scores were not a guarantee of qualification on fresh cases.
+Do not lower this pilot's floor, substitute its favorable seed, or retrospectively
+report it as a successful continuation experiment.
+
+A future continuation study must distinguish **input qualification**, **relative
+retention during updates**, and **new-skill acquisition** before running it.
+An absolute competence requirement needs a prospectively qualified input; a
+study of retaining an imperfect input needs an explicitly declared relative
+question. Larger, prespecified evaluation sets can reduce sensitivity to one or
+two sampled outcomes, but are not a licence to reclassify this stopped pilot.
+The fixed old-function boundary remains a viable implementation hypothesis;
+warm copying alone has not been shown here to learn pickaxe crafting.
+
+Even exact old-policy output preservation is not a guarantee of success after
+world-state distributions or other agents' behavior change. The eventual shared
+world still needs ordinary task and cooperative rollout evaluation; parameter
+invariance is only one engineering prerequisite.
+
+### Artifacts and operating boundary
+
+Candidate training JAR:
+`49280f05ef9384b2aaeaae5815c147060a147828ffdf4cf82e71a0f2bc1246f9`.
+Candidate inference JAR:
+`d7506a46aa63abd69410d0632e6cb0f57d360c7aac2f9d6451161caa0eb01239`.
+Original trusted runtime used only by the offline constructor:
+`7e3df712d2b9d9bb5afcf8e5a1010004d60c00a36f71448f7bc0457443764dfc`.
+
+The worktree retains `.build/focus-input/` (source checkpoint, both candidate
+checkpoints/policies, recoded base policy and input manifest),
+`.build/focus-study/evaluation-baseline/` (four complete reports, individual trials,
+worlds, logs, metadata and receipts), `.build/focus-study/declaration.json`,
+`baseline-gate.json` and `rejected.json`. The independent auditor verified every
+trial denominator/identity, immutable evaluated policies, no generated training
+checkpoints, input-file identities and the gate calculations. Its output is
+`.build/focus-audited-summary.json`. Runner, state auditor, gate tests and result
+auditor remain in `.build/` beside the source-suite transcript.
+
+The previous study's source checkpoint remains unchanged. The production Academy
+received no candidate JAR, focused state, reset or service restart. No production
+skill change is attributed to these frozen trials. Full raw evidence is retained
+locally, not represented as an off-machine archive.
