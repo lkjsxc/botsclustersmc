@@ -117,40 +117,79 @@ permissions:
             entry(jar, path.relative_to(classes).as_posix(), path.read_bytes())
         entry(jar, 'plugin.yml', descriptor); entry(jar, 'config.yml', config)
 
+def require(condition, message):
+    """Evidence checks must remain active under python -O / PYTHONOPTIMIZE."""
+    if not condition:
+        raise AssertionError(message)
+
+
+def integer(value, maximum, label, minimum=0):
+    require(type(value) is int and minimum <= value <= maximum, label)
+    return value
+
+
+def number(value, maximum, label):
+    require(type(value) in (int, float) and 0 <= value <= maximum and math.isfinite(value), label)
+    return value
+
+
+def read_bounded(path, maximum):
+    with path.open('rb') as stream:
+        value = stream.read(maximum + 1)
+    require(len(value) <= maximum, 'Oversized evidence file: ' + path.name)
+    return value
+
+
+def read_report(path):
+    def pairs(entries):
+        result = {}
+        for key, value in entries:
+            require(key not in result, 'Duplicate JSON field: ' + key)
+            result[key] = value
+        return result
+    def nonfinite(value):
+        raise AssertionError('Non-finite JSON value: ' + value)
+    def finite(value):
+        parsed = float(value)
+        require(math.isfinite(parsed), 'Non-finite JSON number')
+        return parsed
+    try:
+        return json.loads(read_bounded(path, 64*1024*1024).decode('utf-8'),
+                          object_pairs_hook=pairs, parse_constant=nonfinite, parse_float=finite)
+    except (ValueError, RecursionError) as failure:
+        raise AssertionError('Malformed evaluation JSON') from failure
+
+
 def verify_table_trace(trace, observations):
     """Validate denominators and bounded measured sums, not learned competence."""
-    assert isinstance(trace, dict) and trace.get('scope') == 'table-inventory-pre-action'
+    require(type(trace) is dict and trace.get('scope') == 'table-inventory-pre-action', 'Table trace scope')
     def count(key, maximum):
-        value = trace.get(key)
-        assert type(value) is int and 0 <= value <= maximum, key
-        return value
+        return integer(trace.get(key), maximum, key)
     def vector(key, length, maximum, integral=True):
         values = trace.get(key)
-        assert isinstance(values, list) and len(values) == length, key
+        require(type(values) is list and len(values) == length, key)
         for value in values:
-            assert (type(value) is int if integral else type(value) in (int, float)), key
-            assert math.isfinite(value) and 0 <= value <= maximum, key
+            (integer if integral else number)(value, maximum, key)
         return values
     def mass(key, denominator):
-        value = trace.get(key)
-        assert type(value) in (int, float) and math.isfinite(value) and 0 <= value <= denominator + 1e-7, key
-    assert type(observations) is int and observations > 0
-    assert count('transitions', observations) == observations
+        number(trace.get(key), denominator + 1e-7, key)
+    integer(observations, 2**63-1, 'observations', 1)
+    require(count('transitions', observations) == observations, 'Table transitions')
     inventory = count('inventory_states', observations)
     patterns = vector('correct_mask_states', 16, inventory)
-    assert sum(patterns) == inventory
+    require(sum(patterns) == inventory, 'Table mask denominator')
     maximum = count('max_correct_cells', 4)
-    assert all(not n or mask.bit_count() <= maximum for mask, n in enumerate(patterns))
+    require(all(not n or mask.bit_count() <= maximum for mask, n in enumerate(patterns)), 'Table maximum')
     count('max_surplus_units', 252)
     count('partial_inventory_exits', inventory)
     count('carried_planks_below_four_without_table_states', inventory)
     opportunities = vector('compatible_cursor_states_by_correct_cells', 5, inventory)
-    assert opportunities[4] == 0
+    require(opportunities[4] == 0, 'Completed grid is not a fill opportunity')
     fill = vector('fill_probability_sum_by_correct_cells', 5, inventory + 1e-7, False)
     single = vector('single_unit_fill_probability_sum_by_correct_cells', 5, inventory + 1e-7, False)
     for cells in range(5):
-        assert opportunities[cells] <= sum(n for mask, n in enumerate(patterns) if mask.bit_count() == cells)
-        assert single[cells] <= fill[cells] + 1e-7 and fill[cells] <= opportunities[cells] + 1e-7
+        require(opportunities[cells] <= sum(n for mask, n in enumerate(patterns) if mask.bit_count() == cells), 'Fill denominator')
+        require(single[cells] <= fill[cells] + 1e-7 and fill[cells] <= opportunities[cells] + 1e-7, 'Fill probability mass')
     vector('filled_cell_transitions', 4, inventory)
     vector('removed_cell_transitions', 4, inventory)
     previews = 0
@@ -159,45 +198,79 @@ def verify_table_trace(trace, observations):
         previews += denominator
         mass(kind + '_collection_probability_sum', denominator)
         count('chosen_' + kind + '_result_clicks', denominator)
-    assert previews <= inventory
+    require(previews <= inventory, 'Preview denominator')
     gains = count('observed_stick_gain_transitions', inventory)
     units = count('observed_stick_units_gained', 64 * gains)
-    assert units >= gains
+    require(units >= gains, 'Stick units gained')
     count('observed_table_units_gained', 64 * inventory)
 
 
-def verify_result(args, data, frozen, process):
-    failure = data/'exam-failed.txt'
-    if failure.exists():
-        raise AssertionError(failure.read_text())
-    result = json.loads((data/'exam-result.json').read_text())
-    assert process.returncode == 0 and result['complete'] and result['new_training_samples'] == 0
-    trials, total = result['trials'], args.cases*len(args.tasks)
-    assert result['stochastic'] and result['seed'] == args.seed and result['cases_per_task'] == args.cases
+def verify_report(args, result):
+    """Bind each trial to its declared task/case/Java-long seed, not just totals."""
+    require(type(result) is dict, 'Evaluation object')
+    cases = integer(args.cases, 256, 'Declared cases', 1)
+    require(type(args.tasks) is list and 1 <= len(args.tasks) <= 18, 'Declared tasks')
+    for task in args.tasks:
+        integer(task, 17, 'Declared task')
+    require(len(set(args.tasks)) == len(args.tasks), 'Duplicate declared task')
+    integer(args.seed, 2**63-1, 'Declared seed', -2**63)
+    total = cases * len(args.tasks)
+    require(total <= 2048, 'Trial limit')
+    require(args.reset_intervention in RESET_INTERVENTIONS, 'Declared intervention')
     diagnostic = args.reset_intervention != 'none'
-    assert result.get('diagnostic_only', False) is diagnostic
-    assert result.get('reset_intervention', 'none') == args.reset_intervention
-    if diagnostic:
-        assert type(result.get('reset_intervention_trials')) is int and result['reset_intervention_trials'] == total
-    assert len(trials) == total and {trial['actor'] for trial in trials} == set(range(total))
-    assert [task['task'] for task in result['tasks']] == args.tasks
-    for summary in result['tasks']:
-        selected = [trial for trial in trials if trial['task'] == summary['task']]
-        assert len(selected) == args.cases and summary['cases'] == args.cases
-        assert all(type(trial['success']) is bool for trial in selected)
-        assert sum(trial['success'] for trial in selected) == summary['passed']
+    require(not diagnostic or all(task in (11, 13) for task in args.tasks), 'Diagnostic task scope')
+    require(result.get('complete') is True and result.get('stochastic') is True, 'Complete stochastic evaluation required')
+    integer(result.get('new_training_samples'), 0, 'Holdout must not train')
+    require(integer(result.get('seed'), 2**63-1, 'Report seed', -2**63) == args.seed, 'Report seed differs')
+    require(integer(result.get('cases_per_task'), 256, 'Report cases', 1) == cases, 'Case count differs')
+    require(result.get('diagnostic_only', False) is diagnostic, 'Diagnostic/control classification')
+    require(result.get('reset_intervention', 'none') == args.reset_intervention, 'Intervention differs')
+    coverage = result.get('reset_intervention_trials', 0)
+    require(integer(coverage, total, 'Intervention coverage') == (total if diagnostic else 0), 'Intervention coverage differs')
+    trials, summaries = result.get('trials'), result.get('tasks')
+    require(type(trials) is list and len(trials) == total, 'Missing or excess trials')
+    require(type(summaries) is list and len(summaries) == len(args.tasks), 'Task coverage')
+    seen, passed = set(), {task: 0 for task in args.tasks}
     for trial in trials:
-        detail=trial['diagnostics']
-        if trial['task'] == 10:
-            verify_table_trace(detail.get('table_crafting'), detail['observations'])
+        require(type(trial) is dict, 'Trial object')
+        actor = integer(trial.get('actor'), total-1, 'Actor identity')
+        require(actor not in seen, 'Duplicate actor'); seen.add(actor)
+        task = integer(trial.get('task'), 17, 'Trial task')
+        require(task == args.tasks[actor // cases], 'Actor/task assignment differs')
+        expected_seed = args.seed + task*1000003 + (actor % cases)*104729
+        expected_seed = (expected_seed + 2**63) % 2**64 - 2**63
+        require(integer(trial.get('seed'), 2**63-1, 'Trial seed', -2**63) == expected_seed, 'Trial seed differs')
+        require(type(trial.get('success')) is bool, 'Trial success must be boolean')
+        passed[task] += trial['success']
+        integer(trial.get('elapsed_ticks'), 2**63-1, 'Elapsed ticks', 1)
+        number(trial.get('distance'), 1e308, 'Final distance')
+        detail = trial.get('diagnostics')
+        require(type(detail) is dict, 'Trial diagnostics')
+        observations = integer(detail.get('observations'), 2**63-1, 'Observations', 1)
+        integer(detail.get('dig_decisions'), observations, 'Dig decisions')
+        for key in ('observed_max_target_mining_ticks', 'blocks_broken', 'items_collected'):
+            integer(detail.get(key), 2**63-1, key)
+        for key in ('mean_abs_yaw_error', 'mean_abs_pitch_error'):
+            number(detail.get(key), 180, key)
+        if task == 10:
+            verify_table_trace(detail.get('table_crafting'), observations)
         else:
-            assert 'table_crafting' not in detail, 'Table diagnostics belong only to task 10.'
-        assert detail['observations'] > 0 and 0 <= detail['dig_decisions'] <= detail['observations']
-        assert detail['observed_max_target_mining_ticks'] >= 0
-        assert 0 <= detail['mean_abs_yaw_error'] <= 180 and 0 <= detail['mean_abs_pitch_error'] <= 180
-        assert detail['blocks_broken'] >= 0 and detail['items_collected'] >= 0
-    assert (data/'policy.bcmc').read_bytes() == frozen
-    assert not list(data.glob('training*.bcmc')), 'A holdout exam must never create a training checkpoint.'
+            require('table_crafting' not in detail, 'Table diagnostics belong only to task 10.')
+    for task, summary in zip(args.tasks, summaries):
+        require(type(summary) is dict, 'Task summary object')
+        require(integer(summary.get('task'), 17, 'Summary task') == task, 'Task order differs')
+        require(integer(summary.get('cases'), 256, 'Summary cases', 1) == cases, 'Task denominator differs')
+        require(integer(summary.get('passed'), cases, 'Summary passed') == passed[task], 'Success total differs')
+    return result
+
+
+def verify_result(args, data, frozen, process):
+    require(type(process.returncode) is int and process.returncode == 0, 'Exam process did not exit successfully')
+    failure = data/'exam-failed.txt'
+    require(not failure.exists(), 'Exam runtime reported a failure: ' + str(failure))
+    result = verify_report(args, read_report(data/'exam-result.json'))
+    require(read_bounded(data/'policy.bcmc', len(frozen)) == frozen, 'Frozen policy changed')
+    require(not list(data.glob('training*.bcmc')), 'A holdout exam must never create a training checkpoint.')
     return result
 
 def main():
@@ -223,7 +296,7 @@ def main():
     try:
         process.wait(timeout=300+args.cases*len(args.tasks)//4)
         if args.checkpoint:
-            assert hashlib.sha256((output/'source-training.bcmc').read_bytes()).hexdigest()==metadata['checkpoint_sha256']
+            require(hashlib.sha256(read_bounded(output/'source-training.bcmc', 32*1024*1024)).hexdigest() == metadata['checkpoint_sha256'], 'Frozen source checkpoint changed')
         result = verify_result(args, data, frozen, process)
         (output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
         print(json.dumps({k: v for k, v in result.items() if k != 'trials'}, indent=2), flush=True)

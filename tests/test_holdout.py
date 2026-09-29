@@ -1,5 +1,9 @@
 """Offline checks for explicit, non-certifying frozen-policy reset diagnostics."""
 import contextlib
+import copy
+import os
+import subprocess
+import sys
 import io
 import json
 from pathlib import Path
@@ -54,7 +58,7 @@ class ResetDiagnosticTests(unittest.TestCase):
         args=SimpleNamespace(cases=1, tasks=[11], seed=17, reset_intervention=condition)
         result={'complete': True, 'new_training_samples': 0, 'stochastic': True, 'seed': 17, 'cases_per_task': 1,
                 'tasks': [{'task': 11, 'passed': 0, 'cases': 1}],
-                'trials': [{'actor': 0, 'task': 11, 'seed': 11000050, 'elapsed_ticks': 3001, 'success': False,
+                'trials': [{'actor': 0, 'task': 11, 'seed': 11000050, 'elapsed_ticks': 3001, 'success': False, 'distance': 1.0,
                             'diagnostics': {'observations': 600, 'dig_decisions': 0, 'observed_max_target_mining_ticks': 0,
                                             'mean_abs_yaw_error': 1, 'mean_abs_pitch_error': 1, 'blocks_broken': 0, 'items_collected': 0}}]}
         if condition!='none':
@@ -138,11 +142,192 @@ class TableTraceTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             helper.verify(args, result)
         args.tasks = [10]; result['tasks'][0]['task'] = 10; result['trials'][0]['task'] = 10
+        result['trials'][0]['seed'] = 17 + 10*1000003
         result['trials'][0]['diagnostics']['observations'] = 10
         self.assertIsNotNone(helper.verify(args, result))
         del result['trials'][0]['diagnostics']['table_crafting']
         with self.assertRaises(AssertionError):
             helper.verify(args, result)
+
+
+class ReportIntegrityTests(unittest.TestCase):
+    def fixture(self, seed=17):
+        args, template = ResetDiagnosticTests().fixture('none')
+        args.tasks, args.cases, args.seed = [11, 0, 13], 2, seed
+        result = dict(template, seed=seed, cases_per_task=2, tasks=[], trials=[])
+        for index, task in enumerate(args.tasks):
+            result['tasks'].append({'task': task, 'cases': 2, 'passed': 1})
+            for case in range(2):
+                trial = copy.deepcopy(template['trials'][0])
+                value = seed + task*1000003 + case*104729
+                trial.update(actor=index*2+case, task=task, success=case == 0,
+                             seed=(value + 2**63) % 2**64 - 2**63)
+                result['trials'].append(trial)
+        return args, result
+
+    def verify(self, args, result):
+        return ResetDiagnosticTests().verify(args, result)
+
+    def test_complete_noncanonical_task_order_and_trial_order(self):
+        args, result = self.fixture()
+        self.assertEqual(self.verify(args, result), result)
+        result['trials'].reverse()
+        self.assertEqual(self.verify(args, result), result)
+
+    def test_java_signed_long_seeds(self):
+        for seed in (-2**63, 2**63-1):
+            args, result = self.fixture(seed)
+            self.assertEqual(self.verify(args, result), result)
+        args, result = self.fixture(2**63-1)
+        self.assertEqual(result['trials'][2]['seed'], 9223372036854775807)
+        self.assertEqual(result['trials'][3]['seed'], -9223372036854671080)
+        result['trials'][3]['seed'] = 9223372036854880536
+        with self.assertRaises(AssertionError):
+            self.verify(args, result)
+
+    def test_report_flags_and_counts_are_not_truthy_or_coerced(self):
+        for key, values in (
+            ('complete', [False, 1, 'true', None]), ('stochastic', [False, 1, 'true']),
+            ('new_training_samples', [1, False, 0.0, '0']),
+            ('seed', [True, 17.0, '17', 18]), ('cases_per_task', [True, 2.0, '2', 1]),
+            ('diagnostic_only', [True, 0, 'false']),
+            ('reset_intervention', ['pickaxe-grid', None]),
+            ('reset_intervention_trials', [1, False, 0.0]),
+        ):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result[key] = value; self.verify(args, result)
+
+    def test_every_required_field_is_checked(self):
+        for section in ('root', 'summary', 'trial', 'diagnostics'):
+            args, original = self.fixture()
+            def select(result):
+                if section == 'root': return result
+                if section == 'summary': return result['tasks'][0]
+                if section == 'trial': return result['trials'][0]
+                return result['trials'][0]['diagnostics']
+            for key in select(original):
+                with self.subTest(section=section, key=key), self.assertRaises(AssertionError):
+                    changed = copy.deepcopy(original); del select(changed)[key]; self.verify(args, changed)
+
+    def test_shapes_coverage_duplicates_and_unknown_tasks(self):
+        for key in ('tasks', 'trials'):
+            for value in (None, {}, '', [], [None]):
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result[key] = value; self.verify(args, result)
+        for change in ('missing', 'extra', 'duplicate', 'unknown', 'order'):
+            with self.subTest(change=change), self.assertRaises(AssertionError):
+                args, result = self.fixture()
+                if change == 'missing': result['trials'].pop()
+                elif change == 'extra': result['trials'].append(copy.deepcopy(result['trials'][0]))
+                elif change == 'duplicate': result['trials'][1]['actor'] = 0
+                elif change == 'unknown': result['trials'][0]['task'] = 17
+                else: result['tasks'].reverse()
+                self.verify(args, result)
+
+    def test_actor_task_swap_cannot_hide_behind_equal_totals(self):
+        args, result = self.fixture()
+        result['trials'][0]['actor'], result['trials'][2]['actor'] = 2, 0
+        with self.assertRaisesRegex(AssertionError, 'Actor/task'):
+            self.verify(args, result)
+
+    def test_case_seed_swap_cannot_hide_behind_equal_totals(self):
+        args, result = self.fixture()
+        result['trials'][0]['actor'], result['trials'][1]['actor'] = 1, 0
+        with self.assertRaisesRegex(AssertionError, 'Trial seed'):
+            self.verify(args, result)
+
+    def test_trial_identifiers_and_success_are_exact_types(self):
+        for key, values in (
+            ('actor', [False, 0.0, '0', -1, 6]), ('task', [11.0, '11', True]),
+            ('seed', [11000050.0, '11000050', True, 11000051]),
+            ('success', [1, 0, 'true', None]), ('elapsed_ticks', [True, 0, -1, 1.5]),
+            ('distance', [True, -1, float('nan'), float('inf'), 10**400]),
+        ):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result['trials'][0][key] = value; self.verify(args, result)
+
+    def test_diagnostics_counts_angles_and_denominators(self):
+        fields = ('observations', 'dig_decisions', 'observed_max_target_mining_ticks', 'blocks_broken', 'items_collected')
+        for key in fields:
+            for value in (True, -1, 1.5, '1', 2**63):
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result['trials'][0]['diagnostics'][key] = value; self.verify(args, result)
+        for key in ('mean_abs_yaw_error', 'mean_abs_pitch_error'):
+            for value in (True, -1, 181, float('nan'), float('inf'), 10**400):
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result['trials'][0]['diagnostics'][key] = value; self.verify(args, result)
+        for key, value in (('observations', 0), ('dig_decisions', 601)):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                args, result = self.fixture(); result['trials'][0]['diagnostics'][key] = value; self.verify(args, result)
+
+    def test_summary_counts_and_success_totals(self):
+        for key, values in (('task', [True, 11.0]), ('cases', [True, 2.0, 1]), ('passed', [True, 1.0, -1, 0, 3])):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); result['tasks'][0][key] = value; self.verify(args, result)
+
+    def test_invalid_declarations_fail_closed(self):
+        for key, values in (('cases', [0, 257, True]), ('tasks', [[], [11, 11], [True], [18], None]),
+                            ('seed', [True, 2**63, -2**63-1]), ('reset_intervention', ['unknown', 'pickaxe-grid'])):
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                    args, result = self.fixture(); setattr(args, key, value); self.verify(args, result)
+        args, result = self.fixture(); args.tasks = list(range(18)); args.cases = 256
+        with self.assertRaises(AssertionError): self.verify(args, result)
+
+    def test_json_duplicate_nonfinite_malformed_and_utf8(self):
+        invalid = [b'{"complete":false,"complete":true}', b'{"trial":{"actor":0,"actor":1}}',
+                   b'{"unused":NaN}', b'{"unused":Infinity}', b'{"unused":-Infinity}',
+                   b'{"unused":1e9999}', b'{"unused":"\xff"}', b'{', b'[] trailing', b'['*2000]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'exam-result.json'
+            for value in invalid:
+                with self.subTest(value=value[:40]), self.assertRaises(AssertionError):
+                    path.write_bytes(value); holdout.read_report(path)
+        for value in ([], None, True, 'report'):
+            args, _ = self.fixture()
+            with self.assertRaises(AssertionError): self.verify(args, value)
+
+    def test_bounded_read_uses_limit_plus_one(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'bounded'; path.write_bytes(b'1234')
+            self.assertEqual(holdout.read_bounded(path, 4), b'1234')
+            with self.assertRaises(AssertionError): holdout.read_bounded(path, 3)
+        stream = io.BytesIO(b'12345')
+        with patch.object(Path, 'open', return_value=stream), patch.object(stream, 'read', wraps=stream.read) as read:
+            with self.assertRaises(AssertionError): holdout.read_bounded(Path('unused'), 3)
+            read.assert_called_once_with(4)
+
+    def test_file_boundaries_and_process_failure(self):
+        args, result = self.fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            data = Path(directory)
+            (data/'exam-result.json').write_text(json.dumps(result), encoding='utf-8')
+            for label in ('process', 'policy', 'policy-growth', 'checkpoint', 'failure-marker'):
+                with self.subTest(label=label):
+                    (data/'policy.bcmc').write_bytes(b'unchanged')
+                    process = SimpleNamespace(returncode=0)
+                    if label == 'process': process.returncode = 1
+                    elif label == 'policy': (data/'policy.bcmc').write_bytes(b'modified!')
+                    elif label == 'policy-growth': (data/'policy.bcmc').write_bytes(b'unchanged!')
+                    elif label == 'checkpoint': (data/'training-next.bcmc').write_bytes(b'')
+                    else: (data/'exam-failed.txt').write_bytes(b'')
+                    with self.assertRaises(AssertionError): holdout.verify_result(args, data, b'unchanged', process)
+                    (data/'training-next.bcmc').unlink(missing_ok=True)
+                    (data/'exam-failed.txt').unlink(missing_ok=True)
+
+
+class OptimizationTests(unittest.TestCase):
+    def test_real_optimized_interpreters(self):
+        for flags, optimize in ((['-O'], '0'), (['-OO'], '0'), ([], '2')):
+            with self.subTest(flags=flags, environment=optimize):
+                result = subprocess.run([sys.executable, *flags, '-m', 'unittest', '-q',
+                    'test_holdout.ResetDiagnosticTests', 'test_holdout.TableTraceTests', 'test_holdout.ReportIntegrityTests'],
+                    cwd=Path(__file__).parent, env=dict(os.environ, PYTHONOPTIMIZE=optimize),
+                    text=True, capture_output=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__=='__main__':
