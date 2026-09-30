@@ -7,30 +7,46 @@ feature list or a claim that the current policy can survive.
 
 ## Current decision
 
-The immediate current-model bottleneck is **entering the appropriate workbench
-context and transferring an already useful recipe behavior**, not increasing the
-NPC population. In the [qualified current-model reset ladder](verification/20260930-protected-attribution.md),
-ordinary wooden-pickaxe completion was 1/32 and 0/32, versus 30/32 and 31/32 when
-only the initial workbench menu was opened. Arranging the raw ingredients added
-just one success on each seed. This assisted result is not ordinary mastery, but
-it changes the development priority: a learned entry bridge from this newer
-warm checkpoint, while preserving its raw-assembly function and earlier tasks.
+The current measured bottleneck is **useful tool handling and cobblestone mining,
+while preserving ordinary wooden-pickaxe crafting**, not increasing the NPC count.
+A [new frozen qualification](verification/20260930-current-policy-qualification.md)
+of the stopped mainline model at 344,488,915 samples completed all 832 ordinary
+trials on two fresh seeds. Wooden-pickaxe crafting completed 31/32 on each seed
+without an additional workbench-open reset. Tasks 0-10 each scored 31 or 32/32;
+cobblestone mining scored 0/32 on both seeds.
 
-The first [warm station-entry fade](verification/20260930-station-entry-study.md)
-was rejected after the complete early comparison. Both arms started from the
-same qualified model/optimizer/course and accepted about 505,000 new samples.
+In the mining trials, about 73% of the decision observations showed the personal
+inventory, only about 2.8% showed a held pickaxe, and no trial recorded pickaxe
+contact with the target at a decision boundary. These observations prioritize
+learned inventory exit, useful tool retention/selection and sustained digging.
+They do not establish a gradient-level cause or authorize an automatic equipment,
+menu-closing or mining controller.
+
+The earlier [reset ladder](verification/20260930-protected-attribution.md) correctly
+identified an entry deficit in its then-current model: ordinary 1/32 and 0/32
+versus initially open 30/32 and 31/32. That older source is no longer the current
+capability ceiling. The newly measured model accumulated roughly 47 million more
+mainline samples than the old station-entry baseline. This is not a matched
+learning comparison or evidence that the new observer caused the improvement.
+
+The earlier [warm station-entry fade](verification/20260930-station-entry-study.md),
+using the 297,530,150-sample source, was rejected after its complete early
+comparison. Both arms started from the same qualified model/optimizer/course and
+accepted about 505,000 new samples.
 Candidate ordinary completion stayed 0/32 and 1/32; its initially open raw assembly
 fell from 32/32 and 31/32 to 25/32 and 23/32. The unchanged control retained
 32/32 and 31/32. The declared early stop prevented both larger continuations.
 Do not deploy that reset fade, strengthen it without a new hypothesis, or hide
 the regression by reporting only earlier-task retention.
 
-The next evidence boundary is [accepted learning-context coverage](LEARNING_CONTEXTS.md):
-count actual pre-action task/menu observations and their elapsed actor ticks,
-not just total samples or finished episodes. This read-only measurement does not
-change rewards, reset mixtures, policy inputs or loss weights. It cannot recover
-the unrecorded context split of the rejected experiment or establish the cause
-of forgetting on its own.
+[Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
+accepted development runtime. It counts actual pre-action task/menu observations
+and their elapsed actor ticks, not just total samples or finished episodes. Its
+first retained snapshots were entirely task 12; a later snapshot also contained
+review samples from every earlier task. Early absence and permanent absence are
+not interchangeable. This read-only measurement does not change rewards, reset
+mixtures, policy inputs or loss weights. It cannot recover the unrecorded context
+split of the rejected experiment or establish the cause of forgetting on its own.
 
 Retention remains a constraint. On an older stopped candidate, protecting other
 task IDs preserved old workbench behavior while useful partial pickaxe behavior
@@ -76,8 +92,9 @@ into a success by changing its thresholds, seeds, denominators or input afterwar
 | [Protected placement](verification/20260929-protected-placement.md) | With protection constant, more placement practice still gave zero ordinary pickaxe completions. Source assisted totals of 56/160 and 48/160 fell to candidate 0/160 and 1/160. Other-task protection did not protect all behavior within the active task. |
 | [Click-slot implementation](verification/20260929-click-conditioned-slots.md) | Separate click-specific projections preserved the original initial actor, critic and optimizer state under independent numerical checks. PR #41 preserved an implementation checkpoint, not a Minecraft learning result. |
 | [Qualified matched comparison](verification/20260930-click-slots-comparison.md) | Candidate partial totals fell from 51/160 and 50/160 to 17/160 and 20/160 after about 261,000 new samples. Top-left and top-center retention failed on both seeds; ordinary pickaxe success remained zero. All 48 baseline/early reports completed, then the declared early stop prevented further training. |
-| [Protected attribution and current entry ladder](verification/20260930-protected-attribution.md) | All 48 old-candidate attribution reports completed: replacing the active representation reproduced the large left/center loss under both actor projections; actor-only changes did not. Separately, the newer current main model completed raw assembly from an initially open workbench in 30/32 and 31/32 trials, versus ordinary 1/32 and 0/32. Prioritize learned entry transfer without deploying a diagnostic opening intervention. Exact models and all 56 reports are archived in an unpublished research draft. |
+| [Protected attribution and current entry ladder](verification/20260930-protected-attribution.md) | All 48 old-candidate attribution reports completed: replacing the active representation reproduced the large left/center loss under both actor projections; actor-only changes did not. Separately, the then-current main model completed raw assembly from an initially open workbench in 30/32 and 31/32 trials, versus ordinary 1/32 and 0/32. That study prioritized entry transfer without deploying an opening intervention; the later current-policy qualification below supersedes its capability assessment. Exact models and all 56 reports are archived in an unpublished research draft. |
 | [Warm station-entry fade](verification/20260930-station-entry-study.md) | All 12 reports and 2,496 frozen trials completed. Candidate raw assembly failed retention on both fresh seeds, while the matched control retained it. Ordinary candidate completion did not improve. Both final continuations stopped by declaration; PR #47 remains unmerged. Similar transition budgets did not imply similar completed practice counts, and actual accepted menu-context coverage was not measured. |
+| [Current stopped-policy qualification](verification/20260930-current-policy-qualification.md) | A much later mainline model at 344,488,915 samples completed ordinary wooden-pickaxe crafting at 31/32 on each seed, with all earlier tasks at least 31/32 and cobblestone 0/32. All 832 trials are retained. The mining trace showed rare held-pick observations and no observed pickaxe target contact. This changes the current priority, not the outcomes of older controlled studies. |
 
 These are bounded observations under their recorded conditions. They are not a
 ranking of all possible architectures, evidence that a larger model must work, or
@@ -120,24 +137,28 @@ backgrounds. Right-cell loss missed its strict consistency screen and was not
 reclassified. No hybrid completed ordinary pickaxe crafting, and none is adopted.
 Parameter sensitivity still does not identify a gradient-level cause.
 
-For the newer current model, useful open-workbench raw assembly must survive
-learning to enter from closed states. The accepted station practice still starts
-open at every sub-full difficulty; full probes/exams start closed, and probes do
-generate learning samples. The tested difficulty-proportional fade failed its
-early raw-assembly retention screen; it is not an accepted bridge. Diagnose
-accepted context coverage before changing another reset mixture or loss. Record
-closed, inventory, workbench and other menu starts from the pre-action observation
-of each accepted transition, with sample and elapsed-tick denominators kept
-separate. Do not infer completed crafts, successful station entry, assistance
-levels or a gradient-level cause from these counts.
+For the newly qualified current model, the measured ordinary crafting behavior
+is a retention requirement for the next mining experiment. Use the preserved
+complete model/optimizer/course state rather than silently substituting an older
+source with a different deficit. The accepted station practice still starts open
+at sub-full difficulty; full probes/exams start closed, and probes do generate
+learning samples. The difficulty-proportional fade remains rejected; it is not
+needed to explain the ordinary success observed in the much later mainline model.
 
-Any new learning proposal must compare matched warm continuations under explicit
-sample and observed-effort budgets. Preserve strong open-menu behavior as well as
-tasks 0-10 while measuring ordinary entry and complete crafting. No architecture
-or within-context protection strategy is accepted merely because the simple fade
-failed. Never insert automatic menu opening or recipe actions into ordinary
-gameplay, lower the completion predicate, or confuse assistance with a learned
-bridge.
+Use accepted pre-action context counts to describe closed, inventory, workbench
+and other exposure, keeping sample and elapsed-tick denominators separate. Pair
+these with actual held-tool, sustained target-contact, broken-block and
+provenance-correct pickup observations. Generic pickup or selected dig input is
+not successful cobblestone acquisition. Context counts alone do not identify
+successful behavior, reset assistance, a mechanical defect or a gradient cause.
+
+Any new learning proposal needs matched warm continuations, explicit sample and
+observed-effort budgets, and complete frozen retention of tasks 0-11 alongside
+ordinary mining acquisition. Protect useful raw assembly when a proposal changes
+inventory behavior. No architecture or within-context protection strategy is
+accepted merely because an earlier fade failed. Do not insert automatic tool
+selection, menu closing or recipe/mining actions, lower completion predicates,
+or mistake the individual supplied-resource task for a continuous resource chain.
 
 Separate input qualification, retention during learning and new-skill acquisition.
 Absolute mastery and relative preservation answer different questions. Use matched

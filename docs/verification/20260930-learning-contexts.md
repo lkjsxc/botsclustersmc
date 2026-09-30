@@ -81,3 +81,71 @@ all-actor progress, failure counters and exact context/status marginals. Retain
 multiple process-local observations, distinguishing observed exposure from frozen
 competence. The completed activation and source identities are recorded below
 only after those actions have actually succeeded.
+
+## Completed integration and live activation
+
+Implementation and initial verification commit:
+`0486fbd46208aecb9000d3a60c8e00982a71cdc5`, tree
+`62e3ba3d3a2a688764b44210e53761630c5b03ec`. GitHub run `36672524303`
+passed Ubuntu source, Windows source and observatory checks. Dispatch-only live,
+Paper, retention and Windows-live jobs were skipped, not counted as executed.
+PR #48 merged as `d2180141c0543a7b8e5386dd18425c19fcf729fb`, with the same
+tree; an independent GitHub ref read and clean production fast-forward confirmed
+that accepted source before building and activating it. Source commits were
+authored as `lkjsxc` and pushed normally.
+
+At 14:19 JST on September 30, only `botsclustersmc-training.service` was stopped
+and restarted. The previous supervised process was 121202 (Minecraft child
+121289); the new supervised process is 2350978. The monitor remained active and
+unchanged. The installed training JAR matched `31e74a15...` above. Server version,
+service limits, configurations and Academy paths were unchanged.
+
+The canonical shutdown checkpoint was retained at
+`.build/context-activation-20260930/stopped-training.bcmc` before restart. Native
+export and `verify-export` passed. It contained 1,182,364 updates and 344,488,915
+samples; its SHA-256 is
+`a0ef5870276abc8f2cb6f7a30c95e3a57d20c0d9d3f8097a98132517b7e0e05e`.
+The startup journal explicitly reported restored model/optimizer updates
+1,182,364, samples 344,488,915 and optimizer step 1,182,364. All 512 actors were
+observed with restored-checkpoint startup state and first-issued task 12.
+No model/optimizer/course reset or data conversion occurred; the new context
+counters began at zero with that cumulative sample origin. NPC bodies remain
+ephemeral and are recreated by normal service startup.
+
+Three fresh retained status snapshots covered 20.001 seconds:
+
+| Snapshot | Cumulative trained samples | Context samples since restart | Accepted actor ticks |
+| --- | ---: | ---: | ---: |
+| First | 344,637,235 | 148,320 | 741,600 |
+| Second | 344,658,899 | 169,984 | 849,920 |
+| Third | 344,680,563 | 191,648 | 958,240 |
+
+Across the window, 43,328 new samples and 216,640 actor ticks were accepted.
+Every snapshot had 512 active and progressing actors; inference failures and
+rejections, stale/rejected learner samples and retired actors were zero. The
+full 114-cell sample/tick arrays, exact counter-origin binding and all 19 existing
+per-task marginals passed the finite read-only activation audit. All unknown-menu
+counts were zero. These observations establish live instrumentation and learning
+health, not current skill mastery or a performance improvement benchmark.
+
+All first-window accepted samples were task 12. In the third snapshot, its closed
+and personal-inventory sample counts were 52,120 and 139,528 respectively; the
+other menu buckets were zero. A later separately retained snapshot contained
+1,555,148 accepted samples: 1,231,132 for task 12 and positive counts for every
+earlier task, including 54,143 for task 11. Its task-12 split was 335,254 closed
+and 895,878 personal-inventory samples. The early lack of review exposure was
+therefore temporary, not evidence of disabled review. These changing-policy
+exposure measurements are separate from a fixed-policy assessment.
+
+The observed course advancement prompted the separately predeclared
+[current stopped-policy qualification](20260930-current-policy-qualification.md).
+Its 832 ordinary frozen trials found wooden-pickaxe crafting 31/32 on both seeds
+and cobblestone mining 0/32 on both, with tasks 0-10 each at least 31/32. The
+measured weights predate the observer installation: the new observer cannot be
+credited for that learned result. The roadmap now follows this more recent
+measured bottleneck rather than assuming the older source's entry deficit remains.
+
+Raw activation receipts, status snapshots and complete stopped state remain in
+`.build/context-activation-20260930/`. The qualified current-policy record also
+identifies the unpublished research archive that preserves them. Subsequent
+result-record edits change documentation only and do not require another restart.
