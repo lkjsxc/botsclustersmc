@@ -153,5 +153,142 @@ health histories and decision results remain in `.build/station-entry-study/`.
 
 ## Execution results
 
-No gameplay or learning outcome is claimed at declaration. Append results here
-without changing the protocol, thresholds, seeds or rejected intermediate states.
+At declaration no gameplay or learning outcome was claimed. The results below
+were recorded afterward without changing the protocol, thresholds or seeds.
+
+### Source qualification and completed baseline
+
+Actual implementation and prospective declaration:
+`0a3dbf192b5b16e2042ceeb84d52149293b2c41e`, tree
+`75e9a37fb5f9f357a12a993e9b795dc1317661ba`, authored as `lkjsxc` and pushed
+normally before execution. Research PR #47 is not an accepted runtime change.
+GitHub run `36647078174` passed Ubuntu source, Windows source and observatory
+checks. Dispatch-only live, Paper, retention and Windows-live jobs were skipped,
+not counted as executed tests. The 12 controller tests also passed again in normal
+and optimized Python during closeout. Both initial native exports reproduced the
+same prescribed policy from the same complete model/optimizer/course checkpoint.
+
+All four baseline reports completed before either learner started. Seed A is
+`2026093011`; seed B is `2026093012`. Ordinary vectors are ordered tasks 0-11,
+each score out of 32. Assisted rows are complete wooden-pickaxe production with
+only the initial workbench menu opened and no arranged ingredients.
+
+```text
+parent ordinary A: [32,32,32,32,32,32,32,32,32,32,32,0]
+parent ordinary B: [32,32,31,32,32,32,32,32,32,32,32,1]
+parent open A/B:    32/32, 31/32
+```
+
+Both seeds passed the declared input qualification. These are the study's new
+baseline seeds and ordered task lists, not scores borrowed from the earlier
+entry ladder. All evaluations used the unchanged control runtime and contributed
+zero training samples.
+
+### Matched early learning segments
+
+Both separately owned 512-actor learners reached the early accepted-sample
+boundary and stopped cleanly before the early frozen matrix. The original
+checkpoint was not overwritten, and the running development Academy was untouched.
+
+| Arm | Additional accepted samples | Stopped total samples | Stopped updates | Segment wall seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Control | 505,094 | 298,035,244 | 1,020,776 | 270.756 |
+| Candidate | 505,713 | 298,035,863 | 1,020,693 | 270.705 |
+
+Both totals satisfy +500,000 through +550,000. Wall time is descriptive, not a
+throughput benchmark; similar accepted-sample totals do not imply identical
+optimizer trajectories, episode counts or observed context coverage.
+
+| Stopped artifact | SHA-256 |
+| --- | --- |
+| Control canonical checkpoint | `3c060a45f445469fd99a81f2b6329bc4441c291d09fff43587d0aabbd0e60547` |
+| Control exported policy | `2742fdbfc9ea904e96ce34a3e4cb1110cc9daa0d11d4198d5d1ab23a3801c9f1` |
+| Candidate canonical checkpoint | `dfc73e4fc66e76e21f116db0af2580662a762902f03282156212f499c9f81bfb` |
+| Candidate exported policy | `0625c1104f9e76653b358a41120e9fd3c5250d750d2248e277ca78c19ce1ec68` |
+
+Native `verify-export` passed again for both stopped states at closeout. Each
+process retained 52 status observations; their clocks, total counters and task
+counters were monotone. Both recorded all 512 first-issued lessons at task 11
+with restored-checkpoint status, and ended with all 512 actors progressing.
+Inference failures/rejections, rejected/stale learner samples and retired actors
+were zero in the retained histories.
+
+The last observed task-11 accepted counts were control 412,777 and candidate
+418,905. Total accepted counts in those same observations were 503,154 and
+504,401. The final stop/flush added 1,940 and 1,312 samples respectively; do not
+mix the earlier per-task snapshot with the later exact stopped denominator.
+Observed frontier/review ticks were control 2,102,795 / 452,545 and candidate
+2,135,190 / 427,695; no exam ticks were recorded.
+
+At the last observation, task-11 practice completion was control 2,416 successes
+among 2,925 finished episodes and candidate 251 among 763. Completed probes were
+53/524 and 32/335. These are changing-policy, completed-episode counters; they are
+not frozen competence estimates, counts of all started episodes, or direct
+measurements of accepted closed/open-menu samples. The fewer completed practice
+episodes under the candidate must not be hidden by reporting only total samples.
+
+### Complete early matrix and rejection
+
+All eight early reports completed, preserving both arms, both seeds and both
+ordinary/assisted conditions.
+
+```text
+control ordinary A:   [32,32,32,32,32,32,32,32,32,32,30,2]
+control ordinary B:   [32,32,32,32,32,32,32,32,32,32,32,3]
+candidate ordinary A: [32,32,32,32,32,32,32,32,32,32,32,0]
+candidate ordinary B: [32,32,32,32,32,32,32,32,32,32,32,1]
+```
+
+| Complete task-11 condition | Parent A | Control A | Candidate A | Parent B | Control B | Candidate B |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ordinary, initially closed | 0/32 | 2/32 | 0/32 | 1/32 | 3/32 | 1/32 |
+| Initially open, raw assembly | 32/32 | 32/32 | 25/32 | 31/32 | 31/32 | 23/32 |
+
+Both arms retained every ordinary task 0-10 under its declared floor. The
+candidate's raw-assembly scores failed the separate 28/32 and 27/32 floors.
+The control retained raw assembly on both seeds. Ordinary candidate completion
+did not improve over the parent and did not pass the acquisition screen.
+Retention failure, not the absence of immediate ordinary gain alone, triggered
+the predeclared early stop. Neither +2,000,000 continuation ran.
+
+The outcome is `stage=early`, `input_qualified=true`, `retained=false`,
+`acquisition=false`, `useful_pilot=false`, `deployment=false`, with exactly
+12 reports and 2,496 frozen trial executions. There is no operational-failure
+record and no final-phase directory. This is a completed early rejection, not a
+full-budget result, an incomplete matrix, or evidence of general impossibility.
+
+Do not deploy this reset fade or either experimental model. The measured deficit
+still concerns transferring useful open-workbench behavior to ordinary entry;
+simply fading the initial opening with the existing difficulty was not sufficient
+under this protocol and damaged previously useful assembly. This comparison does
+not identify which gradients, optimizer moments or observation subsets caused the
+loss, nor establish a learning benefit or failure on furnace/chest/stone practice.
+Two evaluation seeds are not independent training replicates.
+
+Before another acquisition change, distinguish accepted pre-action contexts and
+elapsed actor ticks rather than relying on completed episodes or aggregate task
+samples. Read-only context accounting must not select actions, alter rewards,
+rebalance losses or reinterpret old saved counters. It cannot retrospectively
+supply the missing closed/open split for this completed experiment.
+
+### Preserved and revalidated evidence
+
+Raw evidence remains under
+`/home/coder/workspace/botsclustersmc-station-entry/.build/station-entry-study/`
+in `lkjsxc/tomato-ocelot-73`. A fresh read-only closeout audit revalidated all
+12 original result/metadata/receipt/policy bindings, native stopped exports,
+per-arm accepted-sample budgets, retained histories, the complete matrix and the
+independently recomputed per-cell floors. No gameplay was rerun or added to the
+2,496 denominator during that audit.
+
+The unpublished GitHub research draft `station-entry-study-20260930` points to
+source `0a3dbf1` and retains `station-entry-evidence-20260930.zip`: 80 members,
+4,540,258 bytes, SHA-256
+`f33e0f250b94c4938c14ec32d4e292fa90225853393a5625dce1b036399be374`.
+A fresh download matched the local archive; ZIP integrity and every manifest
+member's size and digest passed. The archive includes the parent, both stopped
+canonical states, runtime JARs, original protocol/controller, all frozen reports
+and receipts, histories and validation logs. It excludes Minecraft server
+binaries, worlds, cache, credentials and unrelated projects. It is not a released
+plugin, an accepted checkpoint or a skill certificate. Failed evidence remains
+available even though the experimental runtime is not merged.
