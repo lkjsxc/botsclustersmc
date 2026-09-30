@@ -183,4 +183,91 @@ live activation check. A rejected candidate is preserved and closed unmerged.
 
 ## Execution results
 
-No gameplay or learning outcome is claimed at declaration.
+No outcome was claimed at declaration. The following completed observations were
+appended later without altering the protocol, source, thresholds or trial matrix.
+
+### Qualified inputs, execution and complete early rejection
+
+Actual source `234e0cf5e15b31343f4f1f4b9916ae85c0df180e`, tree
+`5321c61508566a5e96cc081969d68a233ba2c03e`, was authored as `lkjsxc` and
+pushed before gameplay. CI run `36681275504` passed Ubuntu, Windows and
+observatory checks; dispatch-only live/Paper/retention/Windows-live jobs were
+skipped. The 12 controller methods passed again in normal and optimized Python
+at closeout. Both initial native exports matched the prescribed complete parent.
+
+All six reports / 2,496 frozen trials completed. A is seed `2026093071`, B is
+`2026093072`. Vectors are ordered tasks 0-12, every score out of 32.
+
+```text
+parent    A: [32,32,32,32,32,32,32,32,32,32,32,30,0]
+parent    B: [32,32,32,32,32,32,32,32,32,32,32,29,0]
+control   A: [32,32,32,32,32,32,32,32,32,32,32,30,0]
+control   B: [32,32,32,32,32,32,32,32,32,32,32,27,0]
+candidate A: [32,32, 7,32,32,29,32,28,32,32, 9, 0,0]
+candidate B: [32,32, 8,31,30,30,31,31,32,32,11, 0,0]
+```
+
+Both arms accepted exactly **262,144** new samples and stopped at 344,751,059.
+Control stopped at update 1,183,005; candidate at 1,183,019. Native verification
+confirmed the saved policy exactly matches each complete stopped checkpoint.
+Candidate retention failed for task 2, task 10 and task 11 on both seeds, and
+task 7 on seed A. The fixed floors were 29/32 for tasks 0-10 and 26/32 for task
+11. The control retained all declared floors. Mining acquisition was zero in
+both arms on both seeds. Neither +1,000,000 final continuation was run.
+
+| Stopped artifact | SHA-256 |
+| --- | --- |
+| Control canonical checkpoint | `df2e968906f480f29cfa654ee20369706bfc415216db857f5ba2ab164a745f18` |
+| Control policy | `4dcfdf66e27db615841df7627f5c2f6f44ba933a706becd7cecce48b767b6b45` |
+| Candidate canonical checkpoint | `6550ce1576e219953c4995373dc8fb8edf343b9cdc84c828763961899f5add56` |
+| Candidate policy | `b0ca13b62a1d34047ad3b650069862057292d71113be7f78f2d8692fb8ab94ab` |
+
+Each arm retained 28 process-local health observations. All 512 actors were
+observed at warm startup and progressing at the final observation; recorded
+inference failures/rejections, stale/rejected learner samples and retirements
+were zero. The clock, task counters and all context cells were monotone.
+Every accepted sample in the last snapshots belonged to task 12. Neither process
+had yet accumulated review ticks. This short early transition budget therefore
+covered no earlier-task review; that is not proof that review is permanently
+disabled. The matched control experienced the same absence without the candidate's
+large retention loss.
+
+Last-observed control accepted counts were 71,540 closed and 190,348 inventory,
+total 261,888; candidate 44,074 closed and 217,878 inventory, total 261,952.
+Stop/flush added 256 and 192 samples respectively. Do not combine those earlier
+context denominators with the final stopped totals. Segment wall times were
+157.134 and 157.177 seconds, descriptive only, not a throughput benchmark.
+
+### Mining observations and interpretation
+
+Each ordinary mining report contained 19,200 decision-boundary observations.
+The candidate's final frozen reports had more closed-menu observations than
+control (9,188/9,080 versus 5,044/5,222), but fewer effective world-dig selections
+(175/143 versus 605/652). Held-pick observations were 730/613 versus 499/544.
+No arm recorded target pickaxe contact or a broken block at the early boundary.
+Changing occupancy or holding a tool more often is not completed mining.
+
+The candidate is rejected and must not be deployed. This is a completed early
+retention veto, not a full-budget result or an operational failure. The results
+show that this exact stronger control-cost intervention damages existing behavior
+before useful mining is acquired. They do not isolate actor versus critic gradients,
+optimizer moments, reward scale or representation changes as the cause. A large
+shared-trunk update is a hypothesis to test, not a conclusion from occupancy.
+Further extension of this rejected state is prohibited by the declared stop.
+
+### Preserved evidence and independent closeout
+
+A read-only closeout reran all original report validators and bindings, recomputed
+every per-seed/task retention floor, verified native stopped exports and all
+context/time-series identities. No new gameplay contributed to the 2,496 trials.
+The original evidence remains in the dedicated mining-control worktree under
+`.build/mining-control-study/`.
+
+The unpublished research draft `mining-control-study-20260930` targets the original
+source. `mining-control-evidence-20260930.zip` contains 64 members, 5,283,829 bytes,
+SHA-256 `9ae8aaef62e090b38e0c256378c970dbb3ae925c1a36644e48a2bf4c2247d5cf`.
+ZIP integrity and every manifest entry passed; a fresh GitHub download matched
+exactly. The explicit allowlist retains complete initial/stopped canonical states,
+runtimes, seed-specific evaluators, reports, receipts, histories and source logs;
+it excludes server binaries, worlds, caches, credentials and unrelated data.
+PR #51 is closed unmerged; the branch and failed evidence remain available.
