@@ -166,4 +166,181 @@ closes the research PR unmerged.
 
 ## Execution results
 
-No gameplay or learning outcome is claimed at declaration.
+No gameplay or learning outcome was claimed at declaration.
+
+### Completed execution
+
+Prospective implementation and protocol source:
+`06b70bdfa1b1180d8b2d75d6ceef5d48d1ed992c`, tree
+`ae1a46b2260a1c917e97f09166de26db44362d07`. It was authored as
+`lkjsxc` and pushed before gameplay. PR #50 remained a research PR throughout
+execution. GitHub run `36678324392` passed Ubuntu source, Windows source and
+observatory checks; dispatch-only live/Paper/retention/Windows-live jobs were
+skipped and are not counted as executed. The complete local source suite ended
+`MINING_READINESS_SOURCE_EXIT 0`; the 12 controller tests passed in normal and
+optimized Python. Production member comparison found exactly
+`MiningPractice.class` and `TrainingEnvironment.class` changed in the training
+JAR, while the inference JAR was byte-identical to accepted main.
+
+Both initial native exports reproduced the declared complete parent checkpoint
+and policy. All two baseline reports completed before either learner started:
+
+```text
+parent A: [32,32,31,32,32,32,32,29,32,32,31,31,0]
+parent B: [32,32,32,32,32,32,32,31,32,32,32,28,0]
+```
+
+The input qualification passed on both seeds. These are the fresh declared seeds,
+not scores borrowed from the preceding current-policy qualification.
+
+### Early boundary
+
+Both owned 512-actor learners reached the +250,000 accepted-sample boundary and
+stopped cleanly.
+
+| Arm | Additional accepted samples | Stopped samples | Stopped updates | Wall seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Control | 257,664 | 344,746,579 | 1,183,022 | 146.404 |
+| Candidate | 257,280 | 344,746,195 | 1,183,023 | 146.538 |
+
+Stopped early artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Control canonical checkpoint | `49896838e2cef780d8071cd766f7b33c871fa17f05a0035fe943aaa78f8bd244` |
+| Control exported policy | `ea92e3b6a915c3db3a4cb439991f2405775233b10c88fe0177fd6dd7985d5cc0` |
+| Candidate canonical checkpoint | `7700559c55f1c829247ba4aca8a483d165059d740ef1a667226ff63106a50b60` |
+| Candidate exported policy | `7867a763db7968240b969444a5780443183527fc224b5ed04fda973c68a2fd35` |
+
+The complete early frozen matrix was:
+
+```text
+control   A: [32,32,32,32,32,32,32,32,32,32,32,31,0]
+control   B: [32,32,32,32,32,32,32,32,32,32,32,28,0]
+candidate A: [32,32,32,32,32,32,32,32,32,32,32,31,0]
+candidate B: [32,32,32,32,32,32,32,32,32,32,32,28,0]
+```
+
+Every retention floor passed in both arms. Mining remained 0/32 on both seeds in
+both arms. By declaration, retention—not early acquisition—controlled whether the
+final segment ran, so both arms continued from their exact stopped early state.
+
+At the last observed early status, accepted task-12 context samples were control
+67,921 closed / 183,215 personal-inventory and candidate 69,103 / 181,777. No
+other menu bucket was populated. The small context shift is exposure telemetry,
+not evidence of successful behavior.
+
+### Final boundary
+
+Both arms continued from their exact early checkpoint and reached the cumulative
++1,000,000 boundary within the declared overshoot.
+
+| Arm | Additional accepted samples | Stopped samples | Stopped updates | Wall seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Control | 1,011,665 | 345,500,580 | 1,185,181 | 388.210 |
+| Candidate | 1,013,868 | 345,502,783 | 1,185,198 | 390.316 |
+
+Stopped final artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Control canonical checkpoint | `84587af4a50ba750f69d1bad67244ec4b4055408f7fad1bd8abf1c5d277773b9` |
+| Control exported policy | `9f8f1b33ac640a652bc073471a1c7bc0268551a8b2fa6eadb519524157352306` |
+| Candidate canonical checkpoint | `de1335e4029606d68611644f1909a37f32bc7c55ae98bdf4d38e0b1d25b563d9` |
+| Candidate exported policy | `3b136e364bff6e7f410da8b3bd06016511fee9745a20d29cc40661803516306c` |
+
+The complete final frozen matrix was:
+
+```text
+control   A: [32,32,32,32,32,32,32,32,32,32,31,29,0]
+control   B: [32,32,32,32,32,32,32,32,32,32,31,31,0]
+candidate A: [32,32,32,32,32,32,32,32,32,32,32,30,0]
+candidate B: [32,32,32,32,32,32,32,32,32,32,32,29,0]
+```
+
+Every task 0-11 retention gate passed in each arm and seed. Candidate task-12
+completion remained **0/32 on both seeds**, exactly like control. It therefore
+failed both the absolute 8/32 acquisition requirement and the matched-control
++4/32 requirement. The final outcome is:
+
+```text
+stage=final
+input_qualified=true
+retained=true
+acquisition=false
+useful_pilot=false
+reports=10
+frozen_trials=4160
+deployment=false
+```
+
+This is a complete full-budget rejection, not an early stop or operational
+failure. The state potential preserved the measured prior skills under this
+single matched run but did not establish ordinary cobblestone acquisition.
+
+### Exposure and behavior interpretation
+
+The final training processes accepted nearly the same amount of task-12 data:
+608,848 control versus 607,560 candidate samples. Their task-12 accepted menu
+contexts were:
+
+| Arm | Closed | Personal inventory | Other menus |
+| --- | ---: | ---: | ---: |
+| Control | 161,960 | 446,888 | 0 |
+| Candidate | 166,935 | 440,625 | 0 |
+
+The candidate therefore had slightly more accepted closed-menu exposure during
+training, but that did not translate to frozen completion. Both final processes
+recorded zero task-12 practice successes (control 0/1,010; candidate 0/1,007) and
+zero probe successes (control 0/211; candidate 0/212). Review remained active:
+task-11 accepted samples were 20,036 control and 21,315 candidate, and task-11
+frozen retention passed.
+
+The final frozen mining diagnostics are also unfavorable to the candidate:
+
+| Seed / arm | Pick held observations | Pick target contact | Max pick mining ticks | Effective world-dig selections | Closed / inventory observations |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A control | 565 | 0 | 0 | 823 | 5,674 / 13,526 |
+| A candidate | 571 | 0 | 0 | 435 | 4,663 / 14,537 |
+| B control | 552 | 1 | 4 | 778 | 5,335 / 13,865 |
+| B candidate | 676 | 0 | 0 | 441 | 4,648 / 14,552 |
+
+No target block was broken in any final task-12 report. Candidate held-pick
+observations increased on seed B, but effective world-dig selections were roughly
+halved on both seeds and target contact did not improve. The candidate's frozen
+policy also spent more decision observations in the personal inventory than the
+matched control, despite its slightly higher closed-menu share in accepted
+training samples. These are bounded observations from one training run per arm,
+not proof that the shaping term necessarily causes those differences.
+
+The important negative result is stronger: a bounded potential for menu/tool
+readiness plus existing target-mining progress was not enough to bootstrap the
+missing sustained target interaction. The target-progress component remained
+effectively sparse because the policy almost never reached pickaxe contact in the
+first place. A next hypothesis should improve **learned continuous spatial control
+toward the target** without auto-aim, scripted tool choice, forced menu closure or
+answer-supplying masks. Repeating this exact potential longer is not justified by
+the completed result.
+
+### Revalidation and retained evidence
+
+A read-only closeout recomputed baseline qualification, both gates and all ten
+report bindings/diagnostics; re-ran native `verify-export` on all four stopped
+canonical states; replayed every retained process-local status history through
+the accepted-sample/context validators; checked exact early-to-final continuation;
+and rebuilt an explicit-whitelist archive. The archive CRC and all manifest
+member sizes/digests passed.
+
+The unpublished GitHub research draft `mining-readiness-study-20260930` targets
+the prospective source and retains `mining-readiness-evidence-20260930.zip`:
+**133 members, 7,350,488 bytes**, SHA-256
+`8acd75707979fcee7707a6a4e06ad1e5e1c22a2c4af02cbcb8afd8e2a9725d8b`.
+A fresh download matched the local archive byte-for-byte. The allowlist includes
+the exact parent, both runtimes, all stopped checkpoints/policies, context
+histories, training receipts, protocol/controller source and all ten frozen
+reports. It excludes Minecraft server binaries, worlds, cache, environment files,
+credentials and unrelated data.
+
+Do not deploy the candidate runtime or either candidate checkpoint. PR #50 should
+remain a research record and be closed unmerged. The continuously running
+development Academy was not modified by this study.
