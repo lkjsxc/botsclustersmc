@@ -20,7 +20,9 @@ inventory, only about 2.8% showed a held pickaxe, and no trial recorded pickaxe
 contact with the target at a decision boundary. These observations prioritize
 learned inventory exit, useful tool retention/selection and sustained digging.
 They do not establish a gradient-level cause or authorize an automatic equipment,
-menu-closing or mining controller.
+menu-closing or mining controller. A subsequent one-time target-facing diagnosis
+also completed 0/32 on both seeds with or without the supplied initial alignment;
+initial random facing is therefore not a sufficient explanation for this policy.
 
 The earlier [reset ladder](verification/20260930-protected-attribution.md) correctly
 identified an entry deficit in its then-current model: ordinary 1/32 and 0/32
@@ -38,6 +40,15 @@ fell from 32/32 and 31/32 to 25/32 and 23/32. The unchanged control retained
 32/32 and 31/32. The declared early stop prevented both larger continuations.
 Do not deploy that reset fade, strengthen it without a new hypothesis, or hide
 the regression by reporting only earlier-task retention.
+
+A matched [mining-readiness potential study](verification/20260930-mining-readiness-potential.md)
+then tested a bounded reward-side hypothesis without changing actions or resets:
++0.10 potential for closed-menu held-pickaxe readiness and +0.15 times existing
+designated-target mining progress. Both arms completed the full +1,000,000-sample
+budget and retained tasks 0-11, but candidate mining stayed 0/32 on both seeds,
+identical to control. The candidate is rejected. Its final frozen policy also had
+roughly half the control's effective world-dig selections and no improved target
+contact. Repeating that exact potential longer is not justified.
 
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
@@ -95,6 +106,8 @@ into a success by changing its thresholds, seeds, denominators or input afterwar
 | [Protected attribution and current entry ladder](verification/20260930-protected-attribution.md) | All 48 old-candidate attribution reports completed: replacing the active representation reproduced the large left/center loss under both actor projections; actor-only changes did not. Separately, the then-current main model completed raw assembly from an initially open workbench in 30/32 and 31/32 trials, versus ordinary 1/32 and 0/32. That study prioritized entry transfer without deploying an opening intervention; the later current-policy qualification below supersedes its capability assessment. Exact models and all 56 reports are archived in an unpublished research draft. |
 | [Warm station-entry fade](verification/20260930-station-entry-study.md) | All 12 reports and 2,496 frozen trials completed. Candidate raw assembly failed retention on both fresh seeds, while the matched control retained it. Ordinary candidate completion did not improve. Both final continuations stopped by declaration; PR #47 remains unmerged. Similar transition budgets did not imply similar completed practice counts, and actual accepted menu-context coverage was not measured. |
 | [Current stopped-policy qualification](verification/20260930-current-policy-qualification.md) | A much later mainline model at 344,488,915 samples completed ordinary wooden-pickaxe crafting at 31/32 on each seed, with all earlier tasks at least 31/32 and cobblestone 0/32. All 832 trials are retained. The mining trace showed rare held-pick observations and no observed pickaxe target contact. This changes the current priority, not the outcomes of older controlled studies. |
+| [One-time target-facing diagnosis](verification/20260930-mining-target-facing.md) | The same frozen policy completed 0/32 mining on both seeds in ordinary and one-time target-facing conditions. Initial alignment modestly changed later orientation but did not create sustained pickaxe contact or block breaks. PR #49 stayed unmerged. This rejects initial random facing as a sufficient explanation, not the relevance of learned aiming. |
+| [Mining-readiness potential](verification/20260930-mining-readiness-potential.md) | A matched full-budget comparison from the same complete parent ran to about +1.01M accepted samples per arm. Tasks 0-11 retained in both arms; task 12 remained 0/32 on both seeds in both arms. Candidate final effective world-dig selections were about half control and target contact did not improve. The bounded readiness/progress potential is rejected; PR #50 stayed unmerged. |
 
 These are bounded observations under their recorded conditions. They are not a
 ranking of all possible architectures, evidence that a larger model must work, or
@@ -137,13 +150,15 @@ backgrounds. Right-cell loss missed its strict consistency screen and was not
 reclassified. No hybrid completed ordinary pickaxe crafting, and none is adopted.
 Parameter sensitivity still does not identify a gradient-level cause.
 
-For the newly qualified current model, the measured ordinary crafting behavior
-is a retention requirement for the next mining experiment. Use the preserved
-complete model/optimizer/course state rather than silently substituting an older
-source with a different deficit. The accepted station practice still starts open
-at sub-full difficulty; full probes/exams start closed, and probes do generate
-learning samples. The difficulty-proportional fade remains rejected; it is not
-needed to explain the ordinary success observed in the much later mainline model.
+For the newly qualified current model, ordinary wooden-pickaxe crafting is a
+retention requirement for every mining experiment. Use the preserved complete
+model/optimizer/course state rather than silently substituting an older source
+with a different deficit. Two simple task-12 hypotheses are now rejected: a
+one-time favorable initial facing, and bounded potential on closed-menu pickaxe
+readiness plus already-existing target-mining progress. Neither produced ordinary
+mining acquisition. The next candidate must address **learned sustained spatial
+control before contact is established**, because the current progress signal is
+nearly absent until that prerequisite has already been solved.
 
 Use accepted pre-action context counts to describe closed, inventory, workbench
 and other exposure, keeping sample and elapsed-tick denominators separate. Pair
@@ -154,11 +169,16 @@ successful behavior, reset assistance, a mechanical defect or a gradient cause.
 
 Any new learning proposal needs matched warm continuations, explicit sample and
 observed-effort budgets, and complete frozen retention of tasks 0-11 alongside
-ordinary mining acquisition. Protect useful raw assembly when a proposal changes
-inventory behavior. No architecture or within-context protection strategy is
-accepted merely because an earlier fade failed. Do not insert automatic tool
-selection, menu closing or recipe/mining actions, lower completion predicates,
-or mistake the individual supplied-resource task for a continuous resource chain.
+ordinary mining acquisition. The most defensible next hypothesis is a bounded
+**control-cost shaping signal** on observable yaw error, pitch error, target
+distance, excessive movement and sustained designated-target contact, analogous
+in spirit to the existing log-harvest control cost but isolated to task 12 and
+without changing its reset distribution. It must remain reward-side only: no
+auto-aim, no forced tool selection, no menu-closing action, no pathfinder and no
+answer-supplying mask. Compare it against unchanged warm continuation before any
+adoption. Protect useful raw assembly when a proposal changes inventory behavior.
+Do not lower completion predicates or mistake the individual supplied-resource
+task for a continuous resource chain.
 
 Separate input qualification, retention during learning and new-skill acquisition.
 Absolute mastery and relative preservation answer different questions. Use matched
