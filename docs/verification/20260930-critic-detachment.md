@@ -118,5 +118,154 @@ configuration. The wrapper has its own create-only evidence root under
 
 ## Execution results
 
-No Minecraft outcome is claimed at declaration. Results will be appended without
-changing the prospective rules above.
+No outcome was claimed at declaration. The complete results below were appended
+after execution without changing the source, budgets, seeds or interpretation
+criteria.
+
+### Qualified source and initial model
+
+Implementation and prospective protocol source:
+`ec3329dcff45d5a71701fcdad02693def06741c8`, tree
+`83faecbc8abf88ddd778aac57f403910d89b0505`. The commit was authored as
+`lkjsxc` and pushed before gameplay. CI run `36717584734` passed source checks
+on Ubuntu and Windows and the observatory job. Dispatch-only live/Paper/retention/
+Windows-live jobs were skipped. The new Java derivative test passed 1,463,158
+checks, including finite differences and exact parameter support; the complete
+local suite ended `CRITIC_SOURCE_TEST_EXIT 0`. Ten wrapper controller methods
+passed in normal and optimized Python, as did the inherited twelve runner tests.
+The explicit gameplay entrypoint reran its ten tests before constructing the study.
+
+Both initial native exports matched the same prescribed canonical checkpoint and
+policy. Every evaluator used the control JAR, including candidate evaluation;
+all non-configuration evaluator JAR payloads were byte-identical. Each complete
+seed-specific configuration was verified against the requested task list and seed.
+The actual executed policy, runtime, metadata and report counter identities passed
+an independent read-only closeout audit.
+
+### Complete ordinary matrix
+
+A is seed `2026093091`; B is `2026093092`. All scores below are out of 32, with
+vectors ordered by ordinary tasks 0-12. There is no extra reset intervention.
+
+```text
+parent    A: [32,32,32,32,32,32,32,32,32,32,32,27,0]
+parent    B: [32,32,32,32,32,32,32,31,32,32,32,31,0]
+control   A: [32,32, 6,32,31,19,19,27,32,32,10, 0,0]
+control   B: [32,32,11,31,29,21,24,29,32,32, 8, 0,0]
+candidate A: [32,32,31,32,32,32,32,31,32,32,32,12,0]
+candidate B: [32,32,32,32,32,32,32,32,32,32,32,11,0]
+```
+
+The common parent passed the new input screen on both seeds. Its task-11 scores
+27/32 and 31/32 are not replaced with more favorable historical scores. The
+preservation floors for that task are therefore 26/32 and 27/32 respectively.
+All six reports and **2,496 frozen trial executions** completed. Every evaluation
+contributed zero new training samples.
+
+The new control is **the stronger mining-control reward without detachment**,
+not unchanged production training. It reproduced losses of at least 8/32 on all
+three prespecified tasks (2, 10 and 11) on both seeds. Candidate tasks 0-10 all
+retained their floors, including aim hold 31/32 and 32/32 and workbench 32/32 on
+both seeds. This partial preservation relative to the matched control is reported.
+It does not repair candidate task-11 losses: wooden pickaxe fell to 12/32 and
+11/32, below both floors. Mining remained 0/32 in both arms on both seeds.
+
+The exact computed interpretation is:
+
+```text
+candidate_retained=false
+control_retained=false
+control_regression_reproduced=true
+detachment_preserves_under_reproduced_loss=false
+acquisition=false
+deployment=false
+```
+
+This is a **completed single-budget diagnosis**, not an interrupted experiment
+or a +1M acquisition study. The inherited runner calls its post-training directory
+`evaluation-early`, but there is no later segment in this protocol. Neither arm
+was extended beyond its declared boundary. A favorable subset of tasks is not
+reported as passing the conjunction of all retention requirements.
+
+### Exact learning budgets and retained state
+
+| Arm | Additional accepted samples | Stopped total samples | Stopped updates | Segment wall seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Control | 252,928 | 344,741,843 | 1,183,007 | 146.450 |
+| Candidate | 253,408 | 344,742,323 | 1,183,011 | 146.551 |
+
+Both counts satisfy the declared +250,000 through +300,000 range. They are not
+identical, and similar wall times are not a throughput or deterministic-trajectory
+claim. Native `verify-export` passed again on both stopped canonical states.
+
+| Stopped artifact | SHA-256 |
+| --- | --- |
+| Control canonical checkpoint | `539269e3c24b53a5f3a1d82ba81094146e5c7e0711c26628bd9a5cbc7f7d59fe` |
+| Control policy | `4d3605714c7105e64d42c6955c746c742677206c8f95a82f10b0ad19c709f612` |
+| Candidate canonical checkpoint | `ea196e219c8fd0d1ddcf3156df6811dfb57832cd94cbcdbb367266c11066fb40` |
+| Candidate policy | `bd8fc04cc2e1e5b770cffecd6e833b3c26020d1af41c40c3652fc3cf10cff9b9` |
+
+Each arm retained 27 fresh process-local health observations. Initial coverage
+observed all 512 actors with restored-checkpoint status; the final observations
+had 512 active and progressing actors. Recorded inference failures/rejections,
+stale/rejected learner samples and retirements were zero. Total counters, task
+marginals and each context sample/tick cell were monotone and correctly bound to
+the original 344,488,915-sample process origin.
+
+In both final observations all accepted samples were task 12 and review ticks
+were zero. Control counts were 48,932 closed plus 202,204 inventory = 251,136;
+candidate 69,994 closed plus 181,238 inventory = 251,232. The stop/flush added
+1,792 and 2,176 samples respectively. Those earlier menu counts must not be
+combined with the later stopped totals as though sampled simultaneously.
+Actor ticks in those menu bins were five times their sample counts. No inference
+about completed-episode mastery follows from these exposure measurements.
+
+### Mining behavior and bounded interpretation
+
+Each mining report had 19,200 decision-boundary observations. The two post-training
+arms spent similar amounts of time in closed-menu observations: control
+9,469/9,496 and candidate 9,247/9,345. Nevertheless, effective world-dig selections
+were control 1,516/1,507 and candidate **34/30**. Candidate held-pick observations
+were 511/739, versus control 700/651. No arm recorded a target-pickaxe contact,
+positive target-pickaxe mining ticks or a broken block. Generic item pickups are
+not credited as cobblestone acquisition.
+
+The critic-feature intervention substantially changed the observed retention
+pattern relative to a reproduced failing control, but it did **not** preserve all
+useful behavior or acquire mining. Do not deploy either arm. Do not call this a
+proof that all forgetting is critic-driven, that actor learning is harmless, or
+that an independent critic network will necessarily solve the problem. This
+single intervention also changes later value estimates, advantages, optimization
+and visited states; inherited Adam moments remain. Two evaluation seeds are not
+independent training replicates. The missing early review exposure is common to
+both arms and does not prove a permanent curriculum failure.
+
+A next useful diagnosis can separate the remaining task-11 actor-feature drift
+from actor-output drift using the preserved ordinary parent and stopped candidate.
+Any parameter hybrids must remain explicitly counterfactual, with unchanged
+physical controls and complete frozen retention/completion matrices. Such a
+diagnosis still would not identify the responsible gradient terms. A subsequent
+learning proposal must preserve the now-demonstrated earlier skills and ordinary
+wooden-pickaxe crafting while producing real cobblestone pickup; neither stronger
+costs nor this partial detachment result alone meets that acceptance condition.
+
+### Evidence retention
+
+Raw evidence stays in
+`/home/coder/workspace/botsclustersmc-critic-detachment/.build/critic-detachment-study/`.
+The read-only closeout verified every original result/metadata/receipt binding,
+full interpretation, accepted-sample boundary, context history and native stopped
+export. It added no new gameplay or trials and left source inputs unchanged.
+The gameplay log ends `CRITIC_DIAGNOSIS_EXIT 0`; no experiment workers remain.
+
+The unpublished research draft `critic-detachment-study-20260930` targets the
+original source `ec3329d`. Its `critic-detachment-evidence-20260930.zip` has
+66 members, 5,289,443 bytes, SHA-256
+`b979a2ea0ca419e518a0655fa6949b0626488fa9e1010c011dadf7c08c45d368`.
+ZIP integrity and each manifest entry's size/digest passed, and a fresh GitHub
+download matched the local archive. The explicit allowlist preserves the common
+parent, complete stopped model/Adam/course states, runtime and evaluator JARs,
+all reports and histories, original prospective protocol and controller source.
+It excludes Minecraft server binaries, worlds, cache, credentials and unrelated
+data. This is not a published plugin or accepted learning checkpoint. PR #52
+is closed unmerged; the source branch and both outcomes remain preserved.
