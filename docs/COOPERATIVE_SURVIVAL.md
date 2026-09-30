@@ -13,8 +13,24 @@ NPC population. In the [qualified current-model reset ladder](verification/20260
 ordinary wooden-pickaxe completion was 1/32 and 0/32, versus 30/32 and 31/32 when
 only the initial workbench menu was opened. Arranging the raw ingredients added
 just one success on each seed. This assisted result is not ordinary mastery, but
-it changes the next development priority: a learned entry bridge from this newer
+it changes the development priority: a learned entry bridge from this newer
 warm checkpoint, while preserving its raw-assembly function and earlier tasks.
+
+The first [warm station-entry fade](verification/20260930-station-entry-study.md)
+was rejected after the complete early comparison. Both arms started from the
+same qualified model/optimizer/course and accepted about 505,000 new samples.
+Candidate ordinary completion stayed 0/32 and 1/32; its initially open raw assembly
+fell from 32/32 and 31/32 to 25/32 and 23/32. The unchanged control retained
+32/32 and 31/32. The declared early stop prevented both larger continuations.
+Do not deploy that reset fade, strengthen it without a new hypothesis, or hide
+the regression by reporting only earlier-task retention.
+
+The next evidence boundary is [accepted learning-context coverage](LEARNING_CONTEXTS.md):
+count actual pre-action task/menu observations and their elapsed actor ticks,
+not just total samples or finished episodes. This read-only measurement does not
+change rewards, reset mixtures, policy inputs or loss weights. It cannot recover
+the unrecorded context split of the rejected experiment or establish the cause
+of forgetting on its own.
 
 Retention remains a constraint. On an older stopped candidate, protecting other
 task IDs preserved old workbench behavior while useful partial pickaxe behavior
@@ -61,6 +77,7 @@ into a success by changing its thresholds, seeds, denominators or input afterwar
 | [Click-slot implementation](verification/20260929-click-conditioned-slots.md) | Separate click-specific projections preserved the original initial actor, critic and optimizer state under independent numerical checks. PR #41 preserved an implementation checkpoint, not a Minecraft learning result. |
 | [Qualified matched comparison](verification/20260930-click-slots-comparison.md) | Candidate partial totals fell from 51/160 and 50/160 to 17/160 and 20/160 after about 261,000 new samples. Top-left and top-center retention failed on both seeds; ordinary pickaxe success remained zero. All 48 baseline/early reports completed, then the declared early stop prevented further training. |
 | [Protected attribution and current entry ladder](verification/20260930-protected-attribution.md) | All 48 old-candidate attribution reports completed: replacing the active representation reproduced the large left/center loss under both actor projections; actor-only changes did not. Separately, the newer current main model completed raw assembly from an initially open workbench in 30/32 and 31/32 trials, versus ordinary 1/32 and 0/32. Prioritize learned entry transfer without deploying a diagnostic opening intervention. Exact models and all 56 reports are archived in an unpublished research draft. |
+| [Warm station-entry fade](verification/20260930-station-entry-study.md) | All 12 reports and 2,496 frozen trials completed. Candidate raw assembly failed retention on both fresh seeds, while the matched control retained it. Ordinary candidate completion did not improve. Both final continuations stopped by declaration; PR #47 remains unmerged. Similar transition budgets did not imply similar completed practice counts, and actual accepted menu-context coverage was not measured. |
 
 These are bounded observations under their recorded conditions. They are not a
 ranking of all possible architectures, evidence that a larger model must work, or
@@ -103,16 +120,24 @@ backgrounds. Right-cell loss missed its strict consistency screen and was not
 reclassified. No hybrid completed ordinary pickaxe crafting, and none is adopted.
 Parameter sensitivity still does not identify a gradient-level cause.
 
-For the newer current model, prioritize a graded bridge from closed starting
-states to its retained open-workbench raw-assembly behavior. The present station
-practice starts open at every sub-full difficulty; full probes/exams start closed,
-and probes do generate learning samples. Fading the reset assistance is a concrete
-hypothesis, not proof that more closed episodes will help. Compare matched warm
-continuations under explicit sample and observed-effort budgets. Preserve the
-strong open-menu behavior as well as tasks 0-10 while measuring ordinary entry
-and complete crafting. Never insert automatic menu opening or recipe actions into
-ordinary gameplay, lower the completion predicate, or confuse assistance with a
-learned bridge.
+For the newer current model, useful open-workbench raw assembly must survive
+learning to enter from closed states. The accepted station practice still starts
+open at every sub-full difficulty; full probes/exams start closed, and probes do
+generate learning samples. The tested difficulty-proportional fade failed its
+early raw-assembly retention screen; it is not an accepted bridge. Diagnose
+accepted context coverage before changing another reset mixture or loss. Record
+closed, inventory, workbench and other menu starts from the pre-action observation
+of each accepted transition, with sample and elapsed-tick denominators kept
+separate. Do not infer completed crafts, successful station entry, assistance
+levels or a gradient-level cause from these counts.
+
+Any new learning proposal must compare matched warm continuations under explicit
+sample and observed-effort budgets. Preserve strong open-menu behavior as well as
+tasks 0-10 while measuring ordinary entry and complete crafting. No architecture
+or within-context protection strategy is accepted merely because the simple fade
+failed. Never insert automatic menu opening or recipe actions into ordinary
+gameplay, lower the completion predicate, or confuse assistance with a learned
+bridge.
 
 Separate input qualification, retention during learning and new-skill acquisition.
 Absolute mastery and relative preservation answer different questions. Use matched
