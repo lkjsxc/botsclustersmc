@@ -50,6 +50,26 @@ identical to control. The candidate is rejected. Its final frozen policy also ha
 roughly half the control's effective world-dig selections and no improved target
 contact. Repeating that exact potential longer is not justified.
 
+A stronger [spatial-control cost](verification/20260930-mining-control-cost.md)
+was also rejected at its complete early screen. Both arms accepted exactly
+262,144 samples from the same preserved parent. The candidate lost aim hold,
+workbench and wooden-pickaxe behavior on both seeds; its pickaxe scores became
+0/32. The unchanged-runtime control retained the declared floors. Both had zero
+mining completions and neither had yet accumulated earlier-task review ticks.
+More closed-menu observations in the candidate did not compensate for lost
+skills or produce effective mining. Stronger rewards alone are not an accepted
+next step, and neither rejected runtime is installed on the development server.
+
+A subsequent [critic-feature gradient ablation](verification/20260930-critic-detachment.md)
+held the stronger reward constant in both arms. The coupled control reproduced
+large aim/workbench/pickaxe losses. Detaching only the task-12 value-loss path to
+shared features preserved tasks 0-10, but wooden-pickaxe completion still fell
+from 27/32 and 31/32 to 12/32 and 11/32. Mining stayed zero in both arms. All six
+reports / 2,496 frozen trials completed at the one declared sample boundary;
+this was not a larger-budget acquisition test. Full retention and acquisition
+failed, so neither runtime nor trained model is adopted. The changed retention
+pattern does not prove that critic gradients are the only cause of forgetting.
+
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
 and their elapsed actor ticks, not just total samples or finished episodes. Its
@@ -108,6 +128,8 @@ into a success by changing its thresholds, seeds, denominators or input afterwar
 | [Current stopped-policy qualification](verification/20260930-current-policy-qualification.md) | A much later mainline model at 344,488,915 samples completed ordinary wooden-pickaxe crafting at 31/32 on each seed, with all earlier tasks at least 31/32 and cobblestone 0/32. All 832 trials are retained. The mining trace showed rare held-pick observations and no observed pickaxe target contact. This changes the current priority, not the outcomes of older controlled studies. |
 | [One-time target-facing diagnosis](verification/20260930-mining-target-facing.md) | The same frozen policy completed 0/32 mining on both seeds in ordinary and one-time target-facing conditions. Initial alignment modestly changed later orientation but did not create sustained pickaxe contact or block breaks. PR #49 stayed unmerged. This rejects initial random facing as a sufficient explanation, not the relevance of learned aiming. |
 | [Mining-readiness potential](verification/20260930-mining-readiness-potential.md) | A matched full-budget comparison from the same complete parent ran to about +1.01M accepted samples per arm. Tasks 0-11 retained in both arms; task 12 remained 0/32 on both seeds in both arms. Candidate final effective world-dig selections were about half control and target contact did not improve. The bounded readiness/progress potential is rejected; PR #50 stayed unmerged. |
+| [Stronger mining spatial-control cost](verification/20260930-mining-control-cost.md) | Both arms accepted exactly +262,144 samples. Candidate aim hold fell to 7/32 and 8/32, workbench to 9/32 and 11/32, and wooden pickaxe to 0/32 on both seeds; the matched control retained declared floors. Mining stayed zero. All six reports / 2,496 trials completed before the early veto stopped both final continuations. The cost is rejected; PR #51 is unmerged. |
+| [Critic-feature gradient ablation](verification/20260930-critic-detachment.md) | With the same stronger reward in both arms, the control reproduced large losses on tasks 2, 10 and 11. Task-12 critic detachment preserved tasks 0-10, but candidate pickaxe fell to 12/32 and 11/32 versus the parent's 27/32 and 31/32. Both arms still had zero mining completion. All six reports / 2,496 trials completed; the full-retention criterion failed. PR #52 remains unmerged. |
 
 These are bounded observations under their recorded conditions. They are not a
 ranking of all possible architectures, evidence that a larger model must work, or
@@ -150,15 +172,32 @@ backgrounds. Right-cell loss missed its strict consistency screen and was not
 reclassified. No hybrid completed ordinary pickaxe crafting, and none is adopted.
 Parameter sensitivity still does not identify a gradient-level cause.
 
-For the newly qualified current model, ordinary wooden-pickaxe crafting is a
-retention requirement for every mining experiment. Use the preserved complete
-model/optimizer/course state rather than silently substituting an older source
-with a different deficit. Two simple task-12 hypotheses are now rejected: a
-one-time favorable initial facing, and bounded potential on closed-menu pickaxe
-readiness plus already-existing target-mining progress. Neither produced ordinary
-mining acquisition. The next candidate must address **learned sustained spatial
-control before contact is established**, because the current progress signal is
-nearly absent until that prerequisite has already been solved.
+The ordinary wooden-pickaxe behavior of the last qualified parent remains a
+retention requirement for every mining experiment. Use its preserved complete
+model/optimizer/course state rather than silently substituting a moving live model
+or a much older source with a different deficit. One-time favorable initial facing
+and a bounded readiness/progress potential did not acquire mining. A stronger
+continuous spatial-control cost then lost existing skills. Removing task-12 critic
+feature gradients changed that loss pattern but still lost ordinary pickaxe
+behavior and produced almost no effective world-dig selections in its frozen test.
+None of those interventions is an accepted learning solution.
+
+The next step should separate the remaining actor representation and output
+projection changes in the preserved detachment pair before adding another coupled
+reward or architecture change. The ordinary-policy block compositor may support
+that diagnosis, but any hybrid remains counterfactual and needs an explicit full
+condition matrix, original input identities and unchanged physical controls.
+Do not deploy a mixture, borrow a favorable old baseline, or treat parameter
+sensitivity as identifying the responsible gradient term or optimizer moment.
+
+A new acquisition proposal still needs **learned sustained spatial control before
+contact is established**, preservation of ordinary task-11 crafting, and actual
+mining completion. A separate critic network, reward normalization, actor-feature
+protection or temporal control are hypotheses, not established fixes. Current
+critic detachment preserves the value readout's learning and permits actor-feature
+updates; it is not a proof about a fully independent critic representation. Keep
+value prediction, actor behavior, retained skills and new acquisition as distinct
+measurements.
 
 Use accepted pre-action context counts to describe closed, inventory, workbench
 and other exposure, keeping sample and elapsed-tick denominators separate. Pair
