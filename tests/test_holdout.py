@@ -17,6 +17,7 @@ import holdout
 MISSING_CONDITIONS = tuple('pickaxe-missing-' + cell for cell in
     ('top-left', 'top-center', 'top-right', 'handle-upper', 'handle-lower'))
 CONDITIONS = ('none', 'workbench-open', 'pickaxe-grid') + MISSING_CONDITIONS
+ALL_CONDITIONS = CONDITIONS + ('mine-target-facing',)
 
 
 def crafting_trace(observations=600):
@@ -55,8 +56,32 @@ class ResetDiagnosticTests(unittest.TestCase):
         with patch.dict('os.environ', {'EULA': 'false'}), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             holdout.arguments(['--policy', 'saved.bcmc', '--output', 'unused'])
 
+    def test_mining_target_facing_argument_boundaries(self):
+        with patch.dict('os.environ', {'EULA': 'true'}), contextlib.redirect_stderr(io.StringIO()):
+            args=holdout.arguments(['--policy','saved.bcmc','--output','unused','--tasks','12','--reset-intervention','mine-target-facing'])
+            self.assertEqual(args.reset_intervention,'mine-target-facing')
+            for tasks in (['11'],['13'],['11','12'],['0']):
+                with self.subTest(tasks=tasks), self.assertRaises(SystemExit):
+                    holdout.arguments(['--policy','saved.bcmc','--output','unused','--tasks',*tasks,'--reset-intervention','mine-target-facing'])
+            with self.assertRaises(SystemExit):
+                holdout.arguments(['--checkpoint','moving.bcmc','--output','unused','--tasks','12','--reset-intervention','mine-target-facing'])
+
+    def test_mining_target_facing_report_scope(self):
+        args=SimpleNamespace(cases=1,tasks=[12],seed=19,reset_intervention='mine-target-facing')
+        detail={'observations':1,'dig_decisions':0,'observed_max_target_mining_ticks':0,
+                'mean_abs_yaw_error':0.0,'mean_abs_pitch_error':0.0,'blocks_broken':0,'items_collected':0}
+        result={'complete':True,'new_training_samples':0,'stochastic':True,'seed':19,'cases_per_task':1,
+                'diagnostic_only':True,'reset_intervention':'mine-target-facing','reset_intervention_trials':1,
+                'tasks':[{'task':12,'passed':0,'cases':1}],
+                'trials':[{'actor':0,'task':12,'seed':12000055,'elapsed_ticks':3001,'success':False,'distance':1.0,'diagnostics':detail}]}
+        self.assertIsNotNone(self.verify(args,result))
+        changed=copy.deepcopy(result);changed['trials'][0]['task']=11
+        with self.assertRaises(AssertionError):self.verify(args,changed)
+        wrong=SimpleNamespace(cases=1,tasks=[11],seed=19,reset_intervention='mine-target-facing')
+        with self.assertRaises(AssertionError):holdout.verify_report(wrong,result)
+
     def test_missing_cell_argument_boundaries(self):
-        self.assertEqual(tuple(holdout.RESET_INTERVENTIONS), CONDITIONS)
+        self.assertEqual(tuple(holdout.RESET_INTERVENTIONS), ALL_CONDITIONS)
         for condition in MISSING_CONDITIONS:
             for task in ('10', '12', '17'):
                 with self.subTest(condition=condition, task=task), self.assertRaises(SystemExit):

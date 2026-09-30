@@ -19,6 +19,7 @@ public final class ResetInterventionTest {
         p.setStorage(0,new Stack(task==Task.CRAFT_WOOD_PICK?"OAK_PLANKS":"COBBLESTONE",3));
         p.setStorage(1,new Stack("STICK",2));return p;
     }
+    private static Pocket mining() {Pocket p=new Pocket();p.setStorage(0,new Stack("WOODEN_PICKAXE",1));return p;}
     private static String state(Pocket p) {
         var menu=p.menu();StringBuilder s=new StringBuilder(menu+":"+p.cursor()+":"+p.selected());
         p.open(Pocket.Menu.WORKBENCH);
@@ -67,6 +68,36 @@ public final class ResetInterventionTest {
                 }
                 String unchanged=state(raw);rejects(()->mode.apply(raw,task));check(state(raw).equals(unchanged));
             }
+        }
+    }
+    private static void miningFacing() {
+        var mode=ResetIntervention.MINE_TARGET_FACING;Pocket p=mining();String before=state(p);
+        mode.requireTask(Task.MINE_COBBLESTONE);mode.apply(p,Task.MINE_COBBLESTONE);
+        check(state(p).equals(before));check(!mode.requiresWorkbench());
+        for(Task task:Task.values())if(task!=Task.MINE_COBBLESTONE) {
+            Pocket fresh=mining();String unchanged=state(fresh);rejects(()->mode.apply(fresh,task));check(state(fresh).equals(unchanged));
+        }
+        for(int invalid=0;invalid<8;invalid++) {
+            Pocket q=mining();
+            switch(invalid) {
+                case 0 -> q.setStorage(0,Stack.EMPTY);
+                case 1 -> q.setStorage(0,new Stack("STONE_PICKAXE",1));
+                case 2 -> q.setStorage(1,new Stack("DIRT",1));
+                case 3 -> q.select(1);
+                case 4 -> q.open(Pocket.Menu.INVENTORY);
+                case 5 -> {q.open(Pocket.Menu.INVENTORY);q.click(1,0,Pocket.NONE);q.close();}
+                case 6 -> q.crafted.put("WOODEN_PICKAXE",1L);
+                case 7 -> q.extracted.put("COBBLESTONE",1L);
+            }
+            String unchanged=state(q);rejects(()->mode.apply(q,Task.MINE_COBBLESTONE));check(state(q).equals(unchanged));
+        }
+        var north=ResetIntervention.targetFacing(0,1.6,0,0,.5,3);check(Math.abs(north.yaw())<1e-6&&north.pitch()>0);
+        var east=ResetIntervention.targetFacing(0,1.6,0,3,.5,0);check(Math.abs(east.yaw()+90)<1e-6&&east.pitch()>0);
+        var west=ResetIntervention.targetFacing(0,1.6,0,-3,.5,0);check(Math.abs(west.yaw()-90)<1e-6&&west.pitch()>0);
+        var above=ResetIntervention.targetFacing(1,1,1,1,2,1);check(Math.abs(above.pitch()+90)<1e-6);
+        for(double bad:new double[]{Double.NaN,Double.POSITIVE_INFINITY,Double.NEGATIVE_INFINITY}) {
+            rejects(()->ResetIntervention.targetFacing(bad,0,0,0,0,1));
+            rejects(()->ResetIntervention.targetFacing(0,0,0,0,bad,1));
         }
     }
     public static void main(String[] args) {
@@ -122,7 +153,7 @@ public final class ResetInterventionTest {
                 String before=state(p);rejects(()->ResetIntervention.PICKAXE_GRID.apply(p,task));check(state(p).equals(before));
             }
         }
-        oneMissing();
+        oneMissing();miningFacing();
         System.out.println("PASS reset intervention checks: "+checks);
     }
 }

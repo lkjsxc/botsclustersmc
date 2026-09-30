@@ -8,7 +8,7 @@ import acceptance
 ROOT = Path(__file__).resolve().parents[1]
 RESET_INTERVENTIONS = ('none', 'workbench-open', 'pickaxe-grid',
     'pickaxe-missing-top-left', 'pickaxe-missing-top-center', 'pickaxe-missing-top-right',
-    'pickaxe-missing-handle-upper', 'pickaxe-missing-handle-lower')
+    'pickaxe-missing-handle-upper', 'pickaxe-missing-handle-lower', 'mine-target-facing')
 
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -23,10 +23,15 @@ def arguments(argv=None):
     parser.add_argument('--seed', type=int, default=19517)
     parser.add_argument('--port', type=int, default=25584)
     parser.add_argument('--reset-intervention', choices=RESET_INTERVENTIONS, default='none',
-                        help='Diagnostic only: modify the initial workbench state; never a standard skill evaluation.')
+                        help='Diagnostic only: modify one declared initial state; never a standard skill evaluation.')
     args = parser.parse_args(argv)
-    if args.reset_intervention != 'none' and (args.checkpoint or any(t not in (11, 13) for t in args.tasks)):
-        parser.error('Reset diagnostics require one saved --policy and only pickaxe tasks 11 or 13.')
+    if args.reset_intervention != 'none' and args.checkpoint:
+        parser.error('Reset diagnostics require one saved --policy, never a moving checkpoint.')
+    if args.reset_intervention == 'mine-target-facing':
+        if any(t != 12 for t in args.tasks):
+            parser.error('mine-target-facing is diagnostic-only and requires task 12.')
+    elif args.reset_intervention != 'none' and any(t not in (11, 13) for t in args.tasks):
+        parser.error('Workbench reset diagnostics require only pickaxe tasks 11 or 13.')
     if not 1 <= args.cases <= 256 or args.cases*len(args.tasks) > 2048:
         parser.error('Use 1..256 cases per task, with at most 2048 trials total.')
     if len(set(args.tasks)) != len(args.tasks) or any(t < 0 or t > 17 for t in args.tasks):
@@ -266,7 +271,10 @@ def verify_report(args, result):
     require(total <= 2048, 'Trial limit')
     require(args.reset_intervention in RESET_INTERVENTIONS, 'Declared intervention')
     diagnostic = args.reset_intervention != 'none'
-    require(not diagnostic or all(task in (11, 13) for task in args.tasks), 'Diagnostic task scope')
+    if args.reset_intervention == 'mine-target-facing':
+        require(all(task == 12 for task in args.tasks), 'Mining diagnostic task scope')
+    else:
+        require(not diagnostic or all(task in (11, 13) for task in args.tasks), 'Workbench diagnostic task scope')
     require(result.get('complete') is True and result.get('stochastic') is True, 'Complete stochastic evaluation required')
     integer(result.get('new_training_samples'), 0, 'Holdout must not train')
     require(integer(result.get('seed'), 2**63-1, 'Report seed', -2**63) == args.seed, 'Report seed differs')

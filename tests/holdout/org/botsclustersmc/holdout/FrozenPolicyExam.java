@@ -77,10 +77,22 @@ public final class FrozenPolicyExam extends RuntimePlugin {
                 if(npc.resetting)return;
                 if(npc.tick!=0||npc.decisions!=0||npc.observedFrame!=null||intervened.contains(npc.id))
                     throw new IllegalStateException("Reset intervention must precede every policy decision");
-                Location station=new Location(npc.anchor.getWorld(),npc.goal.x(),npc.goal.y(),npc.goal.z());
-                if(!WorldActions.owned(station)||station.getBlock().getType()!=Material.CRAFTING_TABLE)
-                    throw new IllegalStateException("Reset intervention requires the owned workbench");
-                intervention.apply(npc.pocket,npc.goal.task());npc.container=station;
+                intervention.apply(npc.pocket,npc.goal.task());
+                if(intervention.requiresWorkbench()) {
+                    Location station=new Location(npc.anchor.getWorld(),npc.goal.x(),npc.goal.y(),npc.goal.z());
+                    if(!WorldActions.owned(station)||station.getBlock().getType()!=Material.CRAFTING_TABLE)
+                        throw new IllegalStateException("Reset intervention requires the owned workbench");
+                    npc.container=station;
+                } else if(intervention==ResetIntervention.MINE_TARGET_FACING) {
+                    Location before=npc.entity.getLocation().clone(),eye=npc.entity.getEyeLocation();
+                    var pose=ResetIntervention.targetFacing(eye.getX(),eye.getY(),eye.getZ(),
+                        npc.goal.x(),npc.goal.y()+.5,npc.goal.z());
+                    npc.entity.setRotation(pose.yaw(),pose.pitch());
+                    Location after=npc.entity.getLocation();
+                    if(after.getWorld()!=before.getWorld()||after.getX()!=before.getX()||after.getY()!=before.getY()||after.getZ()!=before.getZ()
+                            ||after.getYaw()!=pose.yaw()||after.getPitch()!=pose.pitch())
+                        throw new IllegalStateException("Mining pose intervention changed position or failed exact facing");
+                }
                 if(!intervened.add(npc.id))throw new IllegalStateException("Duplicate reset intervention");
                 scheduled.cancel();super.startNpc(npc);
             }catch(Throwable failure){scheduled.cancel();fail(failure);}

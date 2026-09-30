@@ -11,7 +11,8 @@ public enum ResetIntervention {
     MISSING_TOP_CENTER("pickaxe-missing-top-center",37),
     MISSING_TOP_RIGHT("pickaxe-missing-top-right",38),
     MISSING_HANDLE_UPPER("pickaxe-missing-handle-upper",40),
-    MISSING_HANDLE_LOWER("pickaxe-missing-handle-lower",43);
+    MISSING_HANDLE_LOWER("pickaxe-missing-handle-lower",43),
+    MINE_TARGET_FACING("mine-target-facing");
     private final String label;
     private final int missingSlot;
     ResetIntervention(String label) { this(label,-1); }
@@ -21,13 +22,26 @@ public enum ResetIntervention {
         for(var intervention:values())if(intervention.label.equals(value))return intervention;
         throw new IllegalArgumentException("Unknown reset intervention: "+value);
     }
+    public boolean requiresWorkbench() { return this!=NONE&&this!=MINE_TARGET_FACING; }
     public void requireTask(Task task) {
-        if(this!=NONE&&task!=Task.CRAFT_WOOD_PICK&&task!=Task.CRAFT_STONE_PICK)
+        if(this==NONE)return;
+        if(this==MINE_TARGET_FACING) {
+            if(task!=Task.MINE_COBBLESTONE)throw new IllegalArgumentException("Mining pose intervention requires task 12");
+        } else if(task!=Task.CRAFT_WOOD_PICK&&task!=Task.CRAFT_STONE_PICK)
             throw new IllegalArgumentException("Workbench interventions require pickaxe tasks 11 or 13");
     }
     public void apply(Pocket pocket,Task task) {
         if(this==NONE)return;
         requireTask(task);
+        if(this==MINE_TARGET_FACING) {
+            if(pocket.menu()!=Pocket.Menu.CLOSED||!pocket.cursor().empty()||pocket.selected()!=0
+                    ||!pocket.crafted.isEmpty()||!pocket.extracted.isEmpty()
+                    ||!pocket.storage(0).equals(new Stack("WOODEN_PICKAXE",1)))
+                throw new IllegalStateException("Mining pose intervention requires the untouched supplied pickaxe reset");
+            for(int slot=1;slot<36;slot++)if(!pocket.storage(slot).empty())
+                throw new IllegalStateException("Unexpected mining reset storage");
+            return;
+        }
         String material=task==Task.CRAFT_WOOD_PICK?"OAK_PLANKS":"COBBLESTONE";
         if(pocket.menu()!=Pocket.Menu.CLOSED||!pocket.cursor().empty()
                 ||!pocket.crafted.isEmpty()||!pocket.extracted.isEmpty()
@@ -64,6 +78,17 @@ public enum ResetIntervention {
         int sticksLeft=this==WORKBENCH_OPEN?2:missingSlot==40||missingSlot==43?1:0;
         if(pocket.storage(0).count()!=materialLeft||pocket.storage(1).count()!=sticksLeft)
             throw new IllegalStateException("Intervention did not preserve remaining raw stock in storage");
+    }
+    public record Pose(float yaw,float pitch) {}
+    /** Pure reset geometry: face the target block centre once, before policy decision zero. */
+    public static Pose targetFacing(double eyeX,double eyeY,double eyeZ,double targetX,double targetY,double targetZ) {
+        for(double value:new double[]{eyeX,eyeY,eyeZ,targetX,targetY,targetZ})
+            if(!Double.isFinite(value))throw new IllegalArgumentException("Non-finite mining pose geometry");
+        double dx=targetX-eyeX,dz=targetZ-eyeZ;
+        double yaw=Math.toDegrees(Math.atan2(-dx,dz));
+        double pitch=-Math.toDegrees(Math.atan2(targetY-eyeY,Math.hypot(dx,dz)));
+        if(!Double.isFinite(yaw)||!Double.isFinite(pitch))throw new IllegalArgumentException("Invalid mining pose geometry");
+        return new Pose((float)yaw,(float)pitch);
     }
     private void furnish(Pocket pocket,int source,int... slots) {
         pocket.click(1,source,Pocket.NONE);
