@@ -22,13 +22,13 @@ public final class Learner implements AutoCloseable {
     private volatile boolean updating;
     public final LongAdder offered=new LongAdder(),rejected=new LongAdder(),stale=new LongAdder(),computeNanos=new LongAdder(),updates=new LongAdder();
     public volatile double gradientNorm,valueLoss,entropy,importance,meanPolicyKl,maxPolicyKl,learningRate;
-    private final long[] learnedByTask=new long[TaskBalance.TASKS+1];
-    private volatile long[] taskSampleSnapshot=learnedByTask.clone();
+    private final LearningContexts contextCoverage;
     private volatile TaskBalance lastBalance;
     private record MeasuredGradient(Gradient.Result gradient,ActivationHealth.Snapshot health) {}
     private volatile ActivationHealth.Measurement activationHealth;
     public ActivationHealth.Measurement activationHealth(){return activationHealth;}
-    public long[] taskSamples(){return taskSampleSnapshot.clone();}
+    public LearningContexts.Snapshot contexts(){return contextCoverage.snapshot();}
+    public long[] taskSamples(){return contexts().taskSamples();}
     public TaskBalance updateBalance(){return lastBalance;}
     public volatile int updateSamples;
     public final LongAdder guardBacktracks=new LongAdder(),guardRejectedSamples=new LongAdder(),batchWaitNanos=new LongAdder();
@@ -37,6 +37,7 @@ public final class Learner implements AutoCloseable {
             throw new IllegalArgumentException("learner bounds");
         if(policy.updates()!=optimizer.step())throw new IllegalArgumentException("optimizer identity");
         this.policy=policy;this.optimizer=optimizer;parallelism=threads;this.batchSamples=batchSamples;this.maxLag=maxLag;this.publish=publish;this.fatal=fatal;
+        contextCoverage=new LearningContexts(policy);
         queue=new ArrayBlockingQueue<>(capacity);
         kernels=Executors.newFixedThreadPool(threads,r->{Thread t=new Thread(r,"bcmc-gradient");t.setDaemon(true);return t;});
         thread=new Thread(this::run,"bcmc-learner");thread.setDaemon(true);thread.start();
@@ -96,9 +97,7 @@ public final class Learner implements AutoCloseable {
                         Adam.Update update=checked.update();
                         synchronized(this){optimizer=update.optimizer();policy=update.policy();}
                         gradientNorm=update.gradientNorm();meanPolicyKl=checked.change().mean();maxPolicyKl=checked.change().maximum();learningRate=checked.learningRate();
-                        int[] taskCounts=balance.counts();
-                        for(int i=0;i<taskCounts.length;i++)learnedByTask[i]+=taskCounts[i];
-                        taskSampleSnapshot=learnedByTask.clone();
+                        contextCoverage.accepted(batch,policy);
                         publish.accept(policy);updates.increment();
                     }else{guardRejectedSamples.add(actual);learningRate=0;}
                     valueLoss=loss/actual;entropy=ent/actual;importance=imp/actual;

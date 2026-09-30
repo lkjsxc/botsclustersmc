@@ -157,7 +157,7 @@ public final class TrainingPlugin extends RuntimePlugin {
         s.put("review_ticks_this_process",effort.reviewTicks());
         s.put("exam_ticks_this_process",effort.examTicks());
         s.put("task_balance","bounded-batch-loss");
-        s.put("learned_task_samples_this_process",Arrays.toString(learner.taskSamples()));
+        s.putAll(learner.contexts().status());
         TaskBalance last=learner.updateBalance();
         s.put("update_task_samples",Arrays.toString(last==null?new int[TaskBalance.TASKS+1]:last.counts()));
         s.put("update_task_weights",Arrays.toString(last==null?new double[TaskBalance.TASKS+1]:last.weights()));
