@@ -118,7 +118,9 @@ public final class TrainingEnvironment {
             case 9->Math.min(4,npc.pocket.crafted.getOrDefault("STICK",0L))*.2+InitialCrafting.progress(npc.pocket,task)*.2;
             case 10->Math.min(1,npc.pocket.crafted.getOrDefault("CRAFTING_TABLE",0L))*.8+InitialCrafting.progress(npc.pocket,task)*.2;
             case 11->Math.min(1,npc.pocket.crafted.getOrDefault("WOODEN_PICKAXE",0L))*.8+stationPotential(npc);
-            case 12->Math.min(1,count(npc.broken,9))*.3+Math.min(1,count(npc.collected,8))*.5;
+            case 12->Math.min(1,count(npc.broken,9))*.3+Math.min(1,count(npc.collected,8))*.5
+                +MiningPractice.potential(goal.task(),npc.pocket.menu()==Pocket.Menu.CLOSED,
+                    Stack.kind(npc.pocket.held().item())==6||Stack.kind(npc.pocket.held().item())==7,targetMining(npc,s));
             case 13->Math.min(1,npc.pocket.crafted.getOrDefault("STONE_PICKAXE",0L))*.8+stationPotential(npc);
             case 14->Math.min(1,npc.pocket.extracted.getOrDefault("IRON_INGOT",0L))*.8+stationPotential(npc);
             case 15->Math.min(4,chestLogs(npc,s))*.2+stationPotential(npc);
