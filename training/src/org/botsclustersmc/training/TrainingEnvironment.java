@@ -133,6 +133,12 @@ public final class TrainingEnvironment {
             Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z()),Math.hypot(next.vx(),next.vz()),
             targetMining(npc,session),ticks);
     }
+    public static double miningControlReward(Npc npc,Session session,Frame next,int ticks) {
+        boolean broken=count(npc.broken,9)>0;
+        return MiningControl.reward(npc.goal.task(),broken,next.yawError(),next.pitchError(),
+            Math.hypot(npc.goal.x()-next.x(),npc.goal.z()-next.z()),Math.hypot(next.vx(),next.vz()),
+            targetMining(npc,session),ticks);
+    }
     public static boolean stationOpen(Npc npc) {
         Location station=npc.container;
         return StationPractice.applies(npc.goal.task())&&npc.pocket.menu()==StationPractice.station(npc.goal.task())
