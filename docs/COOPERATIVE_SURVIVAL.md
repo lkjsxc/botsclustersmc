@@ -70,6 +70,18 @@ this was not a larger-budget acquisition test. Full retention and acquisition
 failed, so neither runtime nor trained model is adopted. The changed retention
 pattern does not prove that critic gradients are the only cause of forgetting.
 
+A [frozen attribution of that exact detached actor](verification/20261002-actor-drift.md)
+now completed all ten ordinary reports / 4,160 trials without further learning.
+On fresh seeds, parent pickaxe success was 27/32 and 30/32, original candidate
+8/32 and 11/32, representation-only replacement 24/32 and 29/32, output-only
+17/32 and 15/32, and combined-actor replacement 8/32 and 9/32. Candidate output
+replacement met the declared large-loss screen under both feature backgrounds
+on both seeds; representation replacement did not meet its consistency screen.
+Representation-only still missed one retention floor, so neither component-only
+replacement is a verified repair. All mining completions and block breaks were
+zero; no hybrid or experimental runtime is adopted. This newer result must not
+be rewritten to match the older protected-pickaxe representation attribution.
+
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
 and their elapsed actor ticks, not just total samples or finished episodes. Its
@@ -130,6 +142,7 @@ into a success by changing its thresholds, seeds, denominators or input afterwar
 | [Mining-readiness potential](verification/20260930-mining-readiness-potential.md) | A matched full-budget comparison from the same complete parent ran to about +1.01M accepted samples per arm. Tasks 0-11 retained in both arms; task 12 remained 0/32 on both seeds in both arms. Candidate final effective world-dig selections were about half control and target contact did not improve. The bounded readiness/progress potential is rejected; PR #50 stayed unmerged. |
 | [Stronger mining spatial-control cost](verification/20260930-mining-control-cost.md) | Both arms accepted exactly +262,144 samples. Candidate aim hold fell to 7/32 and 8/32, workbench to 9/32 and 11/32, and wooden pickaxe to 0/32 on both seeds; the matched control retained declared floors. Mining stayed zero. All six reports / 2,496 trials completed before the early veto stopped both final continuations. The cost is rejected; PR #51 is unmerged. |
 | [Critic-feature gradient ablation](verification/20260930-critic-detachment.md) | With the same stronger reward in both arms, the control reproduced large losses on tasks 2, 10 and 11. Task-12 critic detachment preserved tasks 0-10, but candidate pickaxe fell to 12/32 and 11/32 versus the parent's 27/32 and 31/32. Both arms still had zero mining completion. All six reports / 2,496 trials completed; the full-retention criterion failed. PR #52 remains unmerged. |
+| [Preserved detached-actor attribution](verification/20261002-actor-drift.md) | All ten reports / 4,160 frozen trials completed on two fresh seeds. Output replacement reduced ordinary pickaxe success by 10/32 and 15/32 on parent features, and 16/32 and 20/32 on candidate features, meeting all declared thresholds. Representation differences failed their consistent-loss screen; its 24/32 seed-A result still missed retention. No hybrid retained all requirements on both seeds; all mining remained zero. PR #54 preserves the research implementation without runtime adoption. |
 
 These are bounded observations under their recorded conditions. They are not a
 ranking of all possible architectures, evidence that a larger model must work, or
@@ -182,13 +195,23 @@ feature gradients changed that loss pattern but still lost ordinary pickaxe
 behavior and produced almost no effective world-dig selections in its frozen test.
 None of those interventions is an accepted learning solution.
 
-The next step should separate the remaining actor representation and output
-projection changes in the preserved detachment pair before adding another coupled
-reward or architecture change. The ordinary-policy block compositor may support
-that diagnosis, but any hybrid remains counterfactual and needs an explicit full
-condition matrix, original input identities and unchanged physical controls.
-Do not deploy a mixture, borrow a favorable old baseline, or treat parameter
-sensitivity as identifying the responsible gradient term or optimizer moment.
+The remaining detached-actor attribution is complete. Output replacement met the
+large-loss screen on both feature backgrounds and both fresh seeds; representation
+replacement did not. However, representation-only replacement still failed one
+preservation floor. Neither protecting only shared features nor simply restoring
+the final actor output is therefore an established repair. Preserve this complete
+matrix and the exact source states; no further hybrid search is authorized by a
+single favorable score. Parameter sensitivity still does not identify the
+responsible gradient term or optimizer moment.
+
+Prioritize a single-variable learning comparison that addresses the remaining
+complete-actor retention problem rather than repeating the attribution. Initial
+review timing is a concrete candidate: compare genuinely accepted earlier-task
+examples from the start against the measured frontier-only interval while holding
+reward and gradient semantics fixed between arms. This is not yet an accepted
+scheduler change, proof of the drift's cause, or evidence of mining acquisition.
+A representation/output-protection proposal is an alternative, not a second
+simultaneous intervention to hide the source of an improvement or regression.
 
 A new acquisition proposal still needs **learned sustained spatial control before
 contact is established**, preservation of ordinary task-11 crafting, and actual
@@ -208,14 +231,22 @@ successful behavior, reset assistance, a mechanical defect or a gradient cause.
 
 Any new learning proposal needs matched warm continuations, explicit sample and
 observed-effort budgets, and complete frozen retention of tasks 0-11 alongside
-ordinary mining acquisition. The most defensible next hypothesis is a bounded
-**control-cost shaping signal** on observable yaw error, pitch error, target
-distance, excessive movement and sustained designated-target contact, analogous
-in spirit to the existing log-harvest control cost but isolated to task 12 and
-without changing its reset distribution. It must remain reward-side only: no
-auto-aim, no forced tool selection, no menu-closing action, no pathfinder and no
-answer-supplying mask. Compare it against unchanged warm continuation before any
-adoption. Protect useful raw assembly when a proposal changes inventory behavior.
+ordinary mining acquisition. The stronger control-cost signal has already failed
+its matched retention screen; it is not still the untested default next proposal.
+Do not repeat or strengthen it without an independently stated mechanism and a
+new controlled comparison. No auto-aim, forced tool selection, menu-closing
+action, pathfinder or answer-supplying mask is an acceptable replacement for
+learned control. Protect useful raw assembly when inventory behavior changes.
+
+Early task exposure also needs an explicit boundary. `Course.decode` discards
+transient effort debt, and `ReviewEffort.select` prefers the frontier at zero
+credit. A restored cohort can therefore begin with a long frontier-only episode;
+the preceding short critic diagnosis actually accumulated no earlier-task review.
+This explains an allocation boundary, not the observed gradient-level cause of
+forgetting. A future review-timing intervention must report the first accepted
+examples and per-task sample/tick coverage, not merely the eventual review ratio.
+Do not change review timing and representation protection together and then
+attribute an outcome to only one of them.
 Do not lower completion predicates or mistake the individual supplied-resource
 task for a continuous resource chain.
 
