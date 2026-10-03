@@ -109,7 +109,7 @@ public final class ReviewEffortTest {
         check(restored.effort().equals(new Course.Effort(0,0,0,0)),"restart explicitly starts a fresh effort interval");
         check(restored.stage(0)==1&&restored.certifiedVersion(0,0)==31,"earned learning history survives");
         Course.Lesson next=restored.issue(0);
-        check(next.task().ordinal()==1&&next.equals(peer.issue(0)),"clean allocation restart and reproducible persisted RNG");
+        check(next.task().ordinal()==0&&next.equals(peer.issue(0)),"review-first resume and reproducible persisted RNG");
 
         c=atOne();ready(c,0);long credit=c.effort().frontierTicks()-4*c.effort().reviewTicks();
         before=c.effort();exam(c,0,3);after=c.effort();
