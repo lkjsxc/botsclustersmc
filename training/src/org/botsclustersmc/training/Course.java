@@ -10,11 +10,11 @@ public final class Course {
     public record Lesson(long serial,Task task,double difficulty,long seed,Kind kind){}
     private static final int TASKS=18;
     private static final class Agent {
-        final ReviewEffort effort=new ReviewEffort();
+        final ReviewEffort effort;
         final RandomSource rng;final int[] episodes=new int[TASKS],probes=new int[TASKS],examSuccess=new int[TASKS];
         final double[] ema=new double[TASKS],probeEma=new double[TASKS];final long[] certified=new long[TASKS];
         int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam;long examVersion=-1;Lesson current;
-        Agent(long seed){rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
+        Agent(long seed){this(seed,new ReviewEffort());} Agent(long seed,ReviewEffort effort){this.effort=effort;rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
     }
     private final Agent[] agents;private long serial,episodes,successes,exams,passed,abandoned,regressions;
     // Process-local scheduling telemetry, not optimizer samples or skill certificates.
@@ -108,7 +108,8 @@ public final class Course {
     public synchronized boolean completed(){return completedAgents()==agents.length;}
     public synchronized long episodes(){return episodes;}public synchronized long successes(){return successes;}public synchronized long exams(){return exams;}public synchronized long passedExams(){return passed;}public synchronized long abandoned(){return abandoned;}public synchronized long regressions(){return regressions;}
     // Like in-flight episodes, effort debt is deliberately transient. Restart starts
-    // a new allocation interval; weights, Adam, RNG and earned certificates persist.
+    // a new allocation interval with one review-first credit unit in this study;
+    // observed counters remain zero. Weights, Adam, RNG and certificates persist.
     public synchronized byte[] encode()throws IOException{
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(DataOutputStream out=new DataOutputStream(bytes)){
             out.writeUTF("BCMC-INDEPENDENT-COURSE");out.writeInt(agents.length);for(long x:new long[]{serial,episodes,successes,exams,passed,abandoned,regressions})out.writeLong(x);
@@ -121,7 +122,7 @@ public final class Course {
             if(!in.readUTF().equals("BCMC-INDEPENDENT-COURSE")||in.readInt()!=actors)throw new IOException("course schema/actor count differs; choose a fresh Academy");Course c=new Course(actors,0);
             c.serial=in.readLong();c.episodes=in.readLong();c.successes=in.readLong();c.exams=in.readLong();c.passed=in.readLong();c.abandoned=in.readLong();c.regressions=in.readLong();
             if(c.serial<0||c.episodes<0||c.successes<0||c.successes>c.episodes||c.exams<0||c.passed<0||c.passed>c.exams||c.abandoned<0||c.regressions<0)throw new IOException("course counters");
-            for(int n=0;n<actors;n++){Agent a=new Agent(in.readLong());c.agents[n]=a;a.stage=in.readInt();a.draws=in.readInt();a.sinceExam=in.readInt();a.probesSinceExam=in.readInt();a.complete=in.readBoolean();boolean active=in.readBoolean(),exam=in.readBoolean();
+            for(int n=0;n<actors;n++){Agent a=new Agent(in.readLong(),ReviewEffort.resumeWithReview());c.agents[n]=a;a.stage=in.readInt();a.draws=in.readInt();a.sinceExam=in.readInt();a.probesSinceExam=in.readInt();a.complete=in.readBoolean();boolean active=in.readBoolean(),exam=in.readBoolean();
                 if(a.stage<0||a.stage>=TASKS||a.draws<0||a.sinceExam<0||a.probesSinceExam<0||(a.complete&&a.stage!=17))throw new IOException("course actor state");
                 if(active)c.abandoned++;if(exam){a.sinceExam=0;a.probesSinceExam=0;} // Whole unfinished exam is discarded, never cherry-picked.
                 for(int i=0;i<TASKS;i++){a.episodes[i]=in.readInt();a.probes[i]=in.readInt();a.ema[i]=in.readDouble();a.probeEma[i]=in.readDouble();a.certified[i]=in.readLong();

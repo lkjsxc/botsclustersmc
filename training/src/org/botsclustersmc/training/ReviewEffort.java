@@ -12,7 +12,18 @@ public final class ReviewEffort {
     private final long[] reviewedTicks = new long[TASKS];
     private long credit;
 
-    /** Prefer the frontier until it earns review time; break equal-effort ties randomly. */
+    /**
+     * Research-only resume phase: one initial review episode, paid back by actual work.
+     * The offset is scheduling credit, not an observed tick, sample or certificate.
+     * Promotions and regressions still reset to the ordinary zero-credit interval.
+     */
+    public static ReviewEffort resumeWithReview() {
+        ReviewEffort effort = new ReviewEffort();
+        effort.credit = 1;
+        return effort;
+    }
+
+    /** Select by observed effort plus any initial phase offset; randomize equal ties. */
     public int select(int frontier, RandomSource random) {
         checkFrontier(frontier);
         Objects.requireNonNull(random, "random");

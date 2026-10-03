@@ -84,6 +84,7 @@ public final class TrainingPlugin extends RuntimePlugin {
             reward+=(float)AimPractice.controlReward(next.yawError(),next.pitchError(),angular,ticks);
         }
         if(HarvestPractice.applies(npc.goal.task()))reward+=(float)TrainingEnvironment.harvestReward(npc,s,next,ticks);
+        if(MiningControl.applies(npc.goal.task()))reward+=(float)TrainingEnvironment.miningControlReward(npc,s,next,ticks);
         if(s.lesson.kind()!=Course.Kind.EXAM){
             s.fragment.add(new Transition(previous.frame().observation(),previous.frame().mask(),previous.result().actions(),previous.result().logProbability(),previous.result().policyVersion(),reward,ticks,next.observation(),next.mask(),terminal));buffered.increment();
             if(s.fragment.size()>=32||terminal)flush(npc,s);
