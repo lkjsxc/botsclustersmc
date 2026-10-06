@@ -1,0 +1,519 @@
+{
+  "experiment": {
+    "audit": "passed",
+    "source": "7f18c3b83dd16dede2ff7f2337b3ab84465fe027",
+    "input_qualified": true,
+    "reports": [
+      {
+        "phase": "baseline",
+        "arm": "parent",
+        "seed": 2026100401,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          29,
+          0
+        ],
+        "policy_sha256": "ca9215b398f5a7097135af84f03f6857e104fdaf0bfcf79c0529669debdac1bc",
+        "report_sha256": "df6c706f3e712db0beca7857bc9ceecb964b5dcd0c69aee8f3f75d0140a3c5db",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 537,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 727,
+          "broken": 0,
+          "collected": 16,
+          "menu": [
+            5078,
+            14122,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "phase": "baseline",
+        "arm": "parent",
+        "seed": 2026100402,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          27,
+          0
+        ],
+        "policy_sha256": "ca9215b398f5a7097135af84f03f6857e104fdaf0bfcf79c0529669debdac1bc",
+        "report_sha256": "5185f2ed18c101daf16e6f2c117a2f3798d079900dd5434f0dff4093d6636388",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 523,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 724,
+          "broken": 0,
+          "collected": 27,
+          "menu": [
+            4926,
+            14274,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "phase": "early",
+        "arm": "control",
+        "seed": 2026100401,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          25,
+          0
+        ],
+        "policy_sha256": "c6965903b84db338e724a9d6447d29e6a2937d823cf5df30472bb8da647b1388",
+        "report_sha256": "4f4972f4903c75a953e28f1a5584a16716de64c08403dab803cebbc7a09e7145",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 709,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 289,
+          "broken": 0,
+          "collected": 9,
+          "menu": [
+            7324,
+            11876,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "phase": "early",
+        "arm": "control",
+        "seed": 2026100402,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          25,
+          0
+        ],
+        "policy_sha256": "c6965903b84db338e724a9d6447d29e6a2937d823cf5df30472bb8da647b1388",
+        "report_sha256": "78653632ab1966cad000c280adb37cfce55fa917c49c503a094519fa1d546720",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 666,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 282,
+          "broken": 0,
+          "collected": 24,
+          "menu": [
+            7300,
+            11900,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "phase": "early",
+        "arm": "candidate",
+        "seed": 2026100401,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          31,
+          18,
+          0
+        ],
+        "policy_sha256": "990ee4afae61c46a37470a58ed44d30b51dcacbef979ae41fca2c16b4e2ca6b3",
+        "report_sha256": "b939e33da64013634de0161f6558d84955fd38fbfc290816cbf0c78329cd5c2c",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 3563,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 11,
+          "broken": 0,
+          "collected": 0,
+          "menu": [
+            773,
+            18427,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "phase": "early",
+        "arm": "candidate",
+        "seed": 2026100402,
+        "scores": [
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          32,
+          31,
+          32,
+          32,
+          32,
+          19,
+          0
+        ],
+        "policy_sha256": "990ee4afae61c46a37470a58ed44d30b51dcacbef979ae41fca2c16b4e2ca6b3",
+        "report_sha256": "1d3617817fc9931f856baa15205b9bb515063b7bb7ac30a7ca184d196073306f",
+        "mining": {
+          "observations": 19200,
+          "held_pick": 3853,
+          "pick_contact": 0,
+          "max_pick_ticks": 0,
+          "world_dig": 15,
+          "broken": 0,
+          "collected": 1,
+          "menu": [
+            800,
+            18400,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    ],
+    "exposure": {
+      "control": {
+        "arm": "control",
+        "startup_match": true,
+        "early": {
+          "accepted_samples": 52224,
+          "by_task": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            52224,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "observed_actor_ticks": 261252,
+          "epoch_millis": 1791275531025
+        },
+        "last": {
+          "accepted_samples": 254976,
+          "by_task": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            254976,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "observed_actor_ticks": 1275993,
+          "epoch_millis": 1791275631025
+        },
+        "first_observed_review": null,
+        "additional_samples": 261792,
+        "observed_statuses": 28,
+        "covered": false,
+        "frontier_only": true,
+        "stopped": {
+          "updates": 1182991,
+          "samples": 344750707,
+          "checkpoint_sha256": "4637ed1defb919fa0fe614c72efb4c17f0a77b85817b9577b2c989a8a855d04c",
+          "policy_sha256": "c6965903b84db338e724a9d6447d29e6a2937d823cf5df30472bb8da647b1388"
+        }
+      },
+      "candidate": {
+        "arm": "candidate",
+        "startup_match": true,
+        "early": {
+          "accepted_samples": 53896,
+          "by_task": [
+            609,
+            713,
+            768,
+            898,
+            1574,
+            1000,
+            1091,
+            458,
+            254,
+            275,
+            546,
+            782,
+            44928,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "observed_actor_ticks": 270270,
+          "epoch_millis": 1791275530033
+        },
+        "last": {
+          "accepted_samples": 256232,
+          "by_task": [
+            609,
+            713,
+            768,
+            898,
+            1574,
+            1000,
+            1091,
+            458,
+            254,
+            275,
+            546,
+            1198,
+            246848,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "observed_actor_ticks": 1282781,
+          "epoch_millis": 1791275630033
+        },
+        "first_observed_review": {
+          "accepted_samples": 343,
+          "by_task": [
+            37,
+            0,
+            18,
+            0,
+            0,
+            0,
+            0,
+            45,
+            85,
+            68,
+            63,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "observed_actor_ticks": 1715,
+          "epoch_millis": 1791275500033
+        },
+        "additional_samples": 260104,
+        "observed_statuses": 28,
+        "covered": true,
+        "frontier_only": false,
+        "stopped": {
+          "updates": 1183156,
+          "samples": 344749019,
+          "checkpoint_sha256": "957b578573082dbbc7736e8e2a77ff637d829e1323130f790c851c1203bbb84e",
+          "policy_sha256": "990ee4afae61c46a37470a58ed44d30b51dcacbef979ae41fca2c16b4e2ca6b3"
+        }
+      }
+    },
+    "decision": {
+      "candidate_retained": false,
+      "control_retained": false,
+      "control_pickaxe_loss_reproduced": false,
+      "exposure_contrast_delivered": true,
+      "review_preserves_under_reproduced_loss": false,
+      "acquisition": false,
+      "details": [
+        {
+          "arm": "control",
+          "seed": 2026100401,
+          "failures": [
+            {
+              "task": 11,
+              "source": 29,
+              "score": 25,
+              "floor": 26
+            }
+          ],
+          "pickaxe": 25,
+          "mining": 0
+        },
+        {
+          "arm": "candidate",
+          "seed": 2026100401,
+          "failures": [
+            {
+              "task": 11,
+              "source": 29,
+              "score": 18,
+              "floor": 26
+            }
+          ],
+          "pickaxe": 18,
+          "mining": 0
+        },
+        {
+          "arm": "control",
+          "seed": 2026100402,
+          "failures": [
+            {
+              "task": 11,
+              "source": 27,
+              "score": 25,
+              "floor": 26
+            }
+          ],
+          "pickaxe": 25,
+          "mining": 0
+        },
+        {
+          "arm": "candidate",
+          "seed": 2026100402,
+          "failures": [
+            {
+              "task": 11,
+              "source": 27,
+              "score": 19,
+              "floor": 26
+            }
+          ],
+          "pickaxe": 19,
+          "mining": 0
+        }
+      ],
+      "deployment": false
+    },
+    "outcome_sha256": "daf51681dbfe6df25fb8620ff2e66fac37d7ae105283cbbe4a860ea01e4c4589",
+    "auditor_sha256": "1c57078401c2ba9c4b3cf3f9731a5a539fcb8833d72fcf78feb77038805cdabf",
+    "runtime_changed": false
+  },
+  "shared_development_health": {
+    "epoch_millis": 1791275963723,
+    "pid": 2351065,
+    "source": "ec2e30115edc14695152c3847385a90314126366",
+    "installed_runtime_sha256": "31e74a15dd139f0ecdc8ea97f912350d6589dac7404d8d9da6b3c2f16f34615f",
+    "entry_samples": 1418606807,
+    "exit_samples": 1419981322,
+    "active_agents": 512,
+    "health": {
+      "progressed_agents_since_status": 512,
+      "retired_agents": 0,
+      "inference_rejected": 0,
+      "inference_failed": 0,
+      "learner_rejected_samples": 0,
+      "learner_stale_samples": 0
+    },
+    "owned_remaining_processes": [],
+    "released_loopback_ports": [
+      31681,
+      31682,
+      31690,
+      31691,
+      31692,
+      31693
+    ],
+    "restart": false,
+    "state_reset": false
+  },
+  "evidence_archive": {
+    "archive": "/home/coder/workspace/botsclustersmc-resume-review-20261004/.build/continuation-20261006/evidence.zip",
+    "bytes": 9411217,
+    "sha256": "356acd4082a08f9396c3413c8ee4464f3f342aa3d43bdd47f97a5ada59d90f01",
+    "manifest_sha256": "0f4792e62b81fb26478be990a98069dac79d3a442bae0183060e4a2d5334269a",
+    "members": 163
+  },
+  "qualification": {
+    "source_ci_run": 37141083142,
+    "source_ci_attempt": 1,
+    "source_ci_conclusion": "success",
+    "controller_tests": 29,
+    "controller_modes": [
+      "normal",
+      "optimized"
+    ],
+    "independent_auditor_tests": 22,
+    "independent_auditor_modes": [
+      "normal",
+      "optimized"
+    ]
+  },
+  "decision": "Reject the resume-first candidate; preserve evidence only. No further training or runtime/model adoption."
+}
