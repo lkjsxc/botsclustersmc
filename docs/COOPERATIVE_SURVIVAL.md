@@ -82,6 +82,40 @@ replacement is a verified repair. All mining completions and block breaks were
 zero; no hybrid or experimental runtime is adopted. This newer result must not
 be rewritten to match the older protected-pickaxe representation attribution.
 
+The [completed resume-first comparison](verification/20261006-resume-review-results.md)
+then kept the rejected stronger reward and critic detachment fixed in both arms.
+Giving every restored actor one initial review credit delivered early accepted
+coverage of all tasks, but candidate wooden-pickaxe scores were 18/32 and 19/32,
+versus control 25/32 and 25/32; both missed the 26/32 floor. Candidate accepted
+review fell from 16.64% at the early observed boundary to 3.66% before stopping.
+All six reports / 2,496 trials completed; all mining remained zero. The prescribed
+control loss of at least 8/32 on each seed did not reproduce. PR #56 is closed
+unmerged. Initial review alone is therefore not a verified retention repair.
+
+The [older reserved-cohort comparison](verification/20260928-reserved-review-study.md)
+already delivered approximately 20% sustained review, yet failed its final fresh-
+seed wooden-pickaxe requirement (24/32 then 21/32, with 24/32 required on each).
+That older parent, forecast-reservation allocator and interrupted longer budget
+are different from the present matched conditions. Continued coverage must not be
+promoted as an untested universal remedy, nor that earlier failure omitted.
+
+The [observed-only cohort-credit comparison](verification/20261006-cohort-review-results.md)
+then preserved identical first lessons and shared only current-frontier members'
+actual effort credit. All six reports / 2,496 trials completed. Candidate crafting
+was 25/32 and 27/32 versus control 21/32 and 19/32, from parent 30/32 and 31/32.
+Control loss reproduced, but candidate missed the first 26/32 floor and supplied
+only 0.202% late accepted review (control 0.033%), not the declared sustained
+contrast. Mining remained zero everywhere. The scheduler is rejected, not a
+verified retention repair despite its nominal score advantage.
+
+The exact stopped courses explain an important feasibility boundary: neither arm
+completed even one new frontier episode among its 512 actors before stopping.
+Control completed the initial 512 review episodes; candidate completed 525, with
+no new exams or regressions. Shared credit does not itself create a chance to
+reassign an actor inside a long frontier episode. Long-run accounting tests must
+be supplemented by short-window opportunity checks at the actual intended
+population, horizon and sample budget before another learning experiment.
+
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
 and their elapsed actor ticks, not just total samples or finished episodes. Its
@@ -204,14 +238,16 @@ matrix and the exact source states; no further hybrid search is authorized by a
 single favorable score. Parameter sensitivity still does not identify the
 responsible gradient term or optimizer moment.
 
-Prioritize a single-variable learning comparison that addresses the remaining
-complete-actor retention problem rather than repeating the attribution. Initial
-review timing is a concrete candidate: compare genuinely accepted earlier-task
-examples from the start against the measured frontier-only interval while holding
-reward and gradient semantics fixed between arms. This is not yet an accepted
-scheduler change, proof of the drift's cause, or evidence of mining acquisition.
-A representation/output-protection proposal is an alternative, not a second
-simultaneous intervention to hide the source of an improvement or regression.
+Both the initial-review and observed-only cohort-credit comparisons are complete
+and rejected; do not present either implementation as an untested next step. The
+next scheduling proposal must first demonstrate available early review episodes
+while frontier actors are still in flight, using the declared short sample window
+rather than only long-run 20% arithmetic. An admission/occupancy or phase mechanism
+is a possible separate intervention, not permission to silently shorten gameplay
+episodes, invent observed time, or combine a scheduler change with a new reward or
+gradient rule. Keep actual accepted task/menu exposure, individual certificates,
+complete frozen retention, reproduced control loss and acquisition separate.
+Never extend a failed state or relax the original floors to rescue a scheduler.
 
 A new acquisition proposal still needs **learned sustained spatial control before
 contact is established**, preservation of ordinary task-11 crafting, and actual
