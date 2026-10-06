@@ -7,9 +7,29 @@ feature list or a claim that the current policy can survive.
 
 ## Current decision
 
+The [common-seed physical repeat comparison](verification/20261007-control-repeatability-results.md)
+completed all 16 reports / 6,656 frozen trials without new learning. Earlier versus
+later saved controls scored 21/32 versus 26/32 on one seed and 17/32 versus 29/32 on
+the other, exactly reproduced in both physical repeats. Task 11 outcome flips were
+zero, although other outcomes and physical diagnostics varied. These selected
+saved-policy differences are not merely different evaluation seeds, nor an
+estimate of population training variance. The review candidate scored 22/32 twice
+on the first seed (below 26/32) and 30/32 twice on the second (above 27/32); no
+rehearsal benefit or runtime is adopted. Mining and block breaks remained zero.
+
+The next learning comparison needs genuinely independent learned trajectories
+as well as shared frozen evaluation cases. Do not obtain apparent treatment
+benefit by requiring one convenient control to forget, and do not count extra
+evaluation seeds as learning replicas. A single-trajectory result remains
+exploratory. Prioritize learned inventory-to-world tool use under ordinary
+accepted-mainline learning; keep rejected stress rewards/critic ablations as
+explicit diagnostic conditions rather than the default baseline for every new
+study. Earlier measured review delivery and failed individual coverage remain
+separate facts, not a reason to tune another admission percentage.
+
 The current measured bottleneck is **useful tool handling and cobblestone mining,
 while preserving ordinary wooden-pickaxe crafting**, not increasing the NPC count.
-A [new frozen qualification](verification/20260930-current-policy-qualification.md)
+A [previous frozen qualification](verification/20260930-current-policy-qualification.md)
 of the stopped mainline model at 344,488,915 samples completed all 832 ordinary
 trials on two fresh seeds. Wooden-pickaxe crafting completed 31/32 on each seed
 without an additional workbench-open reset. Tasks 0-10 each scored 31 or 32/32;
