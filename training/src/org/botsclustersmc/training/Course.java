@@ -10,11 +10,11 @@ public final class Course {
     public record Lesson(long serial,Task task,double difficulty,long seed,Kind kind){}
     private static final int TASKS=18;
     private static final class Agent {
-        final ReviewEffort effort=new ReviewEffort();
+        final ReviewEffort effort;
         final RandomSource rng;final int[] episodes=new int[TASKS],probes=new int[TASKS],examSuccess=new int[TASKS];
         final double[] ema=new double[TASKS],probeEma=new double[TASKS];final long[] certified=new long[TASKS];
-        int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam;long examVersion=-1;Lesson current;
-        Agent(long seed){rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
+        int stage,draws,sinceExam,probesSinceExam,examIndex;boolean complete,exam,participating;long examVersion=-1;Lesson current;
+        Agent(long seed){this(seed,new ReviewEffort());} Agent(long seed,ReviewEffort effort){this.effort=effort;rng=new RandomSource(seed);Arrays.fill(ema,.2);Arrays.fill(certified,-1);}
     }
     private final Agent[] agents;private long serial,episodes,successes,exams,passed,abandoned,regressions;
     // Process-local scheduling telemetry, not optimizer samples or skill certificates.
@@ -36,12 +36,28 @@ public final class Course {
     private boolean eligible(Agent a){return !a.exam&&a.episodes[a.stage]>=40&&a.probes[a.stage]>=8&&a.probeEma[a.stage]>=.7&&a.sinceExam>=(a.complete?256:20)&&a.probesSinceExam>=4;}
     public synchronized boolean needsExam(long actor){Agent a=agent(actor);return a.current==null&&eligible(a);}
     public synchronized void beginExam(long actor,long policyVersion){Agent a=agent(actor);if(a.current!=null||!eligible(a)||policyVersion<0)throw new IllegalStateException("actor not ready for a frozen exam");a.exam=true;a.examVersion=policyVersion;a.examIndex=0;Arrays.fill(a.examSuccess,0);exams++;}
+    // Research-only admission guard. Enroll at first training issuance and retain
+    // membership across natural reset gaps; explicit interruption withdraws it.
+    // Decoded/unstarted actors, pending exams and active exams supply no capacity.
+    private boolean reserveReviewOpportunity(Agent applicant){
+        if(applicant.stage==0)return false;
+        int participants=1,frontier=0;
+        for(Agent peer:agents)if(peer!=applicant&&peer.stage==applicant.stage&&peer.participating&&!peer.exam&&!eligible(peer)){
+            participants++;
+            if(peer.current!=null&&peer.current.task().ordinal()==applicant.stage)frontier++;
+        }
+        // A singleton must still be allowed to advance. Do not interrupt existing
+        // episodes when membership changes; only a new admission is constrained.
+        int limit=Math.max(1,participants*4/5);
+        return frontier>=limit;
+    }
     public synchronized Lesson issue(long actor){
         Agent a=agent(actor);if(a.current!=null)throw new IllegalStateException("actor already has a lesson");if(eligible(a))return null;
         int selected=a.stage;Kind kind;double difficulty;
         if(a.exam){kind=Kind.EXAM;selected=a.examIndex<16?a.stage:(a.examIndex-16)/4;difficulty=1;}
         else{
-            a.draws++;selected=a.effort.select(a.stage,a.rng);
+            a.participating=true;a.draws++;selected=a.effort.select(a.stage,a.rng);
+            if(selected==a.stage&&reserveReviewOpportunity(a))selected=a.effort.selectReview(a.stage,a.rng);
             // Per-task cadence cannot alias with a frontier/review scheduling cycle.
             kind=a.episodes[selected]%5==0?Kind.PROBE:Kind.PRACTICE;
             difficulty=kind==Kind.PROBE?1:Math.max(.1,Math.min(1,.15+.85*a.ema[selected]));
@@ -68,7 +84,12 @@ public final class Course {
             }
         }
     }
-    public synchronized void abandon(long actor){Agent a=agent(actor);if(a.current!=null){a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
+    public synchronized void abandon(long actor){Agent a=agent(actor);a.participating=false;if(a.current!=null){a.current=null;abandoned++;}if(a.exam){a.exam=false;a.examVersion=-1;a.examIndex=0;a.sinceExam=0;a.probesSinceExam=0;Arrays.fill(a.examSuccess,0);}}
+    /** Interrupted between episodes: withdraw scheduling membership, not earned state. */
+    public synchronized void withdrawAdmission(long actor){
+        Agent a=agent(actor);if(a.current!=null)throw new IllegalStateException("abandon the current lesson first");
+        a.participating=false;
+    }
     public synchronized long examVersion(long actor){return agent(actor).examVersion;}
     public synchronized Lesson currentLesson(long actor){return agent(actor).current;}
     public record Progress(int stage,int practiceEpisodes,int probes,double practiceSuccess,double probeSuccess,boolean exam,long examPolicy,int examCases,boolean completed) {}
@@ -108,7 +129,8 @@ public final class Course {
     public synchronized boolean completed(){return completedAgents()==agents.length;}
     public synchronized long episodes(){return episodes;}public synchronized long successes(){return successes;}public synchronized long exams(){return exams;}public synchronized long passedExams(){return passed;}public synchronized long abandoned(){return abandoned;}public synchronized long regressions(){return regressions;}
     // Like in-flight episodes, effort debt is deliberately transient. Restart starts
-    // a new allocation interval; weights, Adam, RNG and earned certificates persist.
+    // a new allocation interval with one review-first credit unit in this study;
+    // observed counters remain zero. Weights, Adam, RNG and certificates persist.
     public synchronized byte[] encode()throws IOException{
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();try(DataOutputStream out=new DataOutputStream(bytes)){
             out.writeUTF("BCMC-INDEPENDENT-COURSE");out.writeInt(agents.length);for(long x:new long[]{serial,episodes,successes,exams,passed,abandoned,regressions})out.writeLong(x);
@@ -121,7 +143,7 @@ public final class Course {
             if(!in.readUTF().equals("BCMC-INDEPENDENT-COURSE")||in.readInt()!=actors)throw new IOException("course schema/actor count differs; choose a fresh Academy");Course c=new Course(actors,0);
             c.serial=in.readLong();c.episodes=in.readLong();c.successes=in.readLong();c.exams=in.readLong();c.passed=in.readLong();c.abandoned=in.readLong();c.regressions=in.readLong();
             if(c.serial<0||c.episodes<0||c.successes<0||c.successes>c.episodes||c.exams<0||c.passed<0||c.passed>c.exams||c.abandoned<0||c.regressions<0)throw new IOException("course counters");
-            for(int n=0;n<actors;n++){Agent a=new Agent(in.readLong());c.agents[n]=a;a.stage=in.readInt();a.draws=in.readInt();a.sinceExam=in.readInt();a.probesSinceExam=in.readInt();a.complete=in.readBoolean();boolean active=in.readBoolean(),exam=in.readBoolean();
+            for(int n=0;n<actors;n++){Agent a=new Agent(in.readLong(),ReviewEffort.resumeWithReview());c.agents[n]=a;a.stage=in.readInt();a.draws=in.readInt();a.sinceExam=in.readInt();a.probesSinceExam=in.readInt();a.complete=in.readBoolean();boolean active=in.readBoolean(),exam=in.readBoolean();
                 if(a.stage<0||a.stage>=TASKS||a.draws<0||a.sinceExam<0||a.probesSinceExam<0||(a.complete&&a.stage!=17))throw new IOException("course actor state");
                 if(active)c.abandoned++;if(exam){a.sinceExam=0;a.probesSinceExam=0;} // Whole unfinished exam is discarded, never cherry-picked.
                 for(int i=0;i<TASKS;i++){a.episodes[i]=in.readInt();a.probes[i]=in.readInt();a.ema[i]=in.readDouble();a.probeEma[i]=in.readDouble();a.certified[i]=in.readLong();

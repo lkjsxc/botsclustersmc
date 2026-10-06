@@ -39,7 +39,7 @@ public final class Gradient {
                 w.dout[Schema.LOGITS]=(float)(.5*Math.max(-1,Math.min(1,error)));
                 double weight=balance==null?1:balance.weight(s.observation());
                 for(int j=0;j<w.dout.length;j++)w.dout[j]*=(float)weight;
-                target.backward(s.observation(),w,w.dout,grad);
+                CriticFeatures.backward(target,s.observation(),w,w.dout,grad);
                 double a=Math.abs(error); loss+=weight*(a<=1?.5*a*a:a-.5);
                 entropy+=weight*Distribution.entropy(w.probabilities); importance+=weight*Math.exp(Math.min(0,ratio[i])); total++;
             }
