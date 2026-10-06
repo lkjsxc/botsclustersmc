@@ -124,11 +124,27 @@ candidate half-speed case, one actor had no observations of three earlier tasks
 at the finite boundary despite 20.01315% aggregate late review. It completed five
 frontier episodes, so this is not proof of permanent starvation or learned
 forgetting. The pending-exam membership bug was repaired in the research branch,
-not deployed. No new Minecraft learning or frozen evaluation followed this failed
-qualification. Aggregate shared-policy coverage, individual review-cycle coverage
+not deployed. That qualification started no new Minecraft learning or frozen
+evaluation. Aggregate shared-policy coverage, individual review-cycle coverage
 and actual frozen retention need separate contracts; do not relax a failed gate
 or infer one from another. The exact parent, both runtimes and all failures remain
 archived. A different coverage mechanism requires new prospective qualification.
+
+A separately [predeclared shared-policy comparison](verification/20261007-shared-review-results.md)
+then tested the unchanged admission runtime against the same review-first control,
+not a revised individual-coverage gate. All six ordinary reports / 2,496 trials
+completed. Actual late accepted review reached 19.547747% versus control 0%, with
+every earlier task above its exposure floor. Parent pickaxe scores were 29/32 and
+30/32, control 27/32 and 27/32, candidate 26/32 and 27/32. Both arms retained all
+fixed floors, so the required control loss of at least 8/32 did not reproduce.
+Shared rehearsal delivery was demonstrated; a retention benefit was not. All
+mining remained zero. Candidate mining observations were about 96% inventory-open
+with only 28 and 18 world-dig choices, despite more held-pick observations; these
+correlates are not a causal diagnosis or permission for scripted menu/tool control.
+No runtime or model is adopted, no budget is extended, and the earlier individual
+qualification remains failed. Next separate control-trajectory variability from
+shared rehearsal effects and diagnose learned inventory-to-world tool use, rather
+than tune another admission fraction or equate more review with useful behavior.
 
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
