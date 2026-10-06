@@ -116,6 +116,20 @@ reassign an actor inside a long frontier episode. Long-run accounting tests must
 be supplemented by short-window opportunity checks at the actual intended
 population, horizon and sample budget before another learning experiment.
 
+The [offline review-admission qualification](verification/20261007-review-admission-results.md)
+then held a real group-level review opportunity without preempting frontier work.
+Candidate passed all eight short cases while control passed none, but the fixed
+long screen passed only 7/8 candidate and 6/8 control cases. In the failing
+candidate half-speed case, one actor had no observations of three earlier tasks
+at the finite boundary despite 20.01315% aggregate late review. It completed five
+frontier episodes, so this is not proof of permanent starvation or learned
+forgetting. The pending-exam membership bug was repaired in the research branch,
+not deployed. No new Minecraft learning or frozen evaluation followed this failed
+qualification. Aggregate shared-policy coverage, individual review-cycle coverage
+and actual frozen retention need separate contracts; do not relax a failed gate
+or infer one from another. The exact parent, both runtimes and all failures remain
+archived. A different coverage mechanism requires new prospective qualification.
+
 [Accepted learning-context coverage](LEARNING_CONTEXTS.md) is now running on the
 accepted development runtime. It counts actual pre-action task/menu observations
 and their elapsed actor ticks, not just total samples or finished episodes. Its
