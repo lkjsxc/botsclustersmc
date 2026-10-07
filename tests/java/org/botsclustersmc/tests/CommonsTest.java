@@ -43,9 +43,9 @@ public final class CommonsTest {
             // Shift withdrawal chooses first available storage (slot 1 after the planks).
             assemble(maker,b);CommonsStock carried=stock(maker).plus(stock(partner));
             check(carried.equals(new CommonsStock(0,0,1)),"exact crafted tool");
-            check(!CommonsStock.delivered(carried,b.stock(),1),"private tool is not shared delivery");
+            check(!CommonsStock.delivered(carried,b.stock(),0,1),"private tool is not shared delivery");
             maker.open(Pocket.Menu.CHEST);click(maker,3,0,b);
-            check(CommonsStock.delivered(stock(maker).plus(stock(partner)).plus(b.stock()),b.stock(),1),"shared final product");
+            check(CommonsStock.delivered(stock(maker).plus(stock(partner)).plus(b.stock()),b.stock(),0,1),"shared final product");
             for(int repeat=0;repeat<100;repeat++){
                 click(partner,3,36,b);click(partner,3,0,b);
                 CommonsStock total=stock(maker).plus(stock(partner)).plus(b.stock());
@@ -56,17 +56,20 @@ public final class CommonsTest {
             Pocket[] p=supplies(CommonsCase.of(swap,CommonsCase.Condition.SPLIT_ISOLATED,19));
             for(Pocket member:p){Bank own=new Bank();assemble(member,own);check(member.count("WOODEN_PICKAXE")==0,"isolated complementary actors cannot assemble");}
         }
-        reject(()->CommonsStock.delivered(new CommonsStock(0,0,2),new CommonsStock(0,0,1),1));
-        reject(()->CommonsStock.delivered(CommonsStock.EMPTY,new CommonsStock(0,0,1),0));
-        reject(()->CommonsStock.delivered(new CommonsStock(0,0,1),new CommonsStock(0,0,1),2));
+        reject(()->CommonsStock.delivered(new CommonsStock(0,0,2),new CommonsStock(0,0,1),0,1));
+        reject(()->CommonsStock.delivered(CommonsStock.EMPTY,new CommonsStock(0,0,1),0,0));
+        reject(()->CommonsStock.delivered(new CommonsStock(0,0,1),new CommonsStock(0,0,1),0,2));
         reject(()->new CommonsStock(-1,0,0));reject(()->CommonsStock.item("DIAMOND",1));
         reject(()->new CommonsCase(32,CommonsCase.Condition.SPLIT_SHARED,0));
         try{CommonsCase.of(1,CommonsCase.Condition.SPLIT_SHARED,Long.MAX_VALUE);throw new AssertionError("seed overflow accepted");}catch(ArithmeticException expected){checks++;}
-        check(!CommonsStock.delivered(CommonsStock.EMPTY,CommonsStock.EMPTY,0),"loss is a valid failure, not success");
-        check(!CommonsStock.delivered(new CommonsStock(0,8,0),CommonsStock.EMPTY,0),"irreversible wrong recipe is a valid failure");
-        reject(()->CommonsStock.delivered(new CommonsStock(0,0,1),new CommonsStock(0,0,1),0));
+        check(!CommonsStock.delivered(CommonsStock.EMPTY,CommonsStock.EMPTY,0,0),"loss is a valid failure, not success");
+        reject(()->CommonsStock.delivered(new CommonsStock(0,8,0),CommonsStock.EMPTY,4,0));
+        reject(()->CommonsStock.delivered(CommonsStock.INITIAL,CommonsStock.EMPTY,0,1));
+        check(!CommonsStock.delivered(new CommonsStock(1,6,0),CommonsStock.EMPTY,4,0),"reachable wrong recipe is a valid failure");
+        reject(()->CommonsStock.delivered(new CommonsStock(0,0,1),new CommonsStock(0,0,1),0,0));
         Pocket contaminated=new Pocket();contaminated.setStorage(0,new Stack("CRAFTING_TABLE",1));reject(()->CommonsStock.carried(contaminated));
         contaminated.setStorage(0,new Stack("BIRCH_PLANKS",1));reject(()->CommonsStock.carried(contaminated));
+        contaminated.setStorage(0,new Stack("CAVE_AIR",1));reject(()->CommonsStock.carried(contaminated));
         for(String name:List.of("botsclustersmc.jar","training.jar"))try(var jar=new java.util.jar.JarFile("dist/"+name)){
             check(jar.stream().noneMatch(e->e.getName().contains("/commons/")),"commons evaluator leaked into public runtime");
         }

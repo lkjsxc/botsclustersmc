@@ -15,7 +15,7 @@ import acceptance
 
 ROOT=Path(__file__).resolve().parents[1]
 CONDITIONS=('split-shared','pooled-shared','split-isolated')
-PROTOCOL='commons-fixed-stations-v1'
+PROTOCOL='commons-fixed-stations-v2'
 SCHEMA='bcmc-citizen-egocentric-context'
 
 
@@ -42,6 +42,17 @@ def units(stock):
     return 2*stock[0]+stock[1]+8*stock[2]
 
 
+def recipe_loss(source, total, crafted_sticks, crafted_picks):
+    """Count the real recipes by produced items; a unit sum alone permits impossible conversions."""
+    made_sticks=integer(crafted_sticks,0,4);made_picks=integer(crafted_picks,0,1)
+    require(made_sticks%4==0,'Stick recipe output must be a multiple of four')
+    remaining=[source[0]-2*(made_sticks//4)-3*made_picks,source[1]+made_sticks-2*made_picks,made_picks]
+    require(all(x>=0 for x in remaining),'Recipes exceed admitted ingredients')
+    loss=[remaining[i]-total[i] for i in range(3)]
+    require(all(x>=0 for x in loss),'Material-specific resource creation or unconsumed recipe ingredients')
+    return loss
+
+
 def validate(report, cases, seed, horizon):
     """Derive every summary from the closed source budget and complete room/member records."""
     require(type(report) is dict and report.get('complete') is True, 'Incomplete commons report')
@@ -60,7 +71,7 @@ def validate(report, cases, seed, horizon):
         require(integer(t.get('supplies_owner'),0,1)==case%2 and type(t.get('mirror')) is bool and t['mirror']==((case//2)%2!=0),'Unbalanced supplies/mirror')
         rooms=t.get('rooms');isolated=condition=='split-isolated'
         require(type(rooms) is list and len(rooms)==(2 if isolated else 1),'Incomplete room bank')
-        total=[0,0,0];bank=[0,0,0];crafted=0;ticks=[];ends=[]
+        total=[0,0,0];bank=[0,0,0];lost=[0,0,0];crafted=0;ticks=[];ends=[]
         for m,r in enumerate(rooms):
             require(type(r) is dict and integer(r.get('room'))==trial_index*2+m,'Wrong room identity')
             rt=integer(r.get('ticks'),1,horizon);ticks.append(rt)
@@ -82,8 +93,10 @@ def validate(report, cases, seed, horizon):
                     require(actor_ticks[member]>0,'Participant never started')
             made=integer(r.get('crafted_picks'),0,1);crafted+=made
             room_total=add(carried,stock,dropped)
-            supply=(6 if m==case%2 else 2) if isolated else 8
-            require(units(room_total)<=supply,'Created resource units')
+            source=([3,0,0] if m==case%2 else [0,2,0]) if isolated else [3,2,0]
+            room_loss=recipe_loss(source,room_total,r.get('crafted_sticks'),made)
+            require(vector(r.get('lost_stock'),3)==room_loss,'Forged material-specific room loss')
+            lost=add(lost,room_loss)
             if isolated:require(made==0 and room_total[2]==0,'Isolated actor fabricated missing recipe ingredients')
             if end=='delivered':require(made==1 and stock==[0,0,1] and room_total==[0,0,1],'Forged delivery termination')
             total=add(total,room_total);bank=add(bank,stock)
@@ -92,7 +105,8 @@ def validate(report, cases, seed, horizon):
         require(type(t.get('success')) is bool and t['success']==success,'Forged completion')
         require(vector(t.get('total'),3)==total and vector(t.get('bank'),3)==bank,'Forged team stock')
         require(integer(t.get('elapsed_ticks'),1,horizon)==max(ticks),'Wrong team elapsed ticks')
-        require(integer(t.get('lost_wood_units'),0,8)==8-units(total),'Wrong source loss accounting')
+        require(vector(t.get('lost_stock'),3)==lost,'Forged material-specific team loss')
+        require(integer(t.get('lost_wood_units'),0,8)==units(lost)==8-units(total),'Wrong source loss accounting')
         passed[trial_index//cases]+=int(success)
     expected=[{'condition':c,'cases':cases,'passed':passed[i]} for i,c in enumerate(CONDITIONS)]
     actual=report.get('conditions');require(type(actual) is list and len(actual)==3,'Missing condition summaries')

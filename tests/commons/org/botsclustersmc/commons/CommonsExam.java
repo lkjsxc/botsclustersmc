@@ -17,7 +17,7 @@ public final class CommonsExam extends RuntimePlugin {
     private int cases,horizon,expectedRooms;private long started,bankSeed;
     private final Map<Integer,CommonsRoom> rooms=new ConcurrentHashMap<>();
     private final Map<Long,CommonsRoom> actorRooms=new ConcurrentHashMap<>();
-    private final Map<Integer,CommonsRoom.Result> results=new ConcurrentHashMap<>();
+    private final Map<Integer,CommonsResult> results=new ConcurrentHashMap<>();
     private final List<CommonsCase> bank=new ArrayList<>();
     private final AtomicInteger prepared=new AtomicInteger();private final AtomicBoolean written=new AtomicBoolean();
     @Override public boolean training(){return true;} // Explicitly invulnerable test bodies, NOT a learner.
@@ -89,7 +89,7 @@ public final class CommonsExam extends RuntimePlugin {
         if(previous.result().policyVersion()!=policy.updates())throw new IllegalStateException("Frozen policy changed");
         ((CommonsRoom)npc.context).observe(npc,previous);return true;
     }
-    void completed(int id,CommonsRoom.Result result) {
+    void completed(int id,CommonsResult result) {
         if(!rooms.containsKey(id)||results.putIfAbsent(id,result)!=null)throw new IllegalStateException("Duplicate/unknown room completion");
     }
     @Override protected Map<String,Object> extraStatus() {
@@ -98,17 +98,17 @@ public final class CommonsExam extends RuntimePlugin {
     private void finishReport()throws Exception {
         StringJoiner trials=new StringJoiner(","),summaries=new StringJoiner(",");int[] passed=new int[3];
         for(int trial=0;trial<bank.size();trial++) {
-            CommonsCase c=bank.get(trial);CommonsStock total=CommonsStock.EMPTY,stock=CommonsStock.EMPTY;long crafted=0;int elapsed=0;StringJoiner cells=new StringJoiner(",");
+            CommonsCase c=bank.get(trial);CommonsStock total=CommonsStock.EMPTY,stock=CommonsStock.EMPTY,lost=CommonsStock.EMPTY;long sticks=0,crafted=0;int elapsed=0;boolean delivered=true;StringJoiner cells=new StringJoiner(",");
             for(int m=0;m<c.rooms();m++) {
-                var r=Objects.requireNonNull(results.get(trial*2+m));total=total.plus(r.total());stock=stock.plus(r.bank());crafted+=r.crafted();elapsed=Math.max(elapsed,r.ticks());cells.add(r.json());
+                var r=Objects.requireNonNull(results.get(trial*2+m));total=total.plus(r.total());stock=stock.plus(r.bank());lost=lost.plus(r.lost());sticks+=r.craftedSticks();crafted+=r.craftedPicks();delivered&=r.end().equals("delivered");elapsed=Math.max(elapsed,r.ticks());cells.add(r.json());
             }
-            boolean success=CommonsStock.delivered(total,stock,crafted);if(success)passed[c.condition().ordinal()]++;
+            boolean success=CommonsStock.delivered(total,stock,sticks,crafted)&&delivered&&c.rooms()==1;if(success)passed[c.condition().ordinal()]++;
             trials.add("{\"trial\":"+trial+",\"case\":"+c.index()+",\"condition\":\""+c.condition().label()+"\",\"seed\":"+c.seed()
                 +",\"supplies_owner\":"+c.owner()+",\"mirror\":"+c.mirror()+",\"success\":"+success+",\"elapsed_ticks\":"+elapsed
-                +",\"total\":"+total.json()+",\"bank\":"+stock.json()+",\"lost_wood_units\":"+(8-total.woodUnits())+",\"rooms\":["+cells+"]}");
+                +",\"total\":"+total.json()+",\"bank\":"+stock.json()+",\"lost_stock\":"+lost.json()+",\"lost_wood_units\":"+lost.woodUnits()+",\"rooms\":["+cells+"]}");
         }
         for(var c:CommonsCase.Condition.values())summaries.add("{\"condition\":\""+c.label()+"\",\"cases\":"+cases+",\"passed\":"+passed[c.ordinal()]+"}");
-        String report="{\"complete\":true,\"protocol\":\"commons-fixed-stations-v1\",\"schema\":\""+Schema.ID+"\",\"seed\":"+bankSeed
+        String report="{\"complete\":true,\"protocol\":\"commons-fixed-stations-v2\",\"schema\":\""+Schema.ID+"\",\"seed\":"+bankSeed
             +",\"policy_updates\":"+policy.updates()+",\"policy_trained_samples\":"+policy.samples()+",\"new_training_samples\":0,\"stochastic\":true"
             +",\"cases_per_condition\":"+cases+",\"horizon_ticks\":"+horizon+",\"conditions\":["+summaries+"],\"trials\":["+trials+"]}\n";
         PolicyFile.atomicWrite(getDataFolder().toPath().resolve("commons-result.json"),report.getBytes(StandardCharsets.UTF_8));
