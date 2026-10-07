@@ -106,3 +106,24 @@ partner/resource replacement tests. This runtime correction protects a necessary
 mechanical boundary. It is not adoption of draft PRs #66-#69, a trained communal
 policy, a retention benefit or autonomous survival. Current bodies/pockets are
 still ephemeral NPC state, not durable vanilla-player lives.
+
+
+## First exact-source CI failure and fixture correction
+
+Run `37620530679`, head `75a7935771288a9f3aa92f0f7663b60136a320e0`,
+failed on both Linux and Windows in the new API-proxy test with `World unloaded`.
+The observatory job succeeded. This failed run is not waived as an environment
+issue and the shared service has not been changed on its basis.
+
+The fixture held its world only through Bukkit `Location`, whose implementation
+uses a weak reference. A real server owns its worlds; the test proxy did not.
+The test now owns a strong world reference through a `reachabilityFence`, and
+eight explicit GC cycles verify that a logically live test world remains valid.
+Existing permission/order/state assertions are unchanged. No runtime exception
+handler, production gate or physical fixture was changed to suppress the error.
+The prior real-server runtime-class comparisons remain applicable; the corrected
+source test and exact-head CI must be run separately. This does not recover or
+replace the earlier blocked completion poll.
+
+API contract: https://jd.papermc.io/paper/1.21.11/org/bukkit/Location.html
+Reference lifetime: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ref/Reference.html

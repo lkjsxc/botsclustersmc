@@ -27,6 +27,9 @@ public final class ContainerAccessTest {
         final List<String> calls=new ArrayList<>();
         final boolean chest,container;
         final Inventory inventory,snapshot;
+        // Bukkit Location keeps a weak world reference. A real server owns worlds;
+        // this fixture must keep that ownership alive through its final assertion.
+        final World world;
         final Location at;
         Fixture(int kind)throws ReflectiveOperationException{
             chest=kind==0;container=kind!=2;
@@ -53,7 +56,7 @@ public final class ContainerAccessTest {
                 if(!m.getName().equals("getState"))throw new AssertionError("unexpected block read "+m.getName());
                 check(owned&&loaded,"unavailable block state was read");calls.add("getState");return state;
             });
-            World world=proxy(World.class,(p,m,a)->{
+            world=proxy(World.class,(p,m,a)->{
                 check(owned,"foreign world read "+m.getName());calls.add(m.getName());
                 return switch(m.getName()){
                     case "getMinHeight"->-64;
@@ -101,7 +104,7 @@ public final class ContainerAccessTest {
             }
             f.calls.clear();boolean mayBreak=ContainerAccess.mayBreak(f.at);
             check(mayBreak==(f.owned&&f.loaded&&(!f.container||f.ordinary()&&f.empty)),"break availability kind="+kind+" flags="+flags);
-            check(!f.calls.contains("getInventory")&&!f.calls.contains("getBlockInventory"),"mining inspected live inventory");f.order();
+            check(!f.calls.contains("getInventory")&&!f.calls.contains("getBlockInventory"),"mining inspected live inventory");f.order();java.lang.ref.Reference.reachabilityFence(f.world);
         }
         Fixture f=new Fixture(0);f.calls.clear();
         check(ContainerAccess.inventory(null,Pocket.Menu.CHEST)==null&&!ContainerAccess.mayBreak(null)&&f.calls.isEmpty(),"null location touched server");
@@ -109,6 +112,10 @@ public final class ContainerAccessTest {
             Location at=f.at.clone();at.setY(y);f.calls.clear();
             check(ContainerAccess.inventory(at,Pocket.Menu.CHEST)==null&&!ContainerAccess.mayBreak(at),"height bounds ignored");
             check(!f.calls.contains("isChunkLoaded")&&!f.calls.contains("getState"),"invalid height queried chunks");
+        }
+        for(int repetition=0;repetition<8;repetition++){
+            System.gc();check(ContainerAccess.inventory(f.at,Pocket.Menu.CHEST)==f.inventory,"live fixture world lost across GC");
+            java.lang.ref.Reference.reachabilityFence(f.world);
         }
         for(int repetition=0;repetition<100;repetition++){
             f.locked=false;check(ContainerAccess.inventory(f.at,Pocket.Menu.CHEST)==f.inventory,"ordinary access unavailable");
@@ -119,6 +126,7 @@ public final class ContainerAccessTest {
             if(mining)ContainerAccess.mayBreak(f.at);else ContainerAccess.inventory(f.at,Pocket.Menu.CHEST);
             throw new AssertionError("unexpected API exception was swallowed");
         }catch(IllegalStateException expected){check(expected.getMessage().equals("fixture API failure"),"wrong exception");}
-        System.out.println("PASS container access checks="+checks+" state_combinations=192 stale_lock_cycles=100");
+        java.lang.ref.Reference.reachabilityFence(f.world);
+        System.out.println("PASS container access checks="+checks+" state_combinations=192 stale_lock_cycles=100 retained_world_gc_cycles=8");
     }
 }
