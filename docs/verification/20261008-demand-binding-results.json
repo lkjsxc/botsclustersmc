@@ -1,0 +1,2108 @@
+{
+  "schema": "synthetic-tensor-binding-evidence-v1",
+  "complete_trials": 24576,
+  "all_material_histories_reconstructed": true,
+  "minecraft": false,
+  "all_learning_gates_passed": false,
+  "gates": [
+    {
+      "learning_seed": 2026100811,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100891,
+          "tensor_two_step": 0.51953125,
+          "plain_two_step": 0.46484375,
+          "paired_difference": 0.0546875,
+          "eight_member_two_step": 0.203125,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100892,
+          "tensor_two_step": 0.47265625,
+          "plain_two_step": 0.41796875,
+          "paired_difference": 0.0546875,
+          "eight_member_two_step": 0.31640625,
+          "passed": false
+        }
+      ]
+    },
+    {
+      "learning_seed": 2026100812,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100891,
+          "tensor_two_step": 0.53125,
+          "plain_two_step": 0.47265625,
+          "paired_difference": 0.05859375,
+          "eight_member_two_step": 0.23828125,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100892,
+          "tensor_two_step": 0.46875,
+          "plain_two_step": 0.43359375,
+          "paired_difference": 0.03515625,
+          "eight_member_two_step": 0.37890625,
+          "passed": false
+        }
+      ]
+    },
+    {
+      "learning_seed": 2026100813,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100891,
+          "tensor_two_step": 0.50390625,
+          "plain_two_step": 0.46875,
+          "paired_difference": 0.03515625,
+          "eight_member_two_step": 0.28125,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100892,
+          "tensor_two_step": 0.45703125,
+          "plain_two_step": 0.4453125,
+          "paired_difference": 0.01171875,
+          "eight_member_two_step": 0.390625,
+          "passed": false
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "tensor/2026100811/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 48,
+      "four_step": 115,
+      "first_step": 93,
+      "wrong_deposits": 183,
+      "consumed": [
+        129,
+        137
+      ],
+      "remaining": [
+        107,
+        96
+      ],
+      "bank": [
+        20,
+        23
+      ]
+    },
+    "tensor/2026100811/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 663,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "tensor/2026100811/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "tensor/2026100811/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 653,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "tensor/2026100811/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 65,
+      "four_step": 128,
+      "first_step": 105,
+      "wrong_deposits": 180,
+      "consumed": [
+        142,
+        151
+      ],
+      "remaining": [
+        97,
+        86
+      ],
+      "bank": [
+        17,
+        19
+      ]
+    },
+    "tensor/2026100811/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 14,
+      "wrong_deposits": 691,
+      "consumed": [
+        100,
+        84
+      ],
+      "remaining": [
+        889,
+        877
+      ],
+      "bank": [
+        35,
+        63
+      ]
+    },
+    "tensor/2026100811/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 49,
+      "four_step": 127,
+      "first_step": 98,
+      "wrong_deposits": 184,
+      "consumed": [
+        148,
+        154
+      ],
+      "remaining": [
+        90,
+        86
+      ],
+      "bank": [
+        18,
+        16
+      ]
+    },
+    "tensor/2026100811/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 13,
+      "first_step": 21,
+      "wrong_deposits": 640,
+      "consumed": [
+        128,
+        88
+      ],
+      "remaining": [
+        860,
+        852
+      ],
+      "bank": [
+        36,
+        84
+      ]
+    },
+    "tensor/2026100811/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 106,
+      "four_step": 165,
+      "first_step": 136,
+      "wrong_deposits": 170,
+      "consumed": [
+        174,
+        180
+      ],
+      "remaining": [
+        71,
+        70
+      ],
+      "bank": [
+        11,
+        6
+      ]
+    },
+    "tensor/2026100811/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 13,
+      "four_step": 47,
+      "first_step": 45,
+      "wrong_deposits": 672,
+      "consumed": [
+        280,
+        276
+      ],
+      "remaining": [
+        695,
+        681
+      ],
+      "bank": [
+        49,
+        67
+      ]
+    },
+    "tensor/2026100811/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 93,
+      "four_step": 167,
+      "first_step": 122,
+      "wrong_deposits": 182,
+      "consumed": [
+        179,
+        181
+      ],
+      "remaining": [
+        69,
+        68
+      ],
+      "bank": [
+        8,
+        7
+      ]
+    },
+    "tensor/2026100811/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 20,
+      "four_step": 66,
+      "first_step": 69,
+      "wrong_deposits": 603,
+      "consumed": [
+        356,
+        348
+      ],
+      "remaining": [
+        622,
+        604
+      ],
+      "bank": [
+        46,
+        72
+      ]
+    },
+    "tensor/2026100811/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 133,
+      "four_step": 194,
+      "first_step": 144,
+      "wrong_deposits": 157,
+      "consumed": [
+        199,
+        200
+      ],
+      "remaining": [
+        53,
+        53
+      ],
+      "bank": [
+        4,
+        3
+      ]
+    },
+    "tensor/2026100811/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 52,
+      "four_step": 122,
+      "first_step": 82,
+      "wrong_deposits": 613,
+      "consumed": [
+        540,
+        568
+      ],
+      "remaining": [
+        448,
+        422
+      ],
+      "bank": [
+        36,
+        34
+      ]
+    },
+    "tensor/2026100811/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 121,
+      "four_step": 202,
+      "first_step": 133,
+      "wrong_deposits": 161,
+      "consumed": [
+        207,
+        208
+      ],
+      "remaining": [
+        43,
+        44
+      ],
+      "bank": [
+        6,
+        4
+      ]
+    },
+    "tensor/2026100811/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 81,
+      "four_step": 144,
+      "first_step": 117,
+      "wrong_deposits": 515,
+      "consumed": [
+        608,
+        620
+      ],
+      "remaining": [
+        388,
+        381
+      ],
+      "bank": [
+        28,
+        23
+      ]
+    },
+    "plain/2026100811/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 48,
+      "four_step": 115,
+      "first_step": 93,
+      "wrong_deposits": 183,
+      "consumed": [
+        129,
+        137
+      ],
+      "remaining": [
+        107,
+        96
+      ],
+      "bank": [
+        20,
+        23
+      ]
+    },
+    "plain/2026100811/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 663,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "plain/2026100811/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "plain/2026100811/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 653,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "plain/2026100811/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 126,
+      "first_step": 104,
+      "wrong_deposits": 183,
+      "consumed": [
+        141,
+        149
+      ],
+      "remaining": [
+        97,
+        87
+      ],
+      "bank": [
+        18,
+        20
+      ]
+    },
+    "plain/2026100811/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 13,
+      "wrong_deposits": 698,
+      "consumed": [
+        96,
+        84
+      ],
+      "remaining": [
+        892,
+        877
+      ],
+      "bank": [
+        36,
+        63
+      ]
+    },
+    "plain/2026100811/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 49,
+      "four_step": 128,
+      "first_step": 98,
+      "wrong_deposits": 186,
+      "consumed": [
+        149,
+        155
+      ],
+      "remaining": [
+        89,
+        84
+      ],
+      "bank": [
+        18,
+        17
+      ]
+    },
+    "plain/2026100811/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 12,
+      "first_step": 19,
+      "wrong_deposits": 654,
+      "consumed": [
+        112,
+        80
+      ],
+      "remaining": [
+        878,
+        863
+      ],
+      "bank": [
+        34,
+        81
+      ]
+    },
+    "plain/2026100811/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 102,
+      "four_step": 162,
+      "first_step": 132,
+      "wrong_deposits": 176,
+      "consumed": [
+        171,
+        178
+      ],
+      "remaining": [
+        74,
+        73
+      ],
+      "bank": [
+        11,
+        5
+      ]
+    },
+    "plain/2026100811/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 10,
+      "four_step": 42,
+      "first_step": 41,
+      "wrong_deposits": 715,
+      "consumed": [
+        256,
+        256
+      ],
+      "remaining": [
+        712,
+        704
+      ],
+      "bank": [
+        56,
+        64
+      ]
+    },
+    "plain/2026100811/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 89,
+      "four_step": 161,
+      "first_step": 121,
+      "wrong_deposits": 191,
+      "consumed": [
+        174,
+        175
+      ],
+      "remaining": [
+        73,
+        74
+      ],
+      "bank": [
+        9,
+        7
+      ]
+    },
+    "plain/2026100811/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 16,
+      "four_step": 62,
+      "first_step": 66,
+      "wrong_deposits": 650,
+      "consumed": [
+        332,
+        332
+      ],
+      "remaining": [
+        643,
+        638
+      ],
+      "bank": [
+        49,
+        54
+      ]
+    },
+    "plain/2026100811/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 119,
+      "four_step": 177,
+      "first_step": 130,
+      "wrong_deposits": 194,
+      "consumed": [
+        182,
+        181
+      ],
+      "remaining": [
+        69,
+        73
+      ],
+      "bank": [
+        5,
+        2
+      ]
+    },
+    "plain/2026100811/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 51,
+      "four_step": 132,
+      "first_step": 80,
+      "wrong_deposits": 691,
+      "consumed": [
+        568,
+        592
+      ],
+      "remaining": [
+        428,
+        408
+      ],
+      "bank": [
+        28,
+        24
+      ]
+    },
+    "plain/2026100811/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 107,
+      "four_step": 193,
+      "first_step": 118,
+      "wrong_deposits": 192,
+      "consumed": [
+        197,
+        197
+      ],
+      "remaining": [
+        55,
+        58
+      ],
+      "bank": [
+        4,
+        1
+      ]
+    },
+    "plain/2026100811/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 81,
+      "four_step": 147,
+      "first_step": 111,
+      "wrong_deposits": 622,
+      "consumed": [
+        608,
+        620
+      ],
+      "remaining": [
+        391,
+        379
+      ],
+      "bank": [
+        25,
+        25
+      ]
+    },
+    "tensor/2026100812/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 48,
+      "four_step": 115,
+      "first_step": 93,
+      "wrong_deposits": 183,
+      "consumed": [
+        129,
+        137
+      ],
+      "remaining": [
+        107,
+        96
+      ],
+      "bank": [
+        20,
+        23
+      ]
+    },
+    "tensor/2026100812/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 663,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "tensor/2026100812/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "tensor/2026100812/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 653,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "tensor/2026100812/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 66,
+      "four_step": 128,
+      "first_step": 107,
+      "wrong_deposits": 182,
+      "consumed": [
+        142,
+        150
+      ],
+      "remaining": [
+        97,
+        87
+      ],
+      "bank": [
+        17,
+        19
+      ]
+    },
+    "tensor/2026100812/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 14,
+      "wrong_deposits": 709,
+      "consumed": [
+        100,
+        84
+      ],
+      "remaining": [
+        887,
+        878
+      ],
+      "bank": [
+        37,
+        62
+      ]
+    },
+    "tensor/2026100812/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 51,
+      "four_step": 130,
+      "first_step": 98,
+      "wrong_deposits": 187,
+      "consumed": [
+        151,
+        154
+      ],
+      "remaining": [
+        89,
+        85
+      ],
+      "bank": [
+        16,
+        17
+      ]
+    },
+    "tensor/2026100812/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 15,
+      "first_step": 25,
+      "wrong_deposits": 649,
+      "consumed": [
+        140,
+        104
+      ],
+      "remaining": [
+        849,
+        836
+      ],
+      "bank": [
+        35,
+        84
+      ]
+    },
+    "tensor/2026100812/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 111,
+      "four_step": 170,
+      "first_step": 136,
+      "wrong_deposits": 166,
+      "consumed": [
+        178,
+        187
+      ],
+      "remaining": [
+        68,
+        63
+      ],
+      "bank": [
+        10,
+        6
+      ]
+    },
+    "tensor/2026100812/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 14,
+      "four_step": 51,
+      "first_step": 50,
+      "wrong_deposits": 672,
+      "consumed": [
+        292,
+        296
+      ],
+      "remaining": [
+        679,
+        659
+      ],
+      "bank": [
+        53,
+        69
+      ]
+    },
+    "tensor/2026100812/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 97,
+      "four_step": 176,
+      "first_step": 127,
+      "wrong_deposits": 175,
+      "consumed": [
+        187,
+        189
+      ],
+      "remaining": [
+        59,
+        59
+      ],
+      "bank": [
+        10,
+        8
+      ]
+    },
+    "tensor/2026100812/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 26,
+      "four_step": 78,
+      "first_step": 75,
+      "wrong_deposits": 606,
+      "consumed": [
+        392,
+        388
+      ],
+      "remaining": [
+        583,
+        581
+      ],
+      "bank": [
+        49,
+        55
+      ]
+    },
+    "tensor/2026100812/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 136,
+      "four_step": 197,
+      "first_step": 143,
+      "wrong_deposits": 159,
+      "consumed": [
+        202,
+        201
+      ],
+      "remaining": [
+        49,
+        54
+      ],
+      "bank": [
+        5,
+        1
+      ]
+    },
+    "tensor/2026100812/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 61,
+      "four_step": 133,
+      "first_step": 86,
+      "wrong_deposits": 655,
+      "consumed": [
+        588,
+        604
+      ],
+      "remaining": [
+        405,
+        383
+      ],
+      "bank": [
+        31,
+        37
+      ]
+    },
+    "tensor/2026100812/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 120,
+      "four_step": 201,
+      "first_step": 127,
+      "wrong_deposits": 172,
+      "consumed": [
+        206,
+        205
+      ],
+      "remaining": [
+        45,
+        49
+      ],
+      "bank": [
+        5,
+        2
+      ]
+    },
+    "tensor/2026100812/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 97,
+      "four_step": 157,
+      "first_step": 123,
+      "wrong_deposits": 529,
+      "consumed": [
+        660,
+        660
+      ],
+      "remaining": [
+        339,
+        335
+      ],
+      "bank": [
+        25,
+        29
+      ]
+    },
+    "plain/2026100812/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 48,
+      "four_step": 115,
+      "first_step": 93,
+      "wrong_deposits": 183,
+      "consumed": [
+        129,
+        137
+      ],
+      "remaining": [
+        107,
+        96
+      ],
+      "bank": [
+        20,
+        23
+      ]
+    },
+    "plain/2026100812/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 663,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "plain/2026100812/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "plain/2026100812/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 653,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "plain/2026100812/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 66,
+      "four_step": 126,
+      "first_step": 105,
+      "wrong_deposits": 186,
+      "consumed": [
+        140,
+        147
+      ],
+      "remaining": [
+        99,
+        89
+      ],
+      "bank": [
+        17,
+        20
+      ]
+    },
+    "plain/2026100812/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 14,
+      "wrong_deposits": 718,
+      "consumed": [
+        100,
+        80
+      ],
+      "remaining": [
+        890,
+        882
+      ],
+      "bank": [
+        34,
+        62
+      ]
+    },
+    "plain/2026100812/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 129,
+      "first_step": 99,
+      "wrong_deposits": 187,
+      "consumed": [
+        150,
+        154
+      ],
+      "remaining": [
+        90,
+        85
+      ],
+      "bank": [
+        16,
+        17
+      ]
+    },
+    "plain/2026100812/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 14,
+      "first_step": 25,
+      "wrong_deposits": 649,
+      "consumed": [
+        140,
+        100
+      ],
+      "remaining": [
+        845,
+        836
+      ],
+      "bank": [
+        39,
+        88
+      ]
+    },
+    "plain/2026100812/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 102,
+      "four_step": 164,
+      "first_step": 132,
+      "wrong_deposits": 174,
+      "consumed": [
+        173,
+        180
+      ],
+      "remaining": [
+        74,
+        71
+      ],
+      "bank": [
+        9,
+        5
+      ]
+    },
+    "plain/2026100812/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 11,
+      "four_step": 43,
+      "first_step": 41,
+      "wrong_deposits": 725,
+      "consumed": [
+        264,
+        256
+      ],
+      "remaining": [
+        707,
+        700
+      ],
+      "bank": [
+        53,
+        68
+      ]
+    },
+    "plain/2026100812/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 90,
+      "four_step": 160,
+      "first_step": 121,
+      "wrong_deposits": 191,
+      "consumed": [
+        173,
+        177
+      ],
+      "remaining": [
+        73,
+        70
+      ],
+      "bank": [
+        10,
+        9
+      ]
+    },
+    "plain/2026100812/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 19,
+      "four_step": 62,
+      "first_step": 67,
+      "wrong_deposits": 654,
+      "consumed": [
+        340,
+        332
+      ],
+      "remaining": [
+        638,
+        633
+      ],
+      "bank": [
+        46,
+        59
+      ]
+    },
+    "plain/2026100812/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 121,
+      "four_step": 178,
+      "first_step": 128,
+      "wrong_deposits": 196,
+      "consumed": [
+        183,
+        182
+      ],
+      "remaining": [
+        71,
+        73
+      ],
+      "bank": [
+        2,
+        1
+      ]
+    },
+    "plain/2026100812/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 62,
+      "four_step": 149,
+      "first_step": 87,
+      "wrong_deposits": 678,
+      "consumed": [
+        640,
+        648
+      ],
+      "remaining": [
+        367,
+        346
+      ],
+      "bank": [
+        17,
+        30
+      ]
+    },
+    "plain/2026100812/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 111,
+      "four_step": 193,
+      "first_step": 117,
+      "wrong_deposits": 196,
+      "consumed": [
+        197,
+        195
+      ],
+      "remaining": [
+        56,
+        60
+      ],
+      "bank": [
+        3,
+        1
+      ]
+    },
+    "plain/2026100812/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 91,
+      "four_step": 160,
+      "first_step": 115,
+      "wrong_deposits": 600,
+      "consumed": [
+        660,
+        656
+      ],
+      "remaining": [
+        348,
+        342
+      ],
+      "bank": [
+        16,
+        26
+      ]
+    },
+    "tensor/2026100813/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 47,
+      "four_step": 113,
+      "first_step": 91,
+      "wrong_deposits": 185,
+      "consumed": [
+        127,
+        135
+      ],
+      "remaining": [
+        109,
+        97
+      ],
+      "bank": [
+        20,
+        24
+      ]
+    },
+    "tensor/2026100813/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 664,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "tensor/2026100813/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "tensor/2026100813/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 651,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "tensor/2026100813/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 127,
+      "first_step": 104,
+      "wrong_deposits": 182,
+      "consumed": [
+        141,
+        150
+      ],
+      "remaining": [
+        99,
+        86
+      ],
+      "bank": [
+        16,
+        20
+      ]
+    },
+    "tensor/2026100813/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 13,
+      "wrong_deposits": 706,
+      "consumed": [
+        92,
+        84
+      ],
+      "remaining": [
+        896,
+        874
+      ],
+      "bank": [
+        36,
+        66
+      ]
+    },
+    "tensor/2026100813/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 129,
+      "first_step": 99,
+      "wrong_deposits": 185,
+      "consumed": [
+        150,
+        154
+      ],
+      "remaining": [
+        89,
+        86
+      ],
+      "bank": [
+        17,
+        16
+      ]
+    },
+    "tensor/2026100813/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 12,
+      "first_step": 22,
+      "wrong_deposits": 645,
+      "consumed": [
+        120,
+        84
+      ],
+      "remaining": [
+        871,
+        851
+      ],
+      "bank": [
+        33,
+        89
+      ]
+    },
+    "tensor/2026100813/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 108,
+      "four_step": 167,
+      "first_step": 132,
+      "wrong_deposits": 175,
+      "consumed": [
+        175,
+        184
+      ],
+      "remaining": [
+        72,
+        65
+      ],
+      "bank": [
+        9,
+        7
+      ]
+    },
+    "tensor/2026100813/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 15,
+      "four_step": 53,
+      "first_step": 52,
+      "wrong_deposits": 670,
+      "consumed": [
+        284,
+        328
+      ],
+      "remaining": [
+        679,
+        639
+      ],
+      "bank": [
+        61,
+        57
+      ]
+    },
+    "tensor/2026100813/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 98,
+      "four_step": 170,
+      "first_step": 126,
+      "wrong_deposits": 183,
+      "consumed": [
+        180,
+        182
+      ],
+      "remaining": [
+        65,
+        65
+      ],
+      "bank": [
+        11,
+        9
+      ]
+    },
+    "tensor/2026100813/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 27,
+      "four_step": 80,
+      "first_step": 79,
+      "wrong_deposits": 596,
+      "consumed": [
+        392,
+        400
+      ],
+      "remaining": [
+        585,
+        565
+      ],
+      "bank": [
+        47,
+        59
+      ]
+    },
+    "tensor/2026100813/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 129,
+      "four_step": 188,
+      "first_step": 135,
+      "wrong_deposits": 181,
+      "consumed": [
+        193,
+        190
+      ],
+      "remaining": [
+        58,
+        66
+      ],
+      "bank": [
+        5,
+        0
+      ]
+    },
+    "tensor/2026100813/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 72,
+      "four_step": 152,
+      "first_step": 98,
+      "wrong_deposits": 618,
+      "consumed": [
+        656,
+        668
+      ],
+      "remaining": [
+        343,
+        326
+      ],
+      "bank": [
+        25,
+        30
+      ]
+    },
+    "tensor/2026100813/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 117,
+      "four_step": 200,
+      "first_step": 123,
+      "wrong_deposits": 181,
+      "consumed": [
+        205,
+        203
+      ],
+      "remaining": [
+        45,
+        52
+      ],
+      "bank": [
+        6,
+        1
+      ]
+    },
+    "tensor/2026100813/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 100,
+      "four_step": 168,
+      "first_step": 124,
+      "wrong_deposits": 536,
+      "consumed": [
+        688,
+        692
+      ],
+      "remaining": [
+        324,
+        316
+      ],
+      "bank": [
+        12,
+        16
+      ]
+    },
+    "plain/2026100813/0/2026100891/2": {
+      "cases": 256,
+      "two_step": 47,
+      "four_step": 113,
+      "first_step": 91,
+      "wrong_deposits": 185,
+      "consumed": [
+        127,
+        135
+      ],
+      "remaining": [
+        109,
+        97
+      ],
+      "bank": [
+        20,
+        24
+      ]
+    },
+    "plain/2026100813/0/2026100891/8": {
+      "cases": 256,
+      "two_step": 0,
+      "four_step": 2,
+      "first_step": 7,
+      "wrong_deposits": 663,
+      "consumed": [
+        60,
+        52
+      ],
+      "remaining": [
+        925,
+        904
+      ],
+      "bank": [
+        39,
+        68
+      ]
+    },
+    "plain/2026100813/0/2026100892/2": {
+      "cases": 256,
+      "two_step": 45,
+      "four_step": 119,
+      "first_step": 95,
+      "wrong_deposits": 175,
+      "consumed": [
+        142,
+        143
+      ],
+      "remaining": [
+        95,
+        101
+      ],
+      "bank": [
+        19,
+        12
+      ]
+    },
+    "plain/2026100813/0/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 10,
+      "wrong_deposits": 651,
+      "consumed": [
+        60,
+        56
+      ],
+      "remaining": [
+        910,
+        897
+      ],
+      "bank": [
+        54,
+        71
+      ]
+    },
+    "plain/2026100813/100/2026100891/2": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 127,
+      "first_step": 104,
+      "wrong_deposits": 186,
+      "consumed": [
+        141,
+        148
+      ],
+      "remaining": [
+        97,
+        88
+      ],
+      "bank": [
+        18,
+        20
+      ]
+    },
+    "plain/2026100813/100/2026100891/8": {
+      "cases": 256,
+      "two_step": 3,
+      "four_step": 9,
+      "first_step": 13,
+      "wrong_deposits": 718,
+      "consumed": [
+        92,
+        80
+      ],
+      "remaining": [
+        898,
+        878
+      ],
+      "bank": [
+        34,
+        66
+      ]
+    },
+    "plain/2026100813/100/2026100892/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 128,
+      "first_step": 98,
+      "wrong_deposits": 188,
+      "consumed": [
+        149,
+        153
+      ],
+      "remaining": [
+        90,
+        86
+      ],
+      "bank": [
+        17,
+        17
+      ]
+    },
+    "plain/2026100813/100/2026100892/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 11,
+      "first_step": 21,
+      "wrong_deposits": 659,
+      "consumed": [
+        112,
+        80
+      ],
+      "remaining": [
+        876,
+        857
+      ],
+      "bank": [
+        36,
+        87
+      ]
+    },
+    "plain/2026100813/300/2026100891/2": {
+      "cases": 256,
+      "two_step": 106,
+      "four_step": 167,
+      "first_step": 132,
+      "wrong_deposits": 176,
+      "consumed": [
+        175,
+        183
+      ],
+      "remaining": [
+        73,
+        67
+      ],
+      "bank": [
+        8,
+        6
+      ]
+    },
+    "plain/2026100813/300/2026100891/8": {
+      "cases": 256,
+      "two_step": 12,
+      "four_step": 51,
+      "first_step": 47,
+      "wrong_deposits": 706,
+      "consumed": [
+        284,
+        296
+      ],
+      "remaining": [
+        692,
+        666
+      ],
+      "bank": [
+        48,
+        62
+      ]
+    },
+    "plain/2026100813/300/2026100892/2": {
+      "cases": 256,
+      "two_step": 92,
+      "four_step": 163,
+      "first_step": 122,
+      "wrong_deposits": 193,
+      "consumed": [
+        173,
+        180
+      ],
+      "remaining": [
+        73,
+        68
+      ],
+      "bank": [
+        10,
+        8
+      ]
+    },
+    "plain/2026100813/300/2026100892/8": {
+      "cases": 256,
+      "two_step": 24,
+      "four_step": 73,
+      "first_step": 71,
+      "wrong_deposits": 641,
+      "consumed": [
+        352,
+        368
+      ],
+      "remaining": [
+        630,
+        602
+      ],
+      "bank": [
+        42,
+        54
+      ]
+    },
+    "plain/2026100813/600/2026100891/2": {
+      "cases": 256,
+      "two_step": 120,
+      "four_step": 179,
+      "first_step": 126,
+      "wrong_deposits": 200,
+      "consumed": [
+        183,
+        181
+      ],
+      "remaining": [
+        72,
+        74
+      ],
+      "bank": [
+        1,
+        1
+      ]
+    },
+    "plain/2026100813/600/2026100891/8": {
+      "cases": 256,
+      "two_step": 70,
+      "four_step": 161,
+      "first_step": 95,
+      "wrong_deposits": 655,
+      "consumed": [
+        692,
+        696
+      ],
+      "remaining": [
+        317,
+        305
+      ],
+      "bank": [
+        15,
+        23
+      ]
+    },
+    "plain/2026100813/600/2026100892/2": {
+      "cases": 256,
+      "two_step": 114,
+      "four_step": 194,
+      "first_step": 119,
+      "wrong_deposits": 194,
+      "consumed": [
+        196,
+        197
+      ],
+      "remaining": [
+        58,
+        58
+      ],
+      "bank": [
+        2,
+        1
+      ]
+    },
+    "plain/2026100813/600/2026100892/8": {
+      "cases": 256,
+      "two_step": 97,
+      "four_step": 168,
+      "first_step": 120,
+      "wrong_deposits": 593,
+      "consumed": [
+        684,
+        692
+      ],
+      "remaining": [
+        331,
+        317
+      ],
+      "bank": [
+        9,
+        15
+      ]
+    }
+  },
+  "evidence_sha256": {
+    "identity.txt": "182303ba56c6ea7f7a19bfa33249da715587eab2b70d68630b6b26fa11f48cbc",
+    "completed.txt": "24e73764acfdd1c0f5648a980e4af1060ca93c8d72c17675027b212f07e040be",
+    "trials.tsv": "09bb65171ac2e565097cdaaf0a4ec9bdf2910751768cbbc16d0102dc7ef2fa3a",
+    "updates.tsv": "9151ecf252c2990a0de8aca42a9636de96b982db78642a950f23597964e1c32f"
+  },
+  "source": "8121c321791bd18ca87953a6a02dc4947b59dd15",
+  "tree": "c00825fba933ca88db3138598957926e60eb9cb3",
+  "prior_failed_source": "4fc06837e29c2d1e3c02c10dcd5314ba2d297dbe",
+  "source_qualification": {
+    "source": "8121c321791bd18ca87953a6a02dc4947b59dd15",
+    "tree": "c00825fba933ca88db3138598957926e60eb9cb3",
+    "artifacts": {
+      "botsclustersmc.jar": "1e9c88cd12587f9a6944acc90169e819bd17db493e1be389178e3db4ee9cef36",
+      "training.jar": "aae1fb27130b8c520dfc89f0de1cff7eab3c18febd95c043bfdef989e700f826"
+    },
+    "files": {
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyRoom.java": "7be0b36a30afbab0b0eb36eff49c885cdb998402ac71590410508d23e7f8326c",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyScenario.java": "057b9f7ab07690a6b46ae57f7082e26a0e0b203988a709897a127065ffb0cd29",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyRoomTest.java": "38aa2b2834557ed1a4e2c37c1a1da369fa6328b7b4493cf24576fc454e71d042",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyEpisode.java": "d67bd9c102ba89e4962b4d2263df40092ede5ab648dbf8da16c8eaf2d6f518dc",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyStudy.java": "df04bb8fb6f7536f07afff29638403f2032b3e46f57d38c0baf3baf4126614b4",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/TensorInputs.java": "1140be93ac9f54a2ec660c7ecd751581bb6e9b417425fae4d8bb7b184a4af3d3",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/TensorInputsTest.java": "7137ff08304628ebd18b305dcb3f18b3256c3856345a727379cd0325a0e8413f",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/DemandBindingStudy.java": "c113a26381086bdc516059a5c4df977fce4720a7ed0fdde096d2d3a4417572f9",
+      "tests/supply_evidence.py": "0aae92b9159d0580ea571a3beb652e92a4ec9eb452a509346ec026bf69e2457d"
+    },
+    "source_suite_exit": 0
+  },
+  "budget": {
+    "attempts_per_arm": 600,
+    "offered_per_arm": 153600,
+    "total_offered": 921600,
+    "accepted_by_arm": {
+      "tensor/2026100811": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "tensor/2026100812": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "tensor/2026100813": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "plain/2026100811": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "plain/2026100812": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "plain/2026100813": {
+        "updates": 600,
+        "samples": 153600
+      }
+    }
+  },
+  "verification": {
+    "local_full_source_exit": 0,
+    "tensor_checks": 145038,
+    "wiring_checks": 720,
+    "supply_mechanics_checks": 1351423,
+    "python_normal": 58,
+    "python_optimized": 58,
+    "normal_and_optimized_reports_byte_identical": true,
+    "matrix_mutations": [
+      {
+        "mutation": "missing-final-case",
+        "detected": true,
+        "reason": "incomplete evaluation matrix"
+      },
+      {
+        "mutation": "duplicate-case",
+        "detected": true,
+        "reason": "duplicate trial"
+      },
+      {
+        "mutation": "forged-stock",
+        "detected": true,
+        "reason": "forged consumed"
+      },
+      {
+        "mutation": "changed-frozen-hash",
+        "detected": true,
+        "reason": "changed frozen policy inside evaluation"
+      },
+      {
+        "mutation": "missing-update",
+        "detected": true,
+        "reason": "noncontiguous updates"
+      },
+      {
+        "mutation": "wrong-profile",
+        "detected": true,
+        "reason": "synthetic identity"
+      }
+    ],
+    "tensor_mutations": {
+      "production_source_sha256": "1140be93ac9f54a2ec660c7ecd751581bb6e9b417425fae4d8bb7b184a4af3d3",
+      "results": [
+        {
+          "variant": "positive",
+          "compile_exit": 0,
+          "test_exit": 0,
+          "assertion": null,
+          "source_sha256": "1140be93ac9f54a2ec660c7ecd751581bb6e9b417425fae4d8bb7b184a4af3d3",
+          "log_sha256": "dc418bbc3a515e74985e1a1b70da1c6491c703fe5baefa42ba4f482b316c053a"
+        },
+        {
+          "variant": "no-products",
+          "compile_exit": 0,
+          "test_exit": 1,
+          "assertion": "missing or selected Cartesian pair",
+          "source_sha256": "c03785f994036124366f2293c57ef5548e6904e76a8ccf2a5287e33d18f78486",
+          "log_sha256": "1453818b7eafb17972303660efa3f3f5e129b1ccdc973ff4b4ce7d030ceb0820"
+        },
+        {
+          "variant": "equal-pairs-only",
+          "compile_exit": 0,
+          "test_exit": 1,
+          "assertion": "missing or selected Cartesian pair",
+          "source_sha256": "16a9797ad1a24b56f2236a8eab9f060baf416cb281ebf0ec6f9a3eb85baadc9e",
+          "log_sha256": "1453818b7eafb17972303660efa3f3f5e129b1ccdc973ff4b4ce7d030ceb0820"
+        },
+        {
+          "variant": "alias-source",
+          "compile_exit": 0,
+          "test_exit": 1,
+          "assertion": "binding mutated source",
+          "source_sha256": "bcf524b1a4f9d9416801f16cc17b42ef52d824c0f75b01e53612660e3c89ca23",
+          "log_sha256": "9f5293d8d20f2d90b0650e9e4794208986c9ef2334c652d2c292b7cedb0b655d"
+        },
+        {
+          "variant": "overwrite-bias",
+          "compile_exit": 0,
+          "test_exit": 1,
+          "assertion": "unrelated observation changed",
+          "source_sha256": "8c80c07f6ff0bb87db8ebeb5afdf2a3952b68e1abd3ad277411c2246a0d05109",
+          "log_sha256": "b04cfc5327cf7a68304a04bdefd0a0539888969c0971964e827dc04904ca48eb"
+        },
+        {
+          "variant": "reserved-collision",
+          "compile_exit": 0,
+          "test_exit": 1,
+          "assertion": "invalid tensor input accepted",
+          "source_sha256": "da1be1f6a3a39726ebb53b582ce86da2bf4c905d86177377053d9e50151e0f3a",
+          "log_sha256": "1d913d7447cb5b9e31dc4f709fdf601029f5bbcfcd1c92d16ca84b514e50b259"
+        }
+      ]
+    },
+    "minecraft": false,
+    "deployment": false,
+    "existing_academy_or_service_access": false
+  },
+  "qualification_sha256": {
+    "binding-frozen-source.json": "dc84849b500b5cb94e3e4f6ad2b55f3816ae6b88deae91f40866b3325430158c",
+    "binding-source-frozen.log": "d2860dd41aebc8d7a378af7b0658a41f9377c427599aa746eaa0e8c1cc58125e",
+    "binding-python.log": "b2e7d151cc54134a753e7bd9dd26a64268d598592e11b525c09286ac924f3a99",
+    "binding-python-optimized.log": "461c0811c983071c17199f17893a284d6324ecbf43ba338a3f3f8a5b10b3f6dd",
+    "binding-contract-tests.log": "dc418bbc3a515e74985e1a1b70da1c6491c703fe5baefa42ba4f482b316c053a",
+    "binding-evidence-tests.log": "eeeed3cf8ebb476a9f92871b7c9ded67744d122b50b34e6fdc17291c3af38d3f",
+    "binding-wiring.log": "bd5334b9bd277869164f79da76100b812884a7457d9c102e0253baf873671914",
+    "binding-wiring/BindingWiringCheck.java": "45ae28373624d0d86e2b72456db251b964eb0451d6e0e2ef143365c9c86d6dfa",
+    "binding-results.json": "d843977909510cfaef82e4f9e9de7791ba46f4d07bbc9a79230c52f6026d7575",
+    "binding-results-optimized.json": "d843977909510cfaef82e4f9e9de7791ba46f4d07bbc9a79230c52f6026d7575",
+    "binding-independent-replay.log": "5ac0a58565ace93f330da0763276a1136d640b94e6c450b3fba3326640d009ca",
+    "binding-independent-replay-optimized.log": "5ac0a58565ace93f330da0763276a1136d640b94e6c450b3fba3326640d009ca",
+    "binding-evidence-mutations.json": "ab3aa7190ec4798b634e180ab518cc6c6acdf083526390c95c4109eb63c481dc",
+    "tensor-mutations/results.json": "e5c6439d3010237c6384fba5975b3259c07b245bbde253caecc3ec230c2461b2",
+    "baseline-replay-after-profile.json": "c6efbb0755f4f84a463003a68966a5d974e3856174044c9c8e8620a2037cf552",
+    "ci-apt-download-bounds": "16323404e15287c7adfcd3db8e435aeaed5782aaf17147d6ae9e6793956d5ca7",
+    "ci-apt-config-parse.log": "9764a32642f0fbe0d7c77631993fc0905cc3238cf4373516a0075bdb1eba7347",
+    "final-evidence-tests.log": "a405117249213e7e6b59689e3aa219e7c92ad3d21758c3f8983051ceda0f8b50",
+    "final-evidence-tests-optimized.log": "480cdd19549cf9b24a431895103f6e36a7427d5b681f603b2b25a7685250def6"
+  },
+  "ci_before_followup": {
+    "first_study": {
+      "source": "4fc06837e29c2d1e3c02c10dcd5314ba2d297dbe",
+      "run": 37669203959,
+      "conclusion": "cancelled",
+      "linux_source": "success",
+      "windows_source": "success",
+      "browser_fixture": "not completed; cancellation during native dependency preparation"
+    },
+    "tensor_study": {
+      "source": "8121c321791bd18ca87953a6a02dc4947b59dd15",
+      "run": 37671423996,
+      "conclusion": "cancelled",
+      "linux_source": "success",
+      "windows_source": "success",
+      "browser_fixture": "not confirmed successful"
+    },
+    "optional_minecraft_jobs": "skipped, not passed"
+  },
+  "ci_followup": {
+    "independent_tests_before_browser_install": true,
+    "normal_and_optimized_tests": 58,
+    "retained_failure_exit": true,
+    "same_browser_version": "1.57.0",
+    "ephemeral_runner_apt_timeout_seconds": 15,
+    "ephemeral_runner_apt_retries": 1,
+    "deployment_host_settings_modified": false,
+    "final_remote_ci": "not yet observed"
+  }
+}

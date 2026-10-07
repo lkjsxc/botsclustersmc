@@ -69,22 +69,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Independent evidence tests without browser dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p 'test_*.py' 2>&1 | tee evidence-tests.log
+          python -O -m unittest discover -s tests -p 'test_*.py' 2>&1 | tee evidence-tests-optimized.log
+      - name: Bound disposable-runner dependency transport waits
+        shell: bash
+        run: |
+          # Only this ephemeral CI runner; no deployment host or trust settings change.
+          printf '%s\n' 'Acquire::http::Timeout "15";' 'Acquire::https::Timeout "15";' 'Acquire::Retries "1";' > "$RUNNER_TEMP/bcmc-apt-download-bounds"
+          sudo install -m 0644 "$RUNNER_TEMP/bcmc-apt-download-bounds" /etc/apt/apt.conf.d/99bcmc-ci-download-bounds
       - name: Install browser test client
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Offline synthetic observatory regression
-        run: |
-          python -m unittest discover -s tests -p test_lifecycle_summary.py
-          python -m unittest discover -s tests -p test_holdout.py
-          python -m unittest discover -s tests -p test_retention_ci.py
-          python -m unittest discover -s tests -p test_supply_evidence.py
-          python tests/crafting_monitor.py
+      - name: Offline synthetic observatory browser regression
+        run: python tests/crafting_monitor.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: observatory-evidence
-          path: .build/evidence/crafting-monitor
+          path: |
+            .build/evidence/crafting-monitor
+            evidence-tests.log
+            evidence-tests-optimized.log
           retention-days: 14
   live:
     needs: source

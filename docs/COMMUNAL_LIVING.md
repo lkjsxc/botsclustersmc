@@ -19,6 +19,15 @@ therefore a measured insufficient mechanism under this exact implementation and
 budget, not an established communal learner. Retain this baseline when testing
 credit assignment or better demand conditioning; do not just increase population.
 
+A [new full demand-inventory tensor-product comparison](verification/20261008-demand-binding-results.md)
+then used fresh paired seeds, unchanged common rewards and another complete fixed
+budget. Candidate two-member completion was 45.70%-53.13%, only 1.17-5.86 points
+above its own plain control; eight-member completion was 20.31%-39.06%. All 24,576
+cases completed and every gate failed again. These are not comparisons across
+the two studies' different seeds. Generic relational input alone has not supplied
+a reliable cooperative policy under either tested budget. Preserve both baselines
+when separating credit assignment, temporal return and policy conditioning.
+
 ## Needs before occupations
 
 The preferred next design is a public needs field: a settlement exposes what it
