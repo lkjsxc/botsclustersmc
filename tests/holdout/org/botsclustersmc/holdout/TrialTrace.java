@@ -22,6 +22,7 @@ final class TrialTrace {
     private CraftingTrace crafting;
     private TableCraftingTrace tableCrafting;
     private HarvestTrace harvest;
+    private ToolUseTrace toolUse;
     void observe(Npc npc,Npc.Applied previous,Frame next,Policy policy) {
         int task=npc.goal.task().ordinal();
         if(CraftingTrace.applies(task)) {
@@ -32,6 +33,11 @@ final class TrialTrace {
         if(task==10) {
             if(tableCrafting==null)tableCrafting=new TableCraftingTrace();
             tableCrafting.observe(policy,previous.frame().observation(),previous.frame().mask(),
+                next.observation(),previous.result().actions(),previous.result().logProbability());
+        }
+        if(task==12) {
+            if(toolUse==null)toolUse=new ToolUseTrace();
+            toolUse.observe(policy,previous.frame().observation(),previous.frame().mask(),
                 next.observation(),previous.result().actions(),previous.result().logProbability());
         }
         observations++;int[] action=previous.result().actions();
@@ -81,6 +87,7 @@ final class TrialTrace {
             npc.pocket.countKind(3),firstClicks)
             .replaceFirst("}$",(crafting==null?"":",\"crafting\":"+crafting.json())
                 +(tableCrafting==null?"":",\"table_crafting\":"+tableCrafting.json())
-                +(harvest==null?"":",\"harvest\":"+harvest.json())+"}");
+                +(harvest==null?"":",\"harvest\":"+harvest.json())
+                +(toolUse==null?"":",\"tool_use\":"+toolUse.json())+"}");
     }
 }

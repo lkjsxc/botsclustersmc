@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse, hashlib, json, math, os, shutil, socket, subprocess, zipfile
 from pathlib import Path
 import acceptance
+import tool_use
 
 ROOT = Path(__file__).resolve().parents[1]
 RESET_INTERVENTIONS = ('none', 'workbench-open', 'pickaxe-grid',
@@ -300,6 +301,10 @@ def verify_report(args, result):
             integer(detail.get(key), 2**63-1, key)
         for key in ('mean_abs_yaw_error', 'mean_abs_pitch_error'):
             number(detail.get(key), 180, key)
+        if task == 12:
+            tool_use.verify(detail.get('tool_use'), observations)
+        else:
+            require('tool_use' not in detail, 'Tool-use diagnostics belong only to task 12.')
         if task == 10:
             verify_table_trace(detail.get('table_crafting'), observations)
         else:

@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import holdout
+import tool_use
 
 
 MISSING_CONDITIONS = tuple('pickaxe-missing-' + cell for cell in
@@ -463,10 +464,102 @@ class OptimizationTests(unittest.TestCase):
             with self.subTest(flags=flags, environment=optimize):
                 result = subprocess.run([sys.executable, *flags, '-m', 'unittest', '-q',
                     'test_holdout.ResetDiagnosticTests', 'test_holdout.TableTraceTests', 'test_holdout.CraftingTraceTests',
-                    'test_holdout.ReportIntegrityTests'],
+                    'test_holdout.ReportIntegrityTests', 'test_holdout.ToolUseTraceTests'],
                     cwd=Path(__file__).parent, env=dict(os.environ, PYTHONOPTIMIZE=optimize),
                     text=True, capture_output=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class ToolUseTraceTests(unittest.TestCase):
+    def trace(self):
+        return {
+            'scope': tool_use.SCOPE, 'transitions': 4, 'initial_state': 1, 'final_state': 1,
+            'state_visits': [0, 2, 0, 2],
+            'state_transitions': [0,0,0,0, 0,1,0,1, 0,0,0,0, 0,1,0,1],
+            'visible_pick_location_states': [4,0,0,0,0], 'closed_hotbar_pick_states': 2,
+            'closed_cascade_probability_sums': [1.5,0.5,0.2,0.1],
+            'closed_cascade_selections': [1,1,1,0],
+            'open_gui_probability_sums': [0.2,0.3,0.4,0.1,0,1.0],
+            'open_gui_selections': [1,0,0,0,0,1],
+            'open_selected_pick_close_probability_sum': 1.0,
+            'open_selected_pick_close_selections': 1,
+        }
+
+    def test_valid_and_required(self):
+        original = self.trace()
+        self.assertEqual(tool_use.verify(original, 4), original)
+        for key in original:
+            changed = self.trace(); del changed[key]
+            with self.subTest(missing=key), self.assertRaises(AssertionError):
+                tool_use.verify(changed, 4)
+        for bad in (None, True, [], {}, 4):
+            with self.subTest(trace=bad), self.assertRaises(AssertionError):
+                tool_use.verify(bad, 4)
+        for bad in (0, -1, True, 4.0, 2**31):
+            with self.subTest(observations=bad), self.assertRaises(AssertionError):
+                tool_use.verify(original, bad)
+
+    def test_scalar_corruption(self):
+        for key in ('transitions', 'initial_state', 'final_state',
+                    'closed_hotbar_pick_states', 'open_selected_pick_close_selections'):
+            for bad in (-1, '1', True, 0.5, 2**63, None):
+                changed = self.trace(); changed[key] = bad
+                with self.subTest(key=key, bad=bad), self.assertRaises(AssertionError):
+                    tool_use.verify(changed, 4)
+        for bad in (-1, True, '1', None, float('nan'), float('inf'), 10**400, 1.1):
+            changed = self.trace(); changed['open_selected_pick_close_probability_sum'] = bad
+            with self.subTest(bad=bad), self.assertRaises(AssertionError):
+                tool_use.verify(changed, 4)
+
+    def test_vector_corruption(self):
+        for key, values in self.trace().items():
+            if not isinstance(values, list):
+                continue
+            for bad in ([], values[:-1], values+[0], True, None):
+                changed = self.trace(); changed[key] = bad
+                with self.subTest(key=key, bad=bad), self.assertRaises(AssertionError):
+                    tool_use.verify(changed, 4)
+            for bad in (-1, '1', True, None, float('nan'), float('inf'), 10**400, 5):
+                changed = self.trace(); changed[key][0] = bad
+                with self.subTest(key=key, cell=bad), self.assertRaises(AssertionError):
+                    tool_use.verify(changed, 4)
+
+    def test_flow_and_nested_mass(self):
+        changes = (
+            ('initial_state', 0), ('final_state', 0), ('closed_hotbar_pick_states', 1),
+            ('state_visits', [0,1,0,2]),
+            ('state_transitions', [0,0,0,0, 0,2,0,0, 0,0,0,0, 0,0,0,2]),
+            ('visible_pick_location_states', [4,0,0,0,1]),
+            ('closed_cascade_probability_sums', [1.5,0.5,0.2,0.21]),
+            ('closed_cascade_selections', [1,1,1,2]),
+            ('open_gui_probability_sums', [0.1,0.3,0.4,0.1,0.1,1.0]),
+            ('open_gui_selections', [1,0,0,0,1,0]),
+        )
+        for key, value in changes:
+            changed = self.trace(); changed[key] = value
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                tool_use.verify(changed, 4)
+
+    def report(self):
+        args, r = ResetDiagnosticTests().fixture('none')
+        args.tasks = [12]
+        r['tasks'] = [{'task': 12, 'passed': 0, 'cases': 1}]
+        t = r['trials'][0]; t['task'] = 12; t['seed'] = 12000053
+        t['diagnostics'].pop('crafting')
+        t['diagnostics']['observations'] = 4
+        t['diagnostics']['tool_use'] = self.trace()
+        return args, r
+
+    def test_report_integration(self):
+        args, r = self.report()
+        holdout.verify_report(args, r)
+        r['trials'][0]['diagnostics'].pop('tool_use')
+        with self.assertRaises(AssertionError):
+            holdout.verify_report(args, r)
+        args, r = ResetDiagnosticTests().fixture('none')
+        r['trials'][0]['diagnostics']['tool_use'] = self.trace()
+        with self.assertRaises(AssertionError):
+            holdout.verify_report(args, r)
 
 
 if __name__=='__main__':

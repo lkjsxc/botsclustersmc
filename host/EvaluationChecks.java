@@ -55,6 +55,7 @@ final class EvaluationChecks {
                 require(Task.at(tasks.get(i)).label().equals(summary.get("label").getAsString()),"Task label differs");
             }
             EvaluationHarvest.enrich(report);
+            EvaluationToolUse.enrich(report);
             return report;
         }catch(JsonParseException|IllegalStateException|UnsupportedOperationException|NullPointerException|ArithmeticException e){throw new IOException("Malformed evaluation report",e);}
     }
