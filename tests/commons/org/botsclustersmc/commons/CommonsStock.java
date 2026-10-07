@@ -11,8 +11,14 @@ public record CommonsStock(int planks,int sticks,int picks) {
     public CommonsStock plus(CommonsStock other) {
         return new CommonsStock(Math.addExact(planks,other.planks),Math.addExact(sticks,other.sticks),Math.addExact(picks,other.picks));
     }
+    public CommonsStock minus(CommonsStock other) {
+        return new CommonsStock(planks-other.planks,sticks-other.sticks,picks-other.picks);
+    }
+    public boolean contains(CommonsStock other) {
+        return planks>=other.planks&&sticks>=other.sticks&&picks>=other.picks;
+    }
     public static CommonsStock carried(org.botsclustersmc.core.Pocket pocket) {
-        for(int kind=1;kind<20;kind++)if(kind!=3&&kind!=4&&kind!=6&&pocket.countKind(kind)!=0)
+        for(int kind=0;kind<20;kind++)if(kind!=3&&kind!=4&&kind!=6&&pocket.countKind(kind)!=0)
             throw new IllegalArgumentException("Unexpected carried resource in closed commons");
         if(pocket.countKind(3)!=pocket.count("OAK_PLANKS"))throw new IllegalArgumentException("Unexpected plank material");
         return new CommonsStock(pocket.count("OAK_PLANKS"),pocket.count("STICK"),pocket.count("WOODEN_PICKAXE"));
@@ -31,9 +37,9 @@ public record CommonsStock(int planks,int sticks,int picks) {
     }
     /** Start with exactly three planks/two sticks and immutable stations. Transfers are zero-sum;
      * two planks -> four sticks and three planks + two sticks -> one pick conserve these units. */
-    public static boolean delivered(CommonsStock total,CommonsStock banks,long craftedPicks) {
-        if(craftedPicks<0||craftedPicks>1||total.picks()>craftedPicks||total.woodUnits()>INITIAL.woodUnits()
-                ||banks.planks()>total.planks()||banks.sticks()>total.sticks()||banks.picks()>total.picks())
+    public static boolean delivered(CommonsStock total,CommonsStock banks,long craftedSticks,long craftedPicks) {
+        CommonsLedger.loss(INITIAL,total,craftedSticks,craftedPicks);
+        if(!total.contains(banks))
             throw new IllegalArgumentException("Impossible commons resource evidence");
         return craftedPicks==1&&banks.picks()==1&&total.equals(new CommonsStock(0,0,1));
     }
