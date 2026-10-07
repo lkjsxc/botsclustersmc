@@ -21,6 +21,28 @@ operations. They read the current stock at execution time; an earlier successful
 withdrawal does not reserve another copy for a second actor. Chest deposits and
 withdrawals do not create crafting or furnace-extraction credit.
 
+## Native protection is not communal stock
+
+The same `ContainerAccess` gate is used when opening chest/furnace menus, resolving
+current clicks and checking whether the simplified mining path may remove a
+container. It checks owner/loading boundaries before block state, then requires
+a placed, unlocked container without an attached native loot table before any
+inventory getter. A chest exposes only the selected block's local half.
+
+A lock added after observation makes the current transfer unavailable. The next
+observation closes the invalid external menu without discarding carried items.
+Empty-looking locked storage and deferred loot are not mineable; protection is
+checked again after the block-change callback. No code clears locks, populates
+loot or loads neighboring chunks to obtain access. Unexpected API errors are
+not swallowed as successful empty reads.
+
+This is a conservative NPC policy for native locks, not player-key matching,
+complete block-component preservation or integration with every protection plugin.
+Other block metadata and crash-atomic world/pocket saves are still unsupported.
+The status field `container_access_contract` records `owned-unlocked-no-loot-local-v1`
+for the deployed gate. It certifies neither learned cooperation nor world safety
+outside the explicitly tested mechanics.
+
 ## Items must round-trip without losing information
 
 The current core pocket represents an exact material name and a count, not all

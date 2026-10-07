@@ -12,6 +12,9 @@ Rust toolchain, native inference libraries, Python runtime, Maven or Gradle.
 Player skins, hunger, complete vanilla mechanics and persistent NPC lives are
 not implemented. There is no pretrained general-survival policy in the repository.
 
+[Communal living](docs/COMMUNAL_LIVING.md) is the long-term population-level target,
+not a current autonomous-settlement claim.
+
 [Shared resource mechanics](docs/SHARED_RESOURCES.md) recheck stale container actions
 and preserve items that the simplified pocket cannot represent without data loss.
 Named/damaged/enchanted items and mismatched stack limits are left untouched;
