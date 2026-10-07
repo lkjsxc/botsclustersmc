@@ -1,0 +1,111 @@
+{
+  "source": "d5aac3d27162944a14031b7c8439b26d402fe3d8",
+  "tree": "cfb0037bee0341228183443af1b6592ddc6b1557",
+  "parent": "5d12ad9beecf4fc96f25abb6f6e830533bf98294",
+  "mechanical_not_learned": true,
+  "initial_source_suite_exit": "unconfirmed; blocked completion poll not retried or obtained elsewhere",
+  "parent_folia_exit": 1,
+  "parent_failure": "locked CHEST exposed its inventory",
+  "candidate_folia_exit": 0,
+  "candidate_paper_exit": 0,
+  "container_checks_per_server": 42,
+  "source_proxy_checks": 8385,
+  "mutation_matrix": {
+    "production_source_sha256": "3fe13fc8076420a90bbeecf584a595a12c1091dbbd7a56d3537c721ee2da8d8f",
+    "earlier_driver_result": "Stopped at ignore-lock because its expected assertion string did not match the earlier read-order assertion. The earlier files are retained. Neither production nor test assertions were changed. The surrounding shell proceeded to Python tests; its zero status did not qualify that mutation attempt.",
+    "results": [
+      {
+        "variant": "positive",
+        "source_sha256": "3fe13fc8076420a90bbeecf584a595a12c1091dbbd7a56d3537c721ee2da8d8f",
+        "compile_exit": 0,
+        "test_exit": 0,
+        "expected_assertion": null,
+        "log_sha256": "42e87b60db90c4c3a1a5376618bf3455166ba3cef985d961757fa614b326461a"
+      },
+      {
+        "variant": "ignore-lock",
+        "source_sha256": "8f1dce742d39c88f4319f70186785561f52382ceca68e2f37c4450e1d5806dfa",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "inventory read precedes protection",
+        "log_sha256": "3bd3ed0759865015b5775dcb4ea5fae8132462854158e58c4a615831968447ea"
+      },
+      {
+        "variant": "ignore-loot",
+        "source_sha256": "78ef55a1be02e284232a7f9aff1241cc7d10b15202c6eccd5963453b502be41e",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "inventory read precedes protection",
+        "log_sha256": "3bd3ed0759865015b5775dcb4ea5fae8132462854158e58c4a615831968447ea"
+      },
+      {
+        "variant": "combined-chest",
+        "source_sha256": "be26c3d9ba3c29de82622471b9126fa94a47353a5fd051c07c4c490eb75afdb6",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "combined chest inventory must not be read",
+        "log_sha256": "d83eb78ecb7aa71132ed9f138e9146e65e2cf4222378f10c414a4321aee81019"
+      },
+      {
+        "variant": "ignore-placement",
+        "source_sha256": "4707cc832163eaa9a71b0803c7bff06c014268d257d89f99e65d1cb09a1f04eb",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "protected inventory getter called",
+        "log_sha256": "50fdd83f27b886bef00d73fbe8d032889a33b090e490ab7c494f745a75f51f21"
+      },
+      {
+        "variant": "read-before-owner",
+        "source_sha256": "ff5e5405583d346bbf54ac39abccfa43cb3fde276d5e575423ef96c315a893b5",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "foreign world read",
+        "log_sha256": "f57ecd79ae2a11d85c676e04c9802ec9ec5def23528e7c0c59edc8d518be8052"
+      },
+      {
+        "variant": "live-mining-inventory",
+        "source_sha256": "3a2e181f5fa170ce45dfc8b7ce9ee23478f9fb609158a1469f89d113bcef19ca",
+        "compile_exit": 0,
+        "test_exit": 1,
+        "expected_assertion": "combined chest inventory must not be read",
+        "log_sha256": "0b55fee1b2248c351b2a57290ee81979183ab90f1fa3a1c53bfb3c19470e0889"
+      }
+    ]
+  },
+  "python_tests": {
+    "normal": 47,
+    "optimized": 47
+  },
+  "artifacts": {
+    "botsclustersmc.jar": "1e9c88cd12587f9a6944acc90169e819bd17db493e1be389178e3db4ee9cef36",
+    "training.jar": "aae1fb27130b8c520dfc89f0de1cff7eab3c18febd95c043bfdef989e700f826"
+  },
+  "evidence_sha256": {
+    "baseline-artifacts.sha256": "8729de4cd7b3dcbc76516909a5937e0cd4749e7e1c6f1cfa271b475405cdcc0e",
+    "parent-folia-run.log": "9aebb0e7f4924188ee73e673f7cafee527dd8ef4fae267f4ee101291dfecccec",
+    "parent-folia/fixtures.log": "3a4b65dec1d7e1bbc8d51729120fac5262309c800c1ffeb5d9000f446ed17cbf",
+    "parent-folia/fixtures/plugins/BotsClustersMC/fixtures-failed.txt": "aebfa58f2d252918cac0dfee1e1a838e4fd1dd7dfb2b7e8e881ecda9e56469bb",
+    "candidate-folia-run.log": "2eff6728a5c2d1626d3d87e4b6768d7345df06827bb0ac7b26b87379427866cb",
+    "candidate-folia/fixtures.log": "2fbad88f26b43387caaaa0b7856db6aa22cda8e30edae3a2bf56f4fd9de76486",
+    "candidate-paper-run.log": "a55c9414471239888441f2386616e391141045b5dc7b6efb0303ecbfe21b6dc3",
+    "candidate-paper/fixtures.log": "1f76a62392dad3f86c3742e38c32fe0e74c0c42ca7c95aa05cc95849e9d88494",
+    "paper-download.log": "fdffbb339a5549ff2bd9363befcc0474e0963a63d2fdc65cdca649177f3847a3",
+    "paper-cache/download.json": "683a35c8afa12c34def525a8a1f8593a3f133ebdf67bbbf34c549453f1e184e4",
+    "python-tests.log": "e23e20695a03f28300c77c1f1fa37d10ebb5ccf7d370e9acbff2fc97f5cdc477",
+    "python-tests-optimized.log": "dc40189a0150926d682316bec5a962e1143c19b7d75b2bf72589e624c8c18bc4",
+    "container-mutations-confirmed/results.json": "1f16e0e2c0279bcd73311c10b99426d3fc81df094cb6ad1221d50c705a9c7d7c"
+  },
+  "source_sha256": {
+    "host/Host.java": "1e17b1e178d924627f1e2eff72e26e9cf257e9e01446d1f98c89592c81f79390",
+    "plugin/src/org/botsclustersmc/plugin/ContainerAccess.java": "3fe13fc8076420a90bbeecf584a595a12c1091dbbd7a56d3537c721ee2da8d8f",
+    "plugin/src/org/botsclustersmc/plugin/ExternalInventory.java": "5e1a899a4b59515eb14e17d8b0eac9fe5565e0ea4efd51f0f89b46806e71ed26",
+    "plugin/src/org/botsclustersmc/plugin/RuntimePlugin.java": "a6c1a1b766ce1b5540385d4cb7fedaf524a8531c3bc711dbc78b8ad11e74f0f5",
+    "plugin/src/org/botsclustersmc/plugin/WorldActions.java": "649292b85c81588d8b3e3ee3360bd11cd4d23e3d1937f1edc216b82d257412a8",
+    "tests/acceptance.py": "a5797a1f65b50063f4b2212e5a901889d39b957831a00d92bce8e080f34f09a4",
+    "tests/java/org/botsclustersmc/tests/ContainerAccessTest.java": "2c65118f41732aea4f34546d4c1991bd4a2329f1d338e67fbd662df07315aec5",
+    "tests/live/org/botsclustersmc/diagnostic/ContainerBoundaryChecks.java": "7a5b006d8e3ef995db14bfd676226b9e8c30e7588411bb9d35c13686721b8d90",
+    "tests/live/org/botsclustersmc/diagnostic/Fixtures.java": "f101c44cc019a8b754dfc08d95d7a6b7840a8f60535d9bb03766e088857f8955"
+  },
+  "integration": "not yet observed",
+  "activation": "not yet observed"
+}
