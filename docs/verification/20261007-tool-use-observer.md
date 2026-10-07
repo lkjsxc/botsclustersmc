@@ -58,3 +58,19 @@ The actual live gate still needs its own immutable inputs, prospective case
 specification and complete real reports. No thresholds or seeds were selected
 from unavailable results. This record intentionally does not substitute synthetic
 tests for that missing evidence.
+
+## First remote CI result and evidence preservation
+
+Source commit `4f7e765350a3259c48f1f35c3962385ccfaf36d4`, run
+`37589475042`, attempt 1: Ubuntu source and observatory succeeded; Windows
+source failed in the existing `SupervisorTest.supervisedChildren` healthy-child
+fixture. The new tool-use numerical checks had already passed there (80,247).
+The exception was `Host.supervise` reporting an unsuccessful child termination,
+without a health-timeout reason. This does not establish the underlying cause.
+
+The fixture had redirected parent/child output and then deleted its temporary
+files on failure, removing the useful diagnostic details. A test-only correction
+now emits bounded parent messages and the first 8 KiB of each synthetic child's
+console file before cleanup. It still rethrows the original failure; deadlines,
+assertions, runtime behavior and child exit requirements are unchanged. The
+failed CI run is retained, not reclassified as success or simply rerun until green.
