@@ -127,3 +127,59 @@ replace the earlier blocked completion poll.
 
 API contract: https://jd.papermc.io/paper/1.21.11/org/bukkit/Location.html
 Reference lifetime: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ref/Reference.html
+
+
+## Confirmed final source, integration and shared-service activation
+
+The corrected full local Java suite exited zero on source
+`43038213a37ea046d1670190a9699e01f68355e7`: container checks are now 8,481,
+including eight explicit GC cycles. The final test class also replayed all six
+previously compiled incorrect helpers and the unchanged positive: all six
+negatives failed their intended assertions; the positive passed. Earlier failed
+runs and the original unconfirmed completion poll remain distinct evidence.
+
+Exact-head GitHub CI `37620976086` passed Linux, Windows and the browser-based
+observatory checks. Optional GitHub Minecraft jobs were not requested; the real
+Folia/Paper results above are local physical runs, not skipped CI jobs relabelled
+as tests. PR #70 was normally merged as
+`a18ea58fbff797c948272029a984486529b3c55a`, tree
+`c927cf1c4c7685f10b49d292517493094d0a74e9`. An independent GitHub main-ref read
+matched; the main checkout was fast-forwarded cleanly. Its fresh build reproduced
+both qualified JAR hashes exactly.
+
+The existing evaluation timer was stopped for maintenance, the training service
+stopped normally (`Result=success`), and the whole owned Academy was copied to
+`.build/qualification/academy-before-update` in the new qualification worktree.
+All 257 copied files were checked byte-for-byte by SHA256 against the stopped
+Academy. Canonical checkpoint SHA256:
+`36f33ea2f58b4115e703201dda2bb99fb0478f3d7d1752d9887f5fe664e9275e`.
+A read/export of that stopped checkpoint identified 5,454,232 updates and
+1,623,374,896 samples. The new server logged those exact restored model counts
+and optimizer step 5,454,232. No checkpoint reset, model replacement or world
+folder deletion was performed; ordinary training episode reconstruction on
+startup and ephemeral NPC bodies remain the existing lifecycle.
+
+The established service installed the integrated training JAR and started with
+supervisor PID 1215603. The installed hash is the qualified
+`aae1fb27130b8c520dfc89f0de1cff7eab3c18febd95c043bfdef989e700f826`; live status
+reports `owned-unlocked-no-loot-local-v1`, confirming the newly loaded contract.
+
+Seven consecutive fresh snapshots from `2026-10-07T21:33:42.985000+09:00` to `2026-10-07T21:34:12.985000+09:00` all showed
+512 active, ticking and progressing actors. Over this 30-second window, samples
+increased from 1,623,566,608 to 1,623,626,800
+(+60,192) and policy updates from 5,454,746
+to 5,454,908 (+162). Inference failures,
+retired actors, learner rejections and stale learner samples were all zero.
+These are operational health/learning-liveness checks, not a learned-survival,
+fixed-policy retention or cooperative-benefit experiment.
+
+The configuration digest remained unchanged. The monitor was not needlessly
+restarted (PID 207536); its HTTP status endpoint returned fresh new-contract data
+for 512 actors with HTTP 200. The evaluation timer was restarted, and training,
+monitoring and the timer all reported active. Failed research branches, their
+Academies and evidence were not adopted or removed.
+
+This final follow-up changes documentation only. Its integration does not require
+another service restart because the activated runtime classes and artifacts do
+not change. Long-term community learning and durable citizen state remain the
+next distinct milestones, not features claimed by this activation.
