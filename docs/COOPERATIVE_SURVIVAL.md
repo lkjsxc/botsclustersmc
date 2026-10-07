@@ -5,6 +5,19 @@ obtaining and sharing resources, replacing tools, meeting basic needs and recove
 from disruption. This document is an engineering direction, not an implemented
 feature list or a claim that the current policy can survive.
 
+## Cooperative-composition track
+
+The operator reaffirmed on 2026-10-07 that the end goal is many citizens living
+together, with no backward-compatibility requirement. The next gate is useful
+collective behavior, not another population increase. Individual tool use remains
+a bottleneck, but it need not prohibit building a parallel measurement of actual
+resource interdependence. The [two-citizen commons exam](COMMONS_EXAM.md) compares
+split/shared, pooled/shared and split/isolated supplies without scripted roles.
+It is a fixed-infrastructure evaluation, not an adopted learner, a new goal
+selector, proven cooperation or unassisted survival. Its prospective engineering
+[qualification](verification/20261007-commons-exam.md) uses explicitly untrained
+inputs and is separate from the current learned-policy retention/acquisition gates.
+
 ## Current decision
 
 The [common-seed physical repeat comparison](verification/20261007-control-repeatability-results.md)
