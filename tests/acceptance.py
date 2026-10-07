@@ -173,6 +173,7 @@ def fixtures(output, cache):
         log=(output/'fixtures.log').read_text(errors='replace')
         assert log.count('FIXTURE PASS ')==18, log[-4000:]
         assert log.count('SHARED INVENTORY LIVE PASS ')==1, 'shared inventory diagnostics did not complete'
+        assert log.count('CONTAINER BOUNDARY LIVE PASS ')==1, 'container protection diagnostics did not complete'
         assert log.count('PICKUP EVENT LIVE PASS ')==1, 'pickup event diagnostics did not complete'
         assert log.count('DROP EVENT LIVE PASS ')==1, 'inventory drop diagnostics did not complete'
         assert log.count('WORLD MUTATION LIVE PASS ')==1, 'world mutation diagnostics did not complete'
