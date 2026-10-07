@@ -5,6 +5,23 @@ obtaining and sharing resources, replacing tools, meeting basic needs and recove
 from disruption. This document is an engineering direction, not an implemented
 feature list or a claim that the current policy can survive.
 
+## Public-needs track toward collective life
+
+The end goal is many citizens maintaining a shared settlement, not a population
+increase that merely multiplies isolated lessons. The [shared-needs contract](SHARED_NEEDS.md)
+adds source-only public demand and time-accounted collective-stock objectives.
+It preserves separate per-material shortages, team outcomes and actor sample
+delivery. It assigns no occupations, recipes or actions. Its executable software
+qualification is not an installed sensor, adopted learner or learned cooperation.
+
+The first candidate organizing signal is a shared deficit, rather than a central
+job dispatcher. Couple that signal to a new, explicit observation schema and
+owner-sampled resource evidence before real learning. Mean availability must not
+conceal a persistently missing resource. Public stocking is only an intermediate
+objective: replenishment, consumption, useful tool borrowing and individual needs
+still have to be represented before claiming communal survival. Existing individual
+retention and unfinished draft physical gates are not waived by this parallel track.
+
 ## Current decision
 
 The [common-seed physical repeat comparison](verification/20261007-control-repeatability-results.md)

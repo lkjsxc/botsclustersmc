@@ -337,10 +337,10 @@ public final class Host {
     }
     void test()throws Exception{
         build();Path out=ROOT.resolve(".build/tests");Files.createDirectories(out);String cp=ROOT.resolve(".build/classes")+File.pathSeparator+classpath();
-        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","tests/live","tests/holdout","tests/lifecycle","tests/transfer","host"))args.add(p.toString());
+        List<String> args=new ArrayList<>(List.of("--release","21","-proc:none","-cp",cp,"-d",out.toString()));for(Path p:sources("tests/java","tests/host","tests/live","tests/holdout","tests/lifecycle","tests/transfer","tests/needs","host"))args.add(p.toString());
         if(ToolProvider.getSystemJavaCompiler().run(null,System.out,System.err,args.toArray(String[]::new))!=0)throw new IOException("Test compilation failed");
         System.out.println("PASS real-API compilation of live diagnostic fixtures; not executed by source tests.");
-        for(String test:List.of("CoreTest","GoalTransferTest","MechanicsTest","SharedInventoryTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","HarvestTraceTest","StationTest","ResetInterventionTest","CraftingCurriculumTest","CraftingTraceTest","TableCraftingTraceTest","BalanceTest","UpdateTest","LearningContextsTest","CourseTest","ProbePoliciesTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
+        for(String test:List.of("CoreTest","SharedNeedTest","NeedWindowTest","NeedMutationTest","GoalTransferTest","MechanicsTest","SharedInventoryTest","OwnershipTest","MenuFocusTest","ControlTest","PocketViewTest","AimTest","HarvestTest","HarvestTraceTest","StationTest","ResetInterventionTest","CraftingCurriculumTest","CraftingTraceTest","TableCraftingTraceTest","BalanceTest","UpdateTest","LearningContextsTest","CourseTest","ProbePoliciesTest","LearningTest","PersistenceTest","ConcurrencyTest"))execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"org.botsclustersmc.tests."+test),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"SupervisorTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"MonitorTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"MonitorReadTest"),ROOT);
@@ -348,6 +348,9 @@ public final class Host {
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"ExportTest"),ROOT);
         execute(List.of(java(),"-cp",out+File.pathSeparator+cp,"EvaluationTest"),ROOT);
         try(JarFile jar=new JarFile(ROOT.resolve("dist/botsclustersmc.jar").toFile())){if(jar.stream().anyMatch(e->e.getName().contains("/training/")||e.getName().contains("TrainingEnvironment")))throw new IOException("Inference artifact contains training/reset code");}
+        for(String name:List.of("botsclustersmc.jar","training.jar"))try(JarFile jar=new JarFile(ROOT.resolve("dist/"+name).toFile())){
+            if(jar.stream().anyMatch(e->e.getName().startsWith("org/botsclustersmc/needs/")))throw new IOException("Public artifact contains source-only shared-need research: "+name);
+        }
         System.out.println("PASS inference artifact separation; all tests completed.");
     }
     public static void main(String[] args){try{Host host=new Host();String op=args.length==0?"help":args[0];switch(op){case "build"->host.build();case "start"->host.start();case "stop"->host.console("stop");case "console"->{if(args.length<2)throw new IOException("console <Minecraft command>");host.console(String.join(" ",Arrays.copyOfRange(args,1,args.length)));}case "monitor"->{if(args.length>3)throw new IOException("monitor [private bind address] [port]");execute(List.of(host.java(),"-Xmx128m","host/Monitor.java",host.academy().resolve("server/plugins/BotsClustersMC").toString(),args.length>1?args[1]:"127.0.0.1",args.length>2?args[2]:"8765"),ROOT);}case "evaluate"->host.evaluate(Arrays.copyOfRange(args,1,args.length));case "status"->host.status();case "export"->host.export(args.length>1?Path.of(args[1]):ROOT.resolve("dist/deploy"));case "test"->host.test();default->System.out.println("Commands: build | start | status | evaluate [--help] | monitor [private address] [port] | console <command> | stop | export [directory] | test");}}catch(Exception e){System.err.println("ERROR: "+e.getMessage());System.exit(1);}}
