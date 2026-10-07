@@ -1,0 +1,93 @@
+{
+  "protocol": "shared-needs-source-qualification-v1",
+  "recorded_at": "2026-10-07T20:23:25.645627+09:00",
+  "source": "292d60c5eb1ace1c8533adc0cb1de35494ff828e",
+  "source_tree": "b7936291445f417929f71d718da32406a0aa8dc8",
+  "accepted_base": "5d12ad9beecf4fc96f25abb6f6e830533bf98294",
+  "prospective_commit": "ec64a5a4dcd7dc49732ff67870081c2f96ba19f9",
+  "source_files_sha256": {
+    "host/Host.java": "17d116136821c042663eb70006eebe1dd4858d7f65324b39782d7873604b5522",
+    "tests/java/org/botsclustersmc/tests/NeedMutationTest.java": "84b56611244c1bab942f7bb62af23dce4711a9dd5f7fa422be7eda141f096003",
+    "tests/java/org/botsclustersmc/tests/NeedWindowTest.java": "8456688d5c037c332ac6a6333f1896e9277aa8abfea2283d1cd9a0690fe60339",
+    "tests/java/org/botsclustersmc/tests/SharedNeedTest.java": "f031d3ea0171d63a47d14969a51ddeaab99d223fe28df4d5ab80c3a5508a6fbb",
+    "tests/needs/org/botsclustersmc/needs/NeedWindow.java": "3d33fcd666515a90da63295725ef175ab376f175a15a30becfc1cf523819ac66",
+    "tests/needs/org/botsclustersmc/needs/SharedNeed.java": "09d04fa8e4a9639efe670ca0b86f50f394ed8bef97c5f9f25c1b89ff3de50902"
+  },
+  "scope": {
+    "source_only": true,
+    "sidecar_installed": false,
+    "minecraft_trials": 0,
+    "minecraft_learning_started": false,
+    "saved_learning_inputs_accessed": false,
+    "existing_services_changed": false,
+    "physical_stock_conservation_verified": false
+  },
+  "tests": {
+    "java_api_and_artifact_separation": "passed",
+    "sidecar_checks": 85,
+    "window_checks": 646602,
+    "exhaustive_history_partition_discount_cases": 98304,
+    "fractional_seed": 2026100721,
+    "fractional_traces": 200,
+    "cohorts": [
+      1,
+      2,
+      8,
+      64,
+      512
+    ],
+    "bounded_window_stress": {
+      "members": 512,
+      "ticks": 12000,
+      "retained_ticks": 128,
+      "environment": "synthetic_stock_only"
+    },
+    "compiled_semantic_mutants_detected": 6,
+    "python_normal": 47,
+    "python_optimized": 47,
+    "browser_fixture_groups": 5,
+    "initial_browser_failure": "Playwright was absent; retained as a failed invocation, not a pass",
+    "browser_resolution": "Local .build/browser-venv and .build/browser-cache; pinned Playwright 1.57.0; rerun exit 0"
+  },
+  "public_artifacts_sha256": {
+    "botsclustersmc.jar": "e16b1ade2e0a1a3d17f5532c3476929ecb8e45137bc636c6344698190d555ed0",
+    "training.jar": "31e74a15dd139f0ecdc8ea97f912350d6589dac7404d8d9da6b3c2f16f34615f"
+  },
+  "public_runtime_source_changes": [],
+  "evidence_sha256": {
+    ".build/need-mutations-4407602376925160522/baseline.log": "884e4f942144412eb741bc91c781ed1f3d07ba3990c71f535f82df2fba350f85",
+    ".build/need-mutations-4407602376925160522/decision-frequency/test.log": "ef1622cc8285baf85cbabe007ad0f6a87e069034cc7464f88c57543ba107b2dd",
+    ".build/need-mutations-4407602376925160522/population-multiplier/test.log": "59ae711bc65995fe2f8453ed89a04bc1fa9d88ebed5c77b56f0f449d4578ce7f",
+    ".build/need-mutations-4407602376925160522/premature-score/test.log": "4c1b3a7eea0e60e0f6d525c8fd699e5c024c284b853a92b8b45c32321bd08e12",
+    ".build/need-mutations-4407602376925160522/replayed-cursor/test.log": "74a37f4870ad3108fa5a4508fa2704f1c6c9234f94e0082f8a43889cd89fc272",
+    ".build/need-mutations-4407602376925160522/terminal-bootstrap/test.log": "6ccea1fd3d0ab319b0815a4e8e0779f72b6a1c64d46176c0752f16cfe4604cf2",
+    ".build/need-mutations-4407602376925160522/unknown-interval/test.log": "b2f9d1b83d811354e9b18dd21dcdf741fdd1691fb66428eb02d3b028c6943c75",
+    ".build/shared-needs-browser-prepared-tests.log": "b9a9926c7bb482ea9bba654bc57f6dafa4dd4abe086941b0bc3d90b84c308b7e",
+    ".build/shared-needs-browser-tests.log": "b1a9b8d3f44e0a5c299f9856522ece85a925928b2acc2ff0928294c054a3eea5",
+    ".build/shared-needs-python-optimized-tests.log": "6626c6db384151fe8c6936c7ef698b6c0b47cd49cd0929b782f0b614a893f6b9",
+    ".build/shared-needs-python-tests.log": "44781a3ea98232e82ad631b03029df4b50d704995ef3c275d4c6448fdec8f827",
+    ".build/shared-needs-reviewed-source-tests.log": "f2d8021e08602f361d2495bc0a328cb78e8f634e642d5af72161bc0b2e823d89"
+  },
+  "ci": {
+    "implementation_head": "292d60c5eb1ace1c8533adc0cb1de35494ff828e",
+    "run_id": 37613450847,
+    "conclusion": "success",
+    "jobs": {
+      "source (ubuntu-24.04)": "success",
+      "source (windows-latest)": "success",
+      "observatory": "success",
+      "retention": "skipped",
+      "live": "skipped",
+      "paper": "skipped",
+      "windows-live": "skipped"
+    },
+    "scope": "Observed implementation-head validation; report-only descendant checks are to be read separately. Skipped live jobs are not physical qualification."
+  },
+  "limits": [
+    "Generated bank counts are not proof of real inventories or recipes.",
+    "No neural observation or learner uses this sidecar yet.",
+    "Stock-time utility is not useful consumption, individual contribution or survival.",
+    "Accounting normalization is not optimizer invariance.",
+    "Earlier draft physical qualification gates remain separate and unchanged."
+  ]
+}
