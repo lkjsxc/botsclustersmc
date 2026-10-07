@@ -93,7 +93,17 @@
     "paper-cache/download.json": "683a35c8afa12c34def525a8a1f8593a3f133ebdf67bbbf34c549453f1e184e4",
     "python-tests.log": "e23e20695a03f28300c77c1f1fa37d10ebb5ccf7d370e9acbff2fc97f5cdc477",
     "python-tests-optimized.log": "dc40189a0150926d682316bec5a962e1143c19b7d75b2bf72589e624c8c18bc4",
-    "container-mutations-confirmed/results.json": "1f16e0e2c0279bcd73311c10b99426d3fc81df094cb6ad1221d50c705a9c7d7c"
+    "container-mutations-confirmed/results.json": "1f16e0e2c0279bcd73311c10b99426d3fc81df094cb6ad1221d50c705a9c7d7c",
+    "source-tests-world-custody.log": "043ae76ddf409fee08af012c77794647266611e7413e7e61215538bacb222620",
+    "ci-37620530679-failed.log": "1dccfdc7fc47731d3b2174fded4fdfe1e648e8a3374df9cba21f83e2f69d1d65",
+    "final-mutation-replay.json": "0b99aa448f052bcca77b0874c7bbd29bf4de475dcfd8dc8bdb2529e9d06c0f0f",
+    "integrated-main-build.log": "e56c950ccece4180e83f05f5614556f3e611cc88bc6b856e5fa213657289646e",
+    "deployment-before.json": "4fac70b0eda4ed5624250231f5f3c8d90381bf9799a308b4f6f30dfa38942af2",
+    "deployment-stopped.json": "de0c02d6e961c3a696c479590150353039339a72213e50c9d5f5ad2ec80284b4",
+    "stopped-checkpoint-export.log": "8698eea31f1b8f8177ae1670965df8b433468e11573a6e18d3d8612040f36b32",
+    "deployment-health.json": "af3fff40d44b8ab154d5b130e7051689f4b62f3f1d4f866240cfa2b3cb759b8f",
+    "deployment-health-series.json": "feb455a6fa082a9ea9792e5818b8a6eb7f6fe1edaf1714b3281b07ec3e6dc91d",
+    "deployment-monitor.json": "ed04f52e5b1de17966b5eb4971f1480cbfc4351997dcad773d2c20b892a6c9b2"
   },
   "source_sha256": {
     "host/Host.java": "1e17b1e178d924627f1e2eff72e26e9cf257e9e01446d1f98c89592c81f79390",
@@ -106,6 +116,103 @@
     "tests/live/org/botsclustersmc/diagnostic/ContainerBoundaryChecks.java": "7a5b006d8e3ef995db14bfd676226b9e8c30e7588411bb9d35c13686721b8d90",
     "tests/live/org/botsclustersmc/diagnostic/Fixtures.java": "f101c44cc019a8b754dfc08d95d7a6b7840a8f60535d9bb03766e088857f8955"
   },
-  "integration": "not yet observed",
-  "activation": "not yet observed"
+  "integration": {
+    "pr": 70,
+    "main": "a18ea58fbff797c948272029a984486529b3c55a",
+    "tree": "c927cf1c4c7685f10b49d292517493094d0a74e9",
+    "head": "43038213a37ea046d1670190a9699e01f68355e7",
+    "ci_run": 37620976086,
+    "ci_source_linux": "success",
+    "ci_source_windows": "success",
+    "ci_observatory": "success",
+    "github_live_jobs": "not requested; physical checks ran locally",
+    "independent_remote_ref_and_local_fast_forward": true
+  },
+  "activation": {
+    "integrated_main": "a18ea58fbff797c948272029a984486529b3c55a",
+    "source_tree": "c927cf1c4c7685f10b49d292517493094d0a74e9",
+    "installed_training_sha256": "aae1fb27130b8c520dfc89f0de1cff7eab3c18febd95c043bfdef989e700f826",
+    "container_access_contract": "owned-unlocked-no-loot-local-v1",
+    "startup_restored": [
+      {
+        "updates": 5454232,
+        "samples": 1623374896,
+        "optimizer_step": 5454232
+      }
+    ],
+    "fresh_snapshots": 7,
+    "first_epoch_millis": 1791376422985,
+    "last_epoch_millis": 1791376452985,
+    "first_samples": 1623566608,
+    "last_samples": 1623626800,
+    "new_samples": 60192,
+    "first_updates": 5454746,
+    "last_updates": 5454908,
+    "new_updates": 162,
+    "all_512_progressed_each_snapshot": true,
+    "inference_and_learner_errors": 0,
+    "configuration_preserved": true,
+    "checkpoint_reset": false,
+    "monitor_http": 200,
+    "monitor_pid_unchanged": 207536,
+    "backup_files_verified": 257,
+    "backup_checkpoint_sha256": "36f33ea2f58b4115e703201dda2bb99fb0478f3d7d1752d9887f5fe664e9275e",
+    "training_supervisor_pid": 1215603,
+    "evaluation_timer_restored": true
+  },
+  "corrected_source_suite": {
+    "head": "43038213a37ea046d1670190a9699e01f68355e7",
+    "local_exit": 0,
+    "container_checks": 8481,
+    "retained_world_gc_cycles": 8,
+    "earlier_failed_ci": 37620530679,
+    "final_mutations": {
+      "test_commit": "43038213a37ea046d1670190a9699e01f68355e7",
+      "test_source_sha256": "b4683cf677af6a6420f9aedb348159cf26d8fa18a1a18375f041470426667281",
+      "results": [
+        {
+          "variant": "positive",
+          "exit_code": 0,
+          "expected_assertion": null,
+          "log_sha256": "c0987f3ec95265f268247435ada7dd237830159fcb6e2cad5407cdde57831ad8"
+        },
+        {
+          "variant": "ignore-lock",
+          "exit_code": 1,
+          "expected_assertion": "inventory read precedes protection",
+          "log_sha256": "731fd38c6b68612c2de1f1388342b63dd6f743393bad40a14f70b0e5414adcb5"
+        },
+        {
+          "variant": "ignore-loot",
+          "exit_code": 1,
+          "expected_assertion": "inventory read precedes protection",
+          "log_sha256": "731fd38c6b68612c2de1f1388342b63dd6f743393bad40a14f70b0e5414adcb5"
+        },
+        {
+          "variant": "combined-chest",
+          "exit_code": 1,
+          "expected_assertion": "combined chest inventory must not be read",
+          "log_sha256": "a6bf555e7b535eb5839e923ecdc5807763ead0b82ba7ebc6798ce8bc5c2bc33e"
+        },
+        {
+          "variant": "ignore-placement",
+          "exit_code": 1,
+          "expected_assertion": "protected inventory getter called",
+          "log_sha256": "b8750dd0b225fe01d1ac47932007bd5a63cfb81fa01435b453fdc56e483d6324"
+        },
+        {
+          "variant": "read-before-owner",
+          "exit_code": 1,
+          "expected_assertion": "foreign world read",
+          "log_sha256": "c686f0eaf763b0e62ca258af0eff0db8b21f8fb768f630acb5087f1bdb7af500"
+        },
+        {
+          "variant": "live-mining-inventory",
+          "exit_code": 1,
+          "expected_assertion": "combined chest inventory must not be read",
+          "log_sha256": "6e8518927cc1e83994c9ca70c641f205fe935fa875a91cf93be8741b6f2312e7"
+        }
+      ]
+    }
+  }
 }

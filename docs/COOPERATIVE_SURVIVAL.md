@@ -13,6 +13,9 @@ and shuffled-partner/resource controls rather than merely more NPCs. These are
 engineering and future learning gates, not adopted research rewards or acquired
 social behavior. Current protected-container mechanics keep native locks and
 deferred loot outside usable communal stock; they do not create a learner.
+PR #70 qualified those mechanics on actual Folia and Paper, and the integrated
+runtime was activated with exact checkpoint restoration and 512-actor progress;
+see the [activation evidence](verification/20261007-container-boundary-results.md).
 
 ## Current decision
 
