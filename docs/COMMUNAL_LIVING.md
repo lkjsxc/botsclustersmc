@@ -6,6 +6,28 @@ are not substitutes for sustained provision, useful sharing and recovery.
 The current deployment is still a task-conditioned NPC experiment. It does not
 implement this target, an autonomous goal selector or persistent citizen lives.
 
+## Measured source-only supply baseline
+
+The [closed supply comparison](verification/20261008-communal-supply-results.md)
+now completed three independent visible/hidden-demand learning pairs and 24,576
+frozen synthetic trials. Actual Pocket shift-clicks, a one-slot common store and
+irreversible requested consumption were used; no Minecraft server or deployed
+model participated. Visible-demand two-step completion was 45.31%-49.22%, only
+0-1.5625 percentage points above paired hidden controls. Eight-member transfer
+was 23.44%-30.08%. All declared gates failed. Public demand and common reward are
+therefore a measured insufficient mechanism under this exact implementation and
+budget, not an established communal learner. Retain this baseline when testing
+credit assignment or better demand conditioning; do not just increase population.
+
+A [new full demand-inventory tensor-product comparison](verification/20261008-demand-binding-results.md)
+then used fresh paired seeds, unchanged common rewards and another complete fixed
+budget. Candidate two-member completion was 45.70%-53.13%, only 1.17-5.86 points
+above its own plain control; eight-member completion was 20.31%-39.06%. All 24,576
+cases completed and every gate failed again. These are not comparisons across
+the two studies' different seeds. Generic relational input alone has not supplied
+a reliable cooperative policy under either tested budget. Preserve both baselines
+when separating credit assignment, temporal return and policy conditioning.
+
 ## Needs before occupations
 
 The preferred next design is a public needs field: a settlement exposes what it
