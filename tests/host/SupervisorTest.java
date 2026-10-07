@@ -187,8 +187,21 @@ public final class SupervisorTest {
                 Path dir = Files.createDirectory(root.resolve("child-" + mode)); Path server = Files.createDirectory(dir.resolve("server"));
                 System.setIn(new ByteArrayInputStream(new byte[0])); long start = System.nanoTime();
                 System.setOut(mode.equals("mirror-failed") ? new PrintStream(new FaultSink("write")) : discard);
-                if (mode.equals("healthy")) { Host.supervise(server, dir, command(mode), FAST); checks++; }
-                else rejected(() -> Host.supervise(server, dir, command(mode), FAST), "failed supervision cannot be reported successful: " + mode);
+                try {
+                    if (mode.equals("healthy")) { Host.supervise(server, dir, command(mode), FAST); checks++; }
+                    else rejected(() -> Host.supervise(server, dir, command(mode), FAST), "failed supervision cannot be reported successful: " + mode);
+                } catch (Exception | Error failure) {
+                    // The fixture restores streams and deletes its owned temporary tree.
+                    // Preserve bounded child/parent evidence in the CI log before that cleanup.
+                    oldErr.println("FAILED synthetic supervisor mode=" + mode);
+                    byte[] parent = errors.toByteArray(); oldErr.write(parent, 0, Math.min(parent.length, 8192));
+                    for (String name : List.of("console.log", "console.previous.log")) {
+                        oldErr.println("Synthetic child " + name + " (first 8192 bytes):");
+                        try (var input = Files.newInputStream(dir.resolve(name))) { oldErr.write(input.readNBytes(8192)); }
+                        catch (IOException missing) { oldErr.println(missing.toString()); }
+                    }
+                    throw failure;
+                }
                 processes++;
                 check(TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 20, "bounded synthetic supervision: " + mode);
                 check(!Files.exists(dir.resolve("control.properties")), "private control metadata removed: " + mode);

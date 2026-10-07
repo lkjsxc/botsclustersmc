@@ -170,3 +170,13 @@ The initial measured study and its limitations are recorded in
 [the September 27 verification record](../../docs/verification/20260927-station-reset-study.md).
 The five-cell extension and newer frozen model are recorded separately in
 [the September 29 single-cell study](../../docs/verification/20260929-pickaxe-cell-diagnosis.md).
+
+## Read-only tool-use diagnostics
+
+Task 12 also records `diagnostics.tool_use`: pre-action tool-location states,
+menu/tool handoff counts, and exact one-decision probability mass for increasingly
+specific world inputs. These are not target-contact probabilities or a scripted
+equipment/mining mechanism. See the [field and interpretation contract](../../docs/TOOL_USE_DIAGNOSTICS.md)
+for array ordering, denominators, hidden-grid limitations and native validation.
+The extension still requires its real frozen-exam qualification; source-test
+success alone is not physical repeatability or learned mining evidence.
