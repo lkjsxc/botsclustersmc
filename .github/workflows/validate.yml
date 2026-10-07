@@ -78,6 +78,7 @@ jobs:
           python -m unittest discover -s tests -p test_lifecycle_summary.py
           python -m unittest discover -s tests -p test_holdout.py
           python -m unittest discover -s tests -p test_retention_ci.py
+          python -m unittest discover -s tests -p test_supply_evidence.py
           python tests/crafting_monitor.py
       - uses: actions/upload-artifact@v4
         if: always()
