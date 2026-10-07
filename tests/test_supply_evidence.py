@@ -3,15 +3,15 @@ from pathlib import Path
 import supply_evidence as v
 
 
-def valid_row(case=0,n=2):
-    initial,orders=v.scenario(v.EVAL[0],case,n)
+def valid_row(case=0,n=2,profile=v.SUPPLY):
+    initial,orders=v.scenario(profile.evals[0],case,n)
     # Scripted reference fixture only; never supplies actions/labels to training.
     actions=[]
     for step in range(4):
         for code in initial:
             actions.append(code%2+1 if step<2 and code//2==(case%2)^step else 0)
     result=v.replay(initial,case%2,actions,orders)
-    row=dict(zip(v.FIELDS,['visible',str(v.SEEDS[0]),'0',str(v.EVAL[0]),str(n),str(case),'0','0','a'*64,str(case%2),
+    row=dict(zip(v.FIELDS,[profile.arms[0],str(profile.seeds[0]),'0',str(profile.evals[0]),str(n),str(case),'0','0','a'*64,str(case%2),
                           ','.join(map(str,initial)),','.join(map(str,actions)),','.join(map(str,orders)),
                           *[','.join(map(str,result[k])) for k in ('service_steps','consumed','bank','remaining','deposited','withdrawn')],str(result['wrong'])]))
     return row
@@ -73,6 +73,13 @@ class SupplyEvidenceTest(unittest.TestCase):
         for option in ('-O','-OO'):
             run=subprocess.run([sys.executable,option,'-c',code],cwd=Path(__file__).parent,capture_output=True,text=True)
             self.assertNotEqual(run.returncode,0);self.assertIn('forged consumed',run.stderr)
+
+    def test_explicit_study_profiles_never_relabel_evidence(self):
+        for profile,other in ((v.SUPPLY,v.BINDING),(v.BINDING,v.SUPPLY)):
+            row=valid_row(14,8,profile)
+            _,result,_=v.validate_trial(row,profile)
+            self.assertEqual(result['consumed'],[4,4])
+            with self.assertRaisesRegex(ValueError,'undeclared trial'):v.validate_trial(row,other)
 
     def test_source_never_exports_synthetic_policy(self):
         root=Path(__file__).resolve().parent

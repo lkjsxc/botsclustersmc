@@ -42,3 +42,25 @@ initial supplies are assistance and limitations. No locomotion, crafting, mining
 hunger, personal utility, persistent inventory or physical Folia scheduling is
 learned here. This experiment can validate an observable-demand mechanism and its
 learning path, not certify community survival or replace real-world qualification.
+
+## Separately declared full tensor-product hypothesis
+
+After recording the first study's complete failed gate, the demand-binding study
+uses NEW seeds with paired plain/tensor conditions. It changes only the synthetic
+feature representation: all 108 local feature x 2 public-demand products, including
+unequal material pairs. No material/slot is selected and no action mask is changed.
+The 512-float network, common reward and sample budget stay the same.
+
+```sh
+java -Xmx1G -cp '.build/tests:dist/training.jar' \
+  org.botsclustersmc.commonslearning.DemandBindingStudy \
+  --new-output .build/qualification/demand-binding
+python3 tests/supply_evidence.py --study binding \
+  .build/qualification/demand-binding \
+  --output .build/qualification/demand-binding-results.json
+```
+
+The validator requires the exact named study profile and its own identity header,
+arm names, seeds and complete matrices. It does not auto-detect or relabel old
+results. See `docs/verification/20261008-demand-binding-plan.md`. The original
+600-update failure remains failed whatever this new hypothesis produces.

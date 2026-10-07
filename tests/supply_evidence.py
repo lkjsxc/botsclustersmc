@@ -3,6 +3,7 @@
 from __future__ import annotations
 import argparse, csv, hashlib, itertools, json, math, re
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 
 SEEDS=(2026100801,2026100802,2026100803)
@@ -12,6 +13,17 @@ ARMS=('visible','hidden')
 POPULATIONS=(2,8)
 FIELDS='arm learning_seed boundary eval_seed population case updates samples policy_sha256 first initial actions orders service_steps consumed bank remaining deposited withdrawn wrong'.split()
 UPDATE_FIELDS='arm learning_seed attempt offered accepted updates samples backtracks learning_rate mean_kl max_kl'.split()
+@dataclass(frozen=True)
+class Profile:
+    identity: str
+    seeds: tuple[int,...]
+    evals: tuple[int,...]
+    arms: tuple[str,str]
+    evidence_schema: str
+
+SUPPLY=Profile('synthetic-communal-supply-memory-only',SEEDS,EVAL,ARMS,'synthetic-communal-supply-evidence-v1')
+BINDING=Profile('synthetic-communal-tensor-binding-memory-only',(2026100811,2026100812,2026100813),(2026100891,2026100892),('tensor','plain'),'synthetic-tensor-binding-evidence-v1')
+
 MASK=(1<<64)-1
 MIX=0x9e3779b97f4a7c15
 
@@ -105,10 +117,10 @@ def replay(initial: list[int],first: int,actions: list[int],orders: list[int], *
             'deposited':deposited,'withdrawn':withdrawn,'wrong':wrong}
 
 
-def validate_trial(row: dict) -> tuple[tuple,dict,tuple]:
+def validate_trial(row: dict,profile: Profile=SUPPLY) -> tuple[tuple,dict,tuple]:
     require(set(row)==set(FIELDS),'trial fields')
     arm=row['arm'];seed=integer(row['learning_seed']);b=integer(row['boundary']);ev=integer(row['eval_seed']);n=integer(row['population']);case=integer(row['case'])
-    require(arm in ARMS and seed in SEEDS and b in BOUNDARIES and ev in EVAL and n in POPULATIONS and case<256,'undeclared trial')
+    require(arm in profile.arms and seed in profile.seeds and b in BOUNDARIES and ev in profile.evals and n in POPULATIONS and case<256,'undeclared trial')
     require(re.fullmatch(r'[0-9a-f]{64}',row['policy_sha256']) is not None,'policy digest')
     first=integer(row['first']);require(first==case%2,'unbalanced request schedule')
     initial=vector(row['initial'],n);orders=vector(row['orders'],4*n);actions=vector(row['actions'],4*n)
@@ -130,11 +142,11 @@ def records(path: Path,fields: list[str]):
             yield row
 
 
-def training(path: Path) -> dict:
+def training(path: Path,profile: Profile=SUPPLY) -> dict:
     seen=set();counts={};snapshots={}
     for row in records(path,UPDATE_FIELDS):
-        require(row['arm'] in ARMS,'unknown update arm');arm=row['arm'];seed=integer(row['learning_seed']);attempt=integer(row['attempt'])
-        require(seed in SEEDS and 1<=attempt<=600,'undeclared update');k=(arm,seed,attempt)
+        require(row['arm'] in profile.arms,'unknown update arm');arm=row['arm'];seed=integer(row['learning_seed']);attempt=integer(row['attempt'])
+        require(seed in profile.seeds and 1<=attempt<=600,'undeclared update');k=(arm,seed,attempt)
         require(k not in seen,'duplicate update');seen.add(k)
         accepted=integer(row['accepted']);require(integer(row['offered'])==256 and accepted in (0,256),'offered/accepted count')
         old=counts.get((arm,seed),(0,0,0));require(attempt==old[0]+1,'noncontiguous updates')
@@ -146,17 +158,17 @@ def training(path: Path) -> dict:
         require((accepted==0 and backtracks==12 and rate==0) or (accepted==256 and backtracks<12 and 0<rate<=.00015),'guard result')
         counts[(arm,seed)]=(attempt,updates,samples)
         if attempt in BOUNDARIES:snapshots[(arm,seed,attempt)]=(updates,samples)
-    require(len(seen)==3600 and set(counts)==set(itertools.product(ARMS,SEEDS)) and all(v[0]==600 for v in counts.values()),'incomplete learning matrix')
-    for arm,seed in itertools.product(ARMS,SEEDS):snapshots[(arm,seed,0)]=(0,0)
+    require(len(seen)==3600 and set(counts)==set(itertools.product(profile.arms,profile.seeds)) and all(v[0]==600 for v in counts.values()),'incomplete learning matrix')
+    for arm,seed in itertools.product(profile.arms,profile.seeds):snapshots[(arm,seed,0)]=(0,0)
     return snapshots
 
 
-def validate(directory: Path) -> dict:
-    require((directory/'identity.txt').read_text().splitlines()[0]=='synthetic-communal-supply-memory-only','synthetic identity')
+def validate(directory: Path,profile: Profile=SUPPLY) -> dict:
+    require((directory/'identity.txt').read_text().splitlines()[0]==profile.identity,'synthetic identity')
     require((directory/'completed.txt').read_text()=='All declared trajectories and evaluation cases completed. Learning gates require independent validation.\n','missing completion record')
-    checkpoints=training(directory/'updates.tsv');seen=set();identities={};stats={}
+    checkpoints=training(directory/'updates.tsv',profile);seen=set();identities={};stats={}
     for row in records(directory/'trials.tsv',FIELDS):
-        k,result,identity=validate_trial(row);require(k not in seen,'duplicate trial');seen.add(k)
+        k,result,identity=validate_trial(row,profile);require(k not in seen,'duplicate trial');seen.add(k)
         arm,seed,b,ev,n,case=k;binding=k[:3]
         require(identity[1:]==checkpoints[binding],'evaluation/optimizer checkpoint mismatch')
         require(binding not in identities or identities[binding]==identity,'changed frozen policy inside evaluation');identities[binding]=identity
@@ -167,26 +179,27 @@ def validate(directory: Path) -> dict:
         for material in (0,1):
             s['consumed'][material]+=result['consumed'][material];s['bank'][material]+=result['bank'][material]
             s['remaining'][material]+=sum(result['remaining'][material::2])
-    expected=256*len(ARMS)*len(SEEDS)*len(BOUNDARIES)*len(EVAL)*len(POPULATIONS)
+    expected=256*len(profile.arms)*len(profile.seeds)*len(BOUNDARIES)*len(profile.evals)*len(POPULATIONS)
     require(len(seen)==expected and len(stats)==expected//256 and all(s['cases']==256 for s in stats.values()),'incomplete evaluation matrix')
-    for seed in SEEDS:require(identities['visible',seed,0]==identities['hidden',seed,0],'unmatched initial policies')
+    candidate,control=profile.arms
+    for seed in profile.seeds:require(identities[candidate,seed,0]==identities[control,seed,0],'unmatched initial policies')
     gates=[]
-    for seed in SEEDS:
+    for seed in profile.seeds:
         cells=[]
-        for ev in EVAL:
-            visible=stats['visible',seed,600,ev,2]['two_step']/256
-            hidden=stats['hidden',seed,600,ev,2]['two_step']/256
-            larger=stats['visible',seed,600,ev,8]['two_step']/256
-            cells.append({'eval_seed':ev,'visible_two_step':visible,'hidden_two_step':hidden,'paired_difference':visible-hidden,'eight_member_two_step':larger,'passed':visible>=.9 and visible-hidden>=.2 and larger>=.8})
+        for ev in profile.evals:
+            visible=stats[candidate,seed,600,ev,2]['two_step']/256
+            hidden=stats[control,seed,600,ev,2]['two_step']/256
+            larger=stats[candidate,seed,600,ev,8]['two_step']/256
+            cells.append({'eval_seed':ev,candidate+'_two_step':visible,control+'_two_step':hidden,'paired_difference':visible-hidden,'eight_member_two_step':larger,'passed':visible>=.9 and visible-hidden>=.2 and larger>=.8})
         gates.append({'learning_seed':seed,'passed':all(c['passed'] for c in cells),'evaluations':cells})
-    return {'schema':'synthetic-communal-supply-evidence-v1','complete_trials':len(seen),'all_material_histories_reconstructed':True,'minecraft':False,
+    return {'schema':profile.evidence_schema,'complete_trials':len(seen),'all_material_histories_reconstructed':True,'minecraft':False,
             'all_learning_gates_passed':all(g['passed'] for g in gates),'gates':gates,'metrics':{'/'.join(map(str,k)):v for k,v in stats.items()},
             'evidence_sha256':{name:hashlib.sha256((directory/name).read_bytes()).hexdigest() for name in ('identity.txt','completed.txt','trials.tsv','updates.tsv')}}
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('directory',type=Path);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
-    result=validate(args.directory)
+    p=argparse.ArgumentParser();p.add_argument('directory',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--study',choices=('supply','binding'),default='supply');args=p.parse_args()
+    result=validate(args.directory,BINDING if args.study=='binding' else SUPPLY)
     with args.output.open('x',encoding='utf-8') as out:json.dump(result,out,indent=2);out.write('\n')
     print(json.dumps({k:v for k,v in result.items() if k!='metrics'},indent=2))
 
