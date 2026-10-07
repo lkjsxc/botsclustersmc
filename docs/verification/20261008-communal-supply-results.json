@@ -1,0 +1,1990 @@
+{
+  "schema": "synthetic-communal-supply-evidence-v1",
+  "complete_trials": 24576,
+  "all_material_histories_reconstructed": true,
+  "minecraft": false,
+  "all_learning_gates_passed": false,
+  "gates": [
+    {
+      "learning_seed": 2026100801,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100881,
+          "visible_two_step": 0.453125,
+          "hidden_two_step": 0.44140625,
+          "paired_difference": 0.01171875,
+          "eight_member_two_step": 0.24609375,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100882,
+          "visible_two_step": 0.47265625,
+          "hidden_two_step": 0.45703125,
+          "paired_difference": 0.015625,
+          "eight_member_two_step": 0.234375,
+          "passed": false
+        }
+      ]
+    },
+    {
+      "learning_seed": 2026100802,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100881,
+          "visible_two_step": 0.45703125,
+          "hidden_two_step": 0.45703125,
+          "paired_difference": 0.0,
+          "eight_member_two_step": 0.30078125,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100882,
+          "visible_two_step": 0.4921875,
+          "hidden_two_step": 0.48046875,
+          "paired_difference": 0.01171875,
+          "eight_member_two_step": 0.26171875,
+          "passed": false
+        }
+      ]
+    },
+    {
+      "learning_seed": 2026100803,
+      "passed": false,
+      "evaluations": [
+        {
+          "eval_seed": 2026100881,
+          "visible_two_step": 0.453125,
+          "hidden_two_step": 0.4453125,
+          "paired_difference": 0.0078125,
+          "eight_member_two_step": 0.26953125,
+          "passed": false
+        },
+        {
+          "eval_seed": 2026100882,
+          "visible_two_step": 0.48046875,
+          "hidden_two_step": 0.46484375,
+          "paired_difference": 0.015625,
+          "eight_member_two_step": 0.25,
+          "passed": false
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "visible/2026100801/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 117,
+      "wrong_deposits": 150,
+      "consumed": [
+        153,
+        153
+      ],
+      "remaining": [
+        90,
+        91
+      ],
+      "bank": [
+        13,
+        12
+      ]
+    },
+    "visible/2026100801/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 606,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "visible/2026100801/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 100,
+      "first_step": 85,
+      "wrong_deposits": 187,
+      "consumed": [
+        131,
+        127
+      ],
+      "remaining": [
+        110,
+        114
+      ],
+      "bank": [
+        15,
+        15
+      ]
+    },
+    "visible/2026100801/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 13,
+      "wrong_deposits": 624,
+      "consumed": [
+        52,
+        72
+      ],
+      "remaining": [
+        914,
+        924
+      ],
+      "bank": [
+        58,
+        28
+      ]
+    },
+    "visible/2026100801/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 139,
+      "first_step": 123,
+      "wrong_deposits": 154,
+      "consumed": [
+        156,
+        155
+      ],
+      "remaining": [
+        90,
+        89
+      ],
+      "bank": [
+        10,
+        12
+      ]
+    },
+    "visible/2026100801/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 11,
+      "first_step": 19,
+      "wrong_deposits": 662,
+      "consumed": [
+        104,
+        104
+      ],
+      "remaining": [
+        865,
+        870
+      ],
+      "bank": [
+        55,
+        50
+      ]
+    },
+    "visible/2026100801/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 60,
+      "four_step": 113,
+      "first_step": 93,
+      "wrong_deposits": 196,
+      "consumed": [
+        136,
+        140
+      ],
+      "remaining": [
+        105,
+        96
+      ],
+      "bank": [
+        15,
+        20
+      ]
+    },
+    "visible/2026100801/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 8,
+      "first_step": 16,
+      "wrong_deposits": 678,
+      "consumed": [
+        72,
+        84
+      ],
+      "remaining": [
+        891,
+        917
+      ],
+      "bank": [
+        61,
+        23
+      ]
+    },
+    "visible/2026100801/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 93,
+      "four_step": 156,
+      "first_step": 127,
+      "wrong_deposits": 190,
+      "consumed": [
+        171,
+        165
+      ],
+      "remaining": [
+        77,
+        83
+      ],
+      "bank": [
+        8,
+        8
+      ]
+    },
+    "visible/2026100801/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 14,
+      "four_step": 50,
+      "first_step": 54,
+      "wrong_deposits": 711,
+      "consumed": [
+        292,
+        272
+      ],
+      "remaining": [
+        674,
+        700
+      ],
+      "bank": [
+        58,
+        52
+      ]
+    },
+    "visible/2026100801/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 83,
+      "four_step": 140,
+      "first_step": 110,
+      "wrong_deposits": 213,
+      "consumed": [
+        155,
+        159
+      ],
+      "remaining": [
+        93,
+        83
+      ],
+      "bank": [
+        8,
+        14
+      ]
+    },
+    "visible/2026100801/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 12,
+      "four_step": 46,
+      "first_step": 49,
+      "wrong_deposits": 762,
+      "consumed": [
+        236,
+        260
+      ],
+      "remaining": [
+        731,
+        728
+      ],
+      "bank": [
+        57,
+        36
+      ]
+    },
+    "visible/2026100801/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 116,
+      "four_step": 180,
+      "first_step": 130,
+      "wrong_deposits": 185,
+      "consumed": [
+        187,
+        187
+      ],
+      "remaining": [
+        69,
+        67
+      ],
+      "bank": [
+        0,
+        2
+      ]
+    },
+    "visible/2026100801/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 63,
+      "four_step": 143,
+      "first_step": 101,
+      "wrong_deposits": 647,
+      "consumed": [
+        592,
+        612
+      ],
+      "remaining": [
+        413,
+        392
+      ],
+      "bank": [
+        19,
+        20
+      ]
+    },
+    "visible/2026100801/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 121,
+      "four_step": 175,
+      "first_step": 135,
+      "wrong_deposits": 188,
+      "consumed": [
+        180,
+        184
+      ],
+      "remaining": [
+        74,
+        67
+      ],
+      "bank": [
+        2,
+        5
+      ]
+    },
+    "visible/2026100801/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 60,
+      "four_step": 128,
+      "first_step": 98,
+      "wrong_deposits": 684,
+      "consumed": [
+        560,
+        564
+      ],
+      "remaining": [
+        435,
+        443
+      ],
+      "bank": [
+        29,
+        17
+      ]
+    },
+    "hidden/2026100801/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 117,
+      "wrong_deposits": 150,
+      "consumed": [
+        153,
+        153
+      ],
+      "remaining": [
+        90,
+        91
+      ],
+      "bank": [
+        13,
+        12
+      ]
+    },
+    "hidden/2026100801/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 607,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "hidden/2026100801/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 99,
+      "first_step": 85,
+      "wrong_deposits": 187,
+      "consumed": [
+        130,
+        126
+      ],
+      "remaining": [
+        111,
+        115
+      ],
+      "bank": [
+        15,
+        15
+      ]
+    },
+    "hidden/2026100801/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 13,
+      "wrong_deposits": 624,
+      "consumed": [
+        52,
+        72
+      ],
+      "remaining": [
+        914,
+        924
+      ],
+      "bank": [
+        58,
+        28
+      ]
+    },
+    "hidden/2026100801/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 62,
+      "four_step": 142,
+      "first_step": 123,
+      "wrong_deposits": 148,
+      "consumed": [
+        159,
+        158
+      ],
+      "remaining": [
+        87,
+        87
+      ],
+      "bank": [
+        10,
+        11
+      ]
+    },
+    "hidden/2026100801/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 9,
+      "first_step": 17,
+      "wrong_deposits": 653,
+      "consumed": [
+        100,
+        92
+      ],
+      "remaining": [
+        866,
+        883
+      ],
+      "bank": [
+        58,
+        49
+      ]
+    },
+    "hidden/2026100801/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 56,
+      "four_step": 111,
+      "first_step": 91,
+      "wrong_deposits": 194,
+      "consumed": [
+        137,
+        138
+      ],
+      "remaining": [
+        104,
+        101
+      ],
+      "bank": [
+        15,
+        17
+      ]
+    },
+    "hidden/2026100801/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 7,
+      "first_step": 15,
+      "wrong_deposits": 666,
+      "consumed": [
+        64,
+        80
+      ],
+      "remaining": [
+        905,
+        921
+      ],
+      "bank": [
+        55,
+        23
+      ]
+    },
+    "hidden/2026100801/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 88,
+      "four_step": 154,
+      "first_step": 128,
+      "wrong_deposits": 184,
+      "consumed": [
+        166,
+        167
+      ],
+      "remaining": [
+        80,
+        80
+      ],
+      "bank": [
+        10,
+        9
+      ]
+    },
+    "hidden/2026100801/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 8,
+      "four_step": 35,
+      "first_step": 46,
+      "wrong_deposits": 710,
+      "consumed": [
+        236,
+        212
+      ],
+      "remaining": [
+        737,
+        752
+      ],
+      "bank": [
+        51,
+        60
+      ]
+    },
+    "hidden/2026100801/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 79,
+      "four_step": 134,
+      "first_step": 107,
+      "wrong_deposits": 208,
+      "consumed": [
+        150,
+        156
+      ],
+      "remaining": [
+        99,
+        86
+      ],
+      "bank": [
+        7,
+        14
+      ]
+    },
+    "hidden/2026100801/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 6,
+      "four_step": 34,
+      "first_step": 40,
+      "wrong_deposits": 738,
+      "consumed": [
+        200,
+        212
+      ],
+      "remaining": [
+        762,
+        772
+      ],
+      "bank": [
+        62,
+        40
+      ]
+    },
+    "hidden/2026100801/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 113,
+      "four_step": 177,
+      "first_step": 130,
+      "wrong_deposits": 184,
+      "consumed": [
+        185,
+        187
+      ],
+      "remaining": [
+        71,
+        67
+      ],
+      "bank": [
+        0,
+        2
+      ]
+    },
+    "hidden/2026100801/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 127,
+      "first_step": 97,
+      "wrong_deposits": 646,
+      "consumed": [
+        548,
+        552
+      ],
+      "remaining": [
+        451,
+        447
+      ],
+      "bank": [
+        25,
+        25
+      ]
+    },
+    "hidden/2026100801/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 117,
+      "four_step": 170,
+      "first_step": 132,
+      "wrong_deposits": 194,
+      "consumed": [
+        177,
+        179
+      ],
+      "remaining": [
+        76,
+        72
+      ],
+      "bank": [
+        3,
+        5
+      ]
+    },
+    "hidden/2026100801/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 59,
+      "four_step": 124,
+      "first_step": 97,
+      "wrong_deposits": 681,
+      "consumed": [
+        536,
+        556
+      ],
+      "remaining": [
+        451,
+        452
+      ],
+      "bank": [
+        37,
+        16
+      ]
+    },
+    "visible/2026100802/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 117,
+      "wrong_deposits": 148,
+      "consumed": [
+        154,
+        153
+      ],
+      "remaining": [
+        89,
+        92
+      ],
+      "bank": [
+        13,
+        11
+      ]
+    },
+    "visible/2026100802/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 606,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "visible/2026100802/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 98,
+      "first_step": 84,
+      "wrong_deposits": 188,
+      "consumed": [
+        129,
+        125
+      ],
+      "remaining": [
+        111,
+        116
+      ],
+      "bank": [
+        16,
+        15
+      ]
+    },
+    "visible/2026100802/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 13,
+      "wrong_deposits": 622,
+      "consumed": [
+        52,
+        72
+      ],
+      "remaining": [
+        913,
+        924
+      ],
+      "bank": [
+        59,
+        28
+      ]
+    },
+    "visible/2026100802/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 65,
+      "four_step": 140,
+      "first_step": 122,
+      "wrong_deposits": 162,
+      "consumed": [
+        155,
+        156
+      ],
+      "remaining": [
+        90,
+        88
+      ],
+      "bank": [
+        11,
+        12
+      ]
+    },
+    "visible/2026100802/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 2,
+      "four_step": 13,
+      "first_step": 22,
+      "wrong_deposits": 669,
+      "consumed": [
+        112,
+        116
+      ],
+      "remaining": [
+        861,
+        858
+      ],
+      "bank": [
+        51,
+        50
+      ]
+    },
+    "visible/2026100802/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 61,
+      "four_step": 114,
+      "first_step": 94,
+      "wrong_deposits": 200,
+      "consumed": [
+        136,
+        142
+      ],
+      "remaining": [
+        106,
+        94
+      ],
+      "bank": [
+        14,
+        20
+      ]
+    },
+    "visible/2026100802/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 8,
+      "first_step": 19,
+      "wrong_deposits": 678,
+      "consumed": [
+        76,
+        92
+      ],
+      "remaining": [
+        892,
+        908
+      ],
+      "bank": [
+        56,
+        24
+      ]
+    },
+    "visible/2026100802/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 91,
+      "four_step": 159,
+      "first_step": 125,
+      "wrong_deposits": 192,
+      "consumed": [
+        167,
+        175
+      ],
+      "remaining": [
+        85,
+        74
+      ],
+      "bank": [
+        4,
+        7
+      ]
+    },
+    "visible/2026100802/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 25,
+      "four_step": 69,
+      "first_step": 69,
+      "wrong_deposits": 688,
+      "consumed": [
+        352,
+        348
+      ],
+      "remaining": [
+        616,
+        638
+      ],
+      "bank": [
+        56,
+        38
+      ]
+    },
+    "visible/2026100802/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 93,
+      "four_step": 156,
+      "first_step": 122,
+      "wrong_deposits": 201,
+      "consumed": [
+        169,
+        170
+      ],
+      "remaining": [
+        81,
+        73
+      ],
+      "bank": [
+        6,
+        13
+      ]
+    },
+    "visible/2026100802/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 15,
+      "four_step": 63,
+      "first_step": 58,
+      "wrong_deposits": 789,
+      "consumed": [
+        304,
+        324
+      ],
+      "remaining": [
+        665,
+        662
+      ],
+      "bank": [
+        55,
+        38
+      ]
+    },
+    "visible/2026100802/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 117,
+      "four_step": 181,
+      "first_step": 130,
+      "wrong_deposits": 189,
+      "consumed": [
+        185,
+        187
+      ],
+      "remaining": [
+        71,
+        67
+      ],
+      "bank": [
+        0,
+        2
+      ]
+    },
+    "visible/2026100802/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 77,
+      "four_step": 155,
+      "first_step": 108,
+      "wrong_deposits": 628,
+      "consumed": [
+        648,
+        644
+      ],
+      "remaining": [
+        367,
+        361
+      ],
+      "bank": [
+        9,
+        19
+      ]
+    },
+    "visible/2026100802/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 126,
+      "four_step": 175,
+      "first_step": 135,
+      "wrong_deposits": 191,
+      "consumed": [
+        178,
+        183
+      ],
+      "remaining": [
+        76,
+        68
+      ],
+      "bank": [
+        2,
+        5
+      ]
+    },
+    "visible/2026100802/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 67,
+      "four_step": 145,
+      "first_step": 102,
+      "wrong_deposits": 672,
+      "consumed": [
+        624,
+        620
+      ],
+      "remaining": [
+        383,
+        391
+      ],
+      "bank": [
+        17,
+        13
+      ]
+    },
+    "hidden/2026100802/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 117,
+      "wrong_deposits": 148,
+      "consumed": [
+        154,
+        153
+      ],
+      "remaining": [
+        89,
+        92
+      ],
+      "bank": [
+        13,
+        11
+      ]
+    },
+    "hidden/2026100802/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 607,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "hidden/2026100802/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 49,
+      "four_step": 98,
+      "first_step": 84,
+      "wrong_deposits": 188,
+      "consumed": [
+        129,
+        125
+      ],
+      "remaining": [
+        112,
+        116
+      ],
+      "bank": [
+        15,
+        15
+      ]
+    },
+    "hidden/2026100802/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 4,
+      "first_step": 12,
+      "wrong_deposits": 625,
+      "consumed": [
+        48,
+        68
+      ],
+      "remaining": [
+        917,
+        925
+      ],
+      "bank": [
+        59,
+        31
+      ]
+    },
+    "hidden/2026100802/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 142,
+      "first_step": 122,
+      "wrong_deposits": 151,
+      "consumed": [
+        158,
+        157
+      ],
+      "remaining": [
+        88,
+        87
+      ],
+      "bank": [
+        10,
+        12
+      ]
+    },
+    "hidden/2026100802/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 2,
+      "four_step": 10,
+      "first_step": 18,
+      "wrong_deposits": 661,
+      "consumed": [
+        104,
+        92
+      ],
+      "remaining": [
+        869,
+        878
+      ],
+      "bank": [
+        51,
+        54
+      ]
+    },
+    "hidden/2026100802/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 58,
+      "four_step": 112,
+      "first_step": 92,
+      "wrong_deposits": 198,
+      "consumed": [
+        135,
+        139
+      ],
+      "remaining": [
+        106,
+        96
+      ],
+      "bank": [
+        15,
+        21
+      ]
+    },
+    "hidden/2026100802/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 8,
+      "first_step": 15,
+      "wrong_deposits": 679,
+      "consumed": [
+        68,
+        80
+      ],
+      "remaining": [
+        904,
+        919
+      ],
+      "bank": [
+        52,
+        25
+      ]
+    },
+    "hidden/2026100802/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 93,
+      "four_step": 151,
+      "first_step": 127,
+      "wrong_deposits": 194,
+      "consumed": [
+        165,
+        162
+      ],
+      "remaining": [
+        83,
+        83
+      ],
+      "bank": [
+        8,
+        11
+      ]
+    },
+    "hidden/2026100802/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 14,
+      "four_step": 49,
+      "first_step": 54,
+      "wrong_deposits": 702,
+      "consumed": [
+        296,
+        264
+      ],
+      "remaining": [
+        678,
+        706
+      ],
+      "bank": [
+        50,
+        54
+      ]
+    },
+    "hidden/2026100802/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 82,
+      "four_step": 136,
+      "first_step": 108,
+      "wrong_deposits": 214,
+      "consumed": [
+        151,
+        156
+      ],
+      "remaining": [
+        97,
+        86
+      ],
+      "bank": [
+        8,
+        14
+      ]
+    },
+    "hidden/2026100802/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 11,
+      "four_step": 43,
+      "first_step": 46,
+      "wrong_deposits": 754,
+      "consumed": [
+        228,
+        252
+      ],
+      "remaining": [
+        736,
+        733
+      ],
+      "bank": [
+        60,
+        39
+      ]
+    },
+    "hidden/2026100802/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 117,
+      "four_step": 181,
+      "first_step": 130,
+      "wrong_deposits": 186,
+      "consumed": [
+        186,
+        188
+      ],
+      "remaining": [
+        70,
+        67
+      ],
+      "bank": [
+        0,
+        1
+      ]
+    },
+    "hidden/2026100802/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 74,
+      "four_step": 152,
+      "first_step": 107,
+      "wrong_deposits": 629,
+      "consumed": [
+        636,
+        628
+      ],
+      "remaining": [
+        376,
+        372
+      ],
+      "bank": [
+        12,
+        24
+      ]
+    },
+    "hidden/2026100802/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 123,
+      "four_step": 176,
+      "first_step": 135,
+      "wrong_deposits": 188,
+      "consumed": [
+        181,
+        184
+      ],
+      "remaining": [
+        73,
+        67
+      ],
+      "bank": [
+        2,
+        5
+      ]
+    },
+    "hidden/2026100802/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 141,
+      "first_step": 101,
+      "wrong_deposits": 684,
+      "consumed": [
+        604,
+        608
+      ],
+      "remaining": [
+        397,
+        401
+      ],
+      "bank": [
+        23,
+        15
+      ]
+    },
+    "visible/2026100803/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 116,
+      "wrong_deposits": 150,
+      "consumed": [
+        153,
+        153
+      ],
+      "remaining": [
+        90,
+        91
+      ],
+      "bank": [
+        13,
+        12
+      ]
+    },
+    "visible/2026100803/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 607,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "visible/2026100803/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 99,
+      "first_step": 85,
+      "wrong_deposits": 187,
+      "consumed": [
+        130,
+        126
+      ],
+      "remaining": [
+        111,
+        115
+      ],
+      "bank": [
+        15,
+        15
+      ]
+    },
+    "visible/2026100803/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 13,
+      "wrong_deposits": 622,
+      "consumed": [
+        52,
+        72
+      ],
+      "remaining": [
+        912,
+        924
+      ],
+      "bank": [
+        60,
+        28
+      ]
+    },
+    "visible/2026100803/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 62,
+      "four_step": 141,
+      "first_step": 123,
+      "wrong_deposits": 151,
+      "consumed": [
+        159,
+        157
+      ],
+      "remaining": [
+        87,
+        88
+      ],
+      "bank": [
+        10,
+        11
+      ]
+    },
+    "visible/2026100803/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 10,
+      "first_step": 17,
+      "wrong_deposits": 660,
+      "consumed": [
+        96,
+        96
+      ],
+      "remaining": [
+        873,
+        881
+      ],
+      "bank": [
+        55,
+        47
+      ]
+    },
+    "visible/2026100803/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 57,
+      "four_step": 111,
+      "first_step": 91,
+      "wrong_deposits": 197,
+      "consumed": [
+        135,
+        138
+      ],
+      "remaining": [
+        106,
+        100
+      ],
+      "bank": [
+        15,
+        18
+      ]
+    },
+    "visible/2026100803/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 7,
+      "first_step": 16,
+      "wrong_deposits": 667,
+      "consumed": [
+        64,
+        84
+      ],
+      "remaining": [
+        902,
+        913
+      ],
+      "bank": [
+        58,
+        27
+      ]
+    },
+    "visible/2026100803/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 93,
+      "four_step": 160,
+      "first_step": 127,
+      "wrong_deposits": 190,
+      "consumed": [
+        169,
+        174
+      ],
+      "remaining": [
+        79,
+        74
+      ],
+      "bank": [
+        8,
+        8
+      ]
+    },
+    "visible/2026100803/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 20,
+      "four_step": 62,
+      "first_step": 62,
+      "wrong_deposits": 703,
+      "consumed": [
+        320,
+        324
+      ],
+      "remaining": [
+        649,
+        663
+      ],
+      "bank": [
+        55,
+        37
+      ]
+    },
+    "visible/2026100803/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 90,
+      "four_step": 150,
+      "first_step": 118,
+      "wrong_deposits": 207,
+      "consumed": [
+        164,
+        166
+      ],
+      "remaining": [
+        85,
+        78
+      ],
+      "bank": [
+        7,
+        12
+      ]
+    },
+    "visible/2026100803/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 14,
+      "four_step": 59,
+      "first_step": 55,
+      "wrong_deposits": 776,
+      "consumed": [
+        288,
+        320
+      ],
+      "remaining": [
+        675,
+        664
+      ],
+      "bank": [
+        61,
+        40
+      ]
+    },
+    "visible/2026100803/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 116,
+      "four_step": 181,
+      "first_step": 130,
+      "wrong_deposits": 187,
+      "consumed": [
+        186,
+        188
+      ],
+      "remaining": [
+        70,
+        65
+      ],
+      "bank": [
+        0,
+        3
+      ]
+    },
+    "visible/2026100803/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 69,
+      "four_step": 148,
+      "first_step": 104,
+      "wrong_deposits": 653,
+      "consumed": [
+        616,
+        616
+      ],
+      "remaining": [
+        397,
+        388
+      ],
+      "bank": [
+        11,
+        20
+      ]
+    },
+    "visible/2026100803/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 123,
+      "four_step": 176,
+      "first_step": 134,
+      "wrong_deposits": 189,
+      "consumed": [
+        181,
+        184
+      ],
+      "remaining": [
+        73,
+        67
+      ],
+      "bank": [
+        2,
+        5
+      ]
+    },
+    "visible/2026100803/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 64,
+      "four_step": 139,
+      "first_step": 101,
+      "wrong_deposits": 669,
+      "consumed": [
+        600,
+        604
+      ],
+      "remaining": [
+        400,
+        405
+      ],
+      "bank": [
+        24,
+        15
+      ]
+    },
+    "hidden/2026100803/0/2026100881/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 134,
+      "first_step": 116,
+      "wrong_deposits": 150,
+      "consumed": [
+        153,
+        153
+      ],
+      "remaining": [
+        90,
+        91
+      ],
+      "bank": [
+        13,
+        12
+      ]
+    },
+    "hidden/2026100803/0/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 14,
+      "wrong_deposits": 607,
+      "consumed": [
+        64,
+        68
+      ],
+      "remaining": [
+        898,
+        914
+      ],
+      "bank": [
+        62,
+        42
+      ]
+    },
+    "hidden/2026100803/0/2026100882/2": {
+      "cases": 256,
+      "two_step": 50,
+      "four_step": 99,
+      "first_step": 85,
+      "wrong_deposits": 187,
+      "consumed": [
+        130,
+        126
+      ],
+      "remaining": [
+        111,
+        115
+      ],
+      "bank": [
+        15,
+        15
+      ]
+    },
+    "hidden/2026100803/0/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 5,
+      "first_step": 13,
+      "wrong_deposits": 622,
+      "consumed": [
+        52,
+        72
+      ],
+      "remaining": [
+        912,
+        924
+      ],
+      "bank": [
+        60,
+        28
+      ]
+    },
+    "hidden/2026100803/100/2026100881/2": {
+      "cases": 256,
+      "two_step": 61,
+      "four_step": 141,
+      "first_step": 123,
+      "wrong_deposits": 148,
+      "consumed": [
+        158,
+        158
+      ],
+      "remaining": [
+        87,
+        87
+      ],
+      "bank": [
+        11,
+        11
+      ]
+    },
+    "hidden/2026100803/100/2026100881/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 9,
+      "first_step": 16,
+      "wrong_deposits": 640,
+      "consumed": [
+        96,
+        92
+      ],
+      "remaining": [
+        874,
+        879
+      ],
+      "bank": [
+        54,
+        53
+      ]
+    },
+    "hidden/2026100803/100/2026100882/2": {
+      "cases": 256,
+      "two_step": 55,
+      "four_step": 111,
+      "first_step": 91,
+      "wrong_deposits": 192,
+      "consumed": [
+        137,
+        137
+      ],
+      "remaining": [
+        105,
+        101
+      ],
+      "bank": [
+        14,
+        18
+      ]
+    },
+    "hidden/2026100803/100/2026100882/8": {
+      "cases": 256,
+      "two_step": 1,
+      "four_step": 7,
+      "first_step": 15,
+      "wrong_deposits": 657,
+      "consumed": [
+        60,
+        84
+      ],
+      "remaining": [
+        904,
+        919
+      ],
+      "bank": [
+        60,
+        21
+      ]
+    },
+    "hidden/2026100803/300/2026100881/2": {
+      "cases": 256,
+      "two_step": 91,
+      "four_step": 153,
+      "first_step": 127,
+      "wrong_deposits": 192,
+      "consumed": [
+        167,
+        164
+      ],
+      "remaining": [
+        78,
+        81
+      ],
+      "bank": [
+        11,
+        11
+      ]
+    },
+    "hidden/2026100803/300/2026100881/8": {
+      "cases": 256,
+      "two_step": 13,
+      "four_step": 47,
+      "first_step": 54,
+      "wrong_deposits": 701,
+      "consumed": [
+        288,
+        252
+      ],
+      "remaining": [
+        686,
+        715
+      ],
+      "bank": [
+        50,
+        57
+      ]
+    },
+    "hidden/2026100803/300/2026100882/2": {
+      "cases": 256,
+      "two_step": 80,
+      "four_step": 135,
+      "first_step": 106,
+      "wrong_deposits": 216,
+      "consumed": [
+        151,
+        155
+      ],
+      "remaining": [
+        97,
+        85
+      ],
+      "bank": [
+        8,
+        16
+      ]
+    },
+    "hidden/2026100803/300/2026100882/8": {
+      "cases": 256,
+      "two_step": 10,
+      "four_step": 39,
+      "first_step": 45,
+      "wrong_deposits": 742,
+      "consumed": [
+        216,
+        236
+      ],
+      "remaining": [
+        753,
+        747
+      ],
+      "bank": [
+        55,
+        41
+      ]
+    },
+    "hidden/2026100803/600/2026100881/2": {
+      "cases": 256,
+      "two_step": 114,
+      "four_step": 177,
+      "first_step": 130,
+      "wrong_deposits": 185,
+      "consumed": [
+        184,
+        187
+      ],
+      "remaining": [
+        71,
+        67
+      ],
+      "bank": [
+        1,
+        2
+      ]
+    },
+    "hidden/2026100803/600/2026100881/8": {
+      "cases": 256,
+      "two_step": 57,
+      "four_step": 130,
+      "first_step": 99,
+      "wrong_deposits": 642,
+      "consumed": [
+        560,
+        568
+      ],
+      "remaining": [
+        437,
+        435
+      ],
+      "bank": [
+        27,
+        21
+      ]
+    },
+    "hidden/2026100803/600/2026100882/2": {
+      "cases": 256,
+      "two_step": 119,
+      "four_step": 172,
+      "first_step": 134,
+      "wrong_deposits": 192,
+      "consumed": [
+        177,
+        181
+      ],
+      "remaining": [
+        76,
+        70
+      ],
+      "bank": [
+        3,
+        5
+      ]
+    },
+    "hidden/2026100803/600/2026100882/8": {
+      "cases": 256,
+      "two_step": 58,
+      "four_step": 126,
+      "first_step": 96,
+      "wrong_deposits": 696,
+      "consumed": [
+        536,
+        560
+      ],
+      "remaining": [
+        454,
+        452
+      ],
+      "bank": [
+        34,
+        12
+      ]
+    }
+  },
+  "evidence_sha256": {
+    "identity.txt": "3d207d5789e1e54911e30d6ec829dc2b1def9d264b8d35b96071b8b8df48f9d2",
+    "completed.txt": "24e73764acfdd1c0f5648a980e4af1060ca93c8d72c17675027b212f07e040be",
+    "trials.tsv": "367a2d2bb2f052fcb7e2911769785309d585cac02219cdcc08715e26614abc20",
+    "updates.tsv": "5dbb840a111aaeccac81d57d0a4c41a8950b7edf24caf618717461329c4b6e89"
+  },
+  "source": "4fc06837e29c2d1e3c02c10dcd5314ba2d297dbe",
+  "tree": "796ed517ae7dfe94d3664cf75a2c1b0cf8c0a3a4",
+  "accepted_parent": "4734fa31413d40f742e3412ec5f5b91e377351fc",
+  "pr": 72,
+  "source_qualification": {
+    "source": "4fc06837e29c2d1e3c02c10dcd5314ba2d297dbe",
+    "tree": "796ed517ae7dfe94d3664cf75a2c1b0cf8c0a3a4",
+    "source_suite_exit": 0,
+    "artifacts": {
+      "botsclustersmc.jar": "1e9c88cd12587f9a6944acc90169e819bd17db493e1be389178e3db4ee9cef36",
+      "training.jar": "aae1fb27130b8c520dfc89f0de1cff7eab3c18febd95c043bfdef989e700f826"
+    },
+    "files": {
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyRoom.java": "7be0b36a30afbab0b0eb36eff49c885cdb998402ac71590410508d23e7f8326c",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyScenario.java": "057b9f7ab07690a6b46ae57f7082e26a0e0b203988a709897a127065ffb0cd29",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyRoomTest.java": "38aa2b2834557ed1a4e2c37c1a1da369fa6328b7b4493cf24576fc454e71d042",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyEpisode.java": "707b02708e22acd48de35d14515272911973d42f3f135ba01cf2097d01cc9094",
+      "tests/commonslearning/org/botsclustersmc/commonslearning/SupplyStudy.java": "0285e3a469aba315d4b522a3d2a471c00445202a49663eb2a13bad6cf633d0c7"
+    }
+  },
+  "budget": {
+    "attempts_per_arm": 600,
+    "offered_per_arm": 153600,
+    "total_offered": 921600,
+    "completed_arms": 6,
+    "accepted_by_arm": {
+      "visible/2026100801": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "visible/2026100802": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "visible/2026100803": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "hidden/2026100801": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "hidden/2026100802": {
+        "updates": 600,
+        "samples": 153600
+      },
+      "hidden/2026100803": {
+        "updates": 600,
+        "samples": 153600
+      }
+    }
+  },
+  "verification": {
+    "source_suite_exit": 0,
+    "native_mechanics_checks": 1351423,
+    "exhaustive_three_step_histories": 262144,
+    "python_tests_normal": 57,
+    "python_tests_optimized": 57,
+    "independent_replay_exit": 0,
+    "optimized_replay_exit": 0,
+    "normal_and_optimized_reports_byte_identical": true,
+    "new_minecraft_trials": 0,
+    "existing_academy_access": false,
+    "deployment": false
+  },
+  "execution_boundaries": [
+    "Initial combined main/service/Academy state read was blocked and not retried or reconstructed.",
+    "An optional later progress-log/first-step conditional-donation diagnostic was blocked and not performed or retrieved elsewhere.",
+    "The previously started finite learning run and its already-declared complete independent replay exited zero through their original execution session. No tail/progress retry or conditional-donation analysis was included."
+  ],
+  "qualification_sha256": {
+    "frozen-source.json": "bbcce9ffdad9b72b917141349d79519c23337f5c58cae5581df1d2683fb1342c",
+    "source-first.log": "27fa4050ebabf821ee86d85fee6a08275bfcf5c0d3b6ded623408aee78643fb9",
+    "source-corrected.log": "f6cd15f416f4bdb6ca1f95e224cf8a1edb490f20b0c869508283e7b585bab788",
+    "source-frozen.log": "4c0121e164eda62283cde7e0d628b025a03560eb16c6a7b4ef006cb60e92ef62",
+    "evidence-tests.log": "53fac29ddd5497c2741db0fbf29eb998e78e71279d3967f3d35f6096b15d6e18",
+    "python-final.log": "14b069f3776e833b589edbe470e6d54db1558f1863269d85c4d231e7a579cd1b",
+    "python-final-optimized.log": "d5b52be94d19d3802906e01ef7163ba74b7a33291b50d9b21a0e356abfd5e073",
+    "learning-results.json": "c6efbb0755f4f84a463003a68966a5d974e3856174044c9c8e8620a2037cf552",
+    "learning-results-optimized.json": "c6efbb0755f4f84a463003a68966a5d974e3856174044c9c8e8620a2037cf552",
+    "independent-replay.log": "47cc6c1f8b44f701e968fb71f4e6c025b904e5c253a6122833d5764a6be44cb6",
+    "independent-replay-optimized.log": "47cc6c1f8b44f701e968fb71f4e6c025b904e5c253a6122833d5764a6be44cb6"
+  }
+}
