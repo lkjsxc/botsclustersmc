@@ -87,8 +87,7 @@ public final class WorldActions {
     /** This simplified getDrops/setType path does not spill chest/furnace stock.
      * Require an empty local container until native block-entity spills are supported. */
     private static boolean emptyContainer(Block block){
-        BlockState state=block.getState();
-        return !(state instanceof Container container)||container.getSnapshotInventory().isEmpty();
+        return ContainerAccess.mayBreak(block.getLocation());
     }
     private static void mine(Npc npc){
         Hit hit=trace(npc);if(hit==null||!npc.plugin.canChange(npc,hit.block())){npc.mining=null;npc.miningTicks=0;return;}Block b=hit.block();Material type=b.getType();
@@ -118,7 +117,9 @@ public final class WorldActions {
         if(b.getType()==Material.FURNACE||b.getType()==Material.CHEST){
             // Container writes also require the explicit world-edit permission/bounds.
             if(!npc.plugin.canChange(npc,b))return;
-            npc.container=b.getLocation();npc.pocket.open(b.getType()==Material.FURNACE?Pocket.Menu.FURNACE:Pocket.Menu.CHEST);return;
+            Pocket.Menu menu=b.getType()==Material.FURNACE?Pocket.Menu.FURNACE:Pocket.Menu.CHEST;
+            if(ContainerAccess.inventory(b.getLocation(),menu)==null)return;
+            npc.container=b.getLocation();npc.pocket.open(menu);return;
         }
         if(hit.previous()==null||npc.pocket.held().empty())return;Material material=Material.valueOf(npc.pocket.held().item());
         if(!material.isBlock()||!Set.of(2,3,5,8,9,14,15).contains(Stack.kind(material.name())))return;

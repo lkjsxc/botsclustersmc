@@ -56,12 +56,10 @@ public final class ExternalInventory implements Pocket.External {
     }
     public static Pocket.External locate(Npc npc){
         Location at=npc.container;
-        if(at==null||!WorldActions.owned(at))return Pocket.NONE;
+        if(at==null||!Bukkit.isOwnedByCurrentRegion(npc.entity)||!npc.entity.isValid()||!WorldActions.owned(at))return Pocket.NONE;
         Location body=npc.entity.getLocation();
         if(body.getWorld()!=at.getWorld()||body.distanceSquared(at)>36||!npc.plugin.canChange(npc,at.getBlock()))return Pocket.NONE;
-        BlockState state=at.getBlock().getState();
-        if(npc.pocket.menu()==Pocket.Menu.FURNACE&&state instanceof Furnace f)return new ExternalInventory(f.getInventory(),true);
-        if(npc.pocket.menu()==Pocket.Menu.CHEST&&state instanceof Chest c)return new ExternalInventory(c.getBlockInventory(),false);
-        return Pocket.NONE;
+        Inventory inventory=ContainerAccess.inventory(at,npc.pocket.menu());
+        return inventory==null?Pocket.NONE:new ExternalInventory(inventory,npc.pocket.menu()==Pocket.Menu.FURNACE);
     }
 }

@@ -5,6 +5,15 @@ obtaining and sharing resources, replacing tools, meeting basic needs and recove
 from disruption. This document is an engineering direction, not an implemented
 feature list or a claim that the current policy can survive.
 
+## Communal-living direction
+
+[Communal living](COMMUNAL_LIVING.md) defines the population-level target: sustained
+useful provision and recovery, public needs rather than scripted occupations,
+and shuffled-partner/resource controls rather than merely more NPCs. These are
+engineering and future learning gates, not adopted research rewards or acquired
+social behavior. Current protected-container mechanics keep native locks and
+deferred loot outside usable communal stock; they do not create a learner.
+
 ## Current decision
 
 The [common-seed physical repeat comparison](verification/20261007-control-repeatability-results.md)

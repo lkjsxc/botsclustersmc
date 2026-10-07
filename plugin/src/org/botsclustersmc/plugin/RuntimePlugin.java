@@ -98,6 +98,7 @@ public abstract class RuntimePlugin extends JavaPlugin implements Listener,Comma
     protected synchronized void writeStatus()throws Exception{
         Map<String,Object> status=new LinkedHashMap<>();Policy p=policy;
         status.put("mode",training()?"training":"inference");status.put("state",failed.get()!=null?"failed":paused.get()?"paused":"running");status.put("schema",Schema.ID);
+        status.put("container_access_contract",ContainerAccess.CONTRACT);
         status.put("policy_updates",p.updates());status.put("trained_samples",p.samples());status.put("active_agents",npcs.size());status.put("pending_agents",pendingSpawns.get()+spawnQueue.size());
         long now=System.nanoTime(),min=Long.MAX_VALUE,max=0,minDelta=Long.MAX_VALUE;int live=0,waiting=0,resetting=0,progressed=0,moved=0;double oldest=0,travel=0;
         for(Npc n:npcs.values()){if(n.horizontalTravel>.5)moved++;travel+=n.horizontalTravel;long delta=n.decisions-lastDecisions.getOrDefault(n.id,n.decisions);lastDecisions.put(n.id,n.decisions);minDelta=Math.min(minDelta,delta);if(delta>0)progressed++;if(n.lastStepNanos>0){double age=(now-n.lastStepNanos)/1e9;oldest=Math.max(oldest,age);if(age<2)live++;}if(n.status.equals("inference-wait"))waiting++;if(n.resetting)resetting++;min=Math.min(min,n.decisions);max=Math.max(max,n.decisions);}
